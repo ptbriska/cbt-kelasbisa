@@ -1,39 +1,39 @@
 /* ==========================================================================
-   TEMA: CYAN TECHNO FUTURISTIC (CBT Dark Mode)
-   Warna Utama: Deep Ocean (Background), Sky Cyan & Sea Blue (Gradient), Techno Green (Accent)
+   TEMA: MODERN BLUE & WHITE LIGHT MODE (CBT System)
+   Warna Utama: Pure White (Background), Navy & Royal Blue (Primary), Cyan/Sky (Accent)
    ========================================================================== */
 
 :root {
-  /* Background & Surface Dark Theme */
-  --bg-main: #030b14; /* Deep space / ocean dark */
-  --bg-card: rgba(10, 22, 40, 0.75); /* Glassmorphism background */
-  --bg-panel: rgba(16, 33, 61, 0.85); /* Slightly lighter for panels */
+  /* Background & Surface Light Theme */
+  --bg-main: #f8fafc; /* Slate light gray-white background */
+  --bg-card: #ffffff; /* Solid pure white for main card */
+  --bg-panel: #f1f5f9; /* Subtle gray-blue for panel containers */
   
   /* Text Colors */
-  --text-dark: #e0f2fe; /* Light cyan-white for readability */
-  --text-muted: #7dd3fc; /* Muted cyan */
+  --text-dark: #0f172a; /* Deep navy-slate for high contrast readability */
+  --text-muted: #64748b; /* Muted slate gray */
   
-  /* Brand & Accents */
-  --brand-cyan: #22d3ee; /* Bright Cyan */
-  --brand-sky: #38bdf8; /* Sky Blue */
-  --brand-sea: #0284c7; /* Sea Blue */
-  --accent-green: #00ffaa; /* Techno Green Glow */
+  /* Brand & Accents (Dominan Biru) */
+  --brand-primary: #1e40af; /* Dark Royal Blue */
+  --brand-sky: #0284c7;     /* Ocean / Sky Blue */
+  --brand-cyan: #09090b;    /* Dark Navy Headline Text */
+  --accent-blue: #2563eb;   /* Vibrant Blue Glow/Focus */
   
   /* Status Warna Bulatan CBT */
-  --color-unanswered: #f43f5e; /* Neon Red */
-  --color-answered: #0ea5e9;   /* Sky Blue */
-  --color-active: #00ffaa;     /* Techno Green Glow */
+  --color-unanswered: #ef4444; /* Vivid Red */
+  --color-answered: #0284c7;   /* Ocean Blue */
+  --color-active: #16a34a;     /* Forest Green Active Indicator */
   
   /* Status Hasil Ujian */
-  --color-success: #00ffaa;
-  --color-danger: #f43f5e;
-  --color-warning: #fbbf24;
-  --color-info: #22d3ee;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #2563eb;
 
   /* Shadows & Borders */
-  --shadow-glow-cyan: 0 0 15px rgba(34, 211, 238, 0.3);
-  --shadow-glow-green: 0 0 15px rgba(0, 255, 170, 0.4);
-  --border-glass: 1px solid rgba(56, 189, 248, 0.25);
+  --shadow-card: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-glow-blue: 0 0 12px rgba(37, 99, 235, 0.25);
+  --border-light: 1px solid #e2e8f0;
   --border-radius: 12px;
 }
 
@@ -47,8 +47,8 @@
 body {
   background-color: var(--bg-main);
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(0, 255, 170, 0.05), transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(37, 99, 235, 0.04), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(2, 132, 199, 0.04), transparent 25%);
   color: var(--text-dark);
   min-height: 100vh;
   display: flex;
@@ -67,12 +67,10 @@ body {
   width: 92%;
   margin: 35px auto;
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   padding: 35px 40px;
   border-radius: 20px;
-  border: var(--border-glass);
-  box-shadow: var(--shadow-glow-cyan);
+  border: var(--border-light);
+  box-shadow: var(--shadow-card);
 }
 
 /* Header Welcome Rata Tengah */
@@ -86,17 +84,15 @@ body {
   width: auto;
   margin-bottom: 12px;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.5));
 }
 
 .header-welcome h2 {
   font-size: 1.45rem;
-  color: var(--brand-cyan);
+  color: var(--brand-primary);
   margin-bottom: 6px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
 }
 
 .header-welcome h3 {
@@ -114,9 +110,9 @@ body {
   display: block;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--brand-sky);
+  color: var(--brand-primary);
   margin-bottom: 6px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .hint-label {
@@ -128,19 +124,25 @@ body {
 .form-group input {
   width: 100%;
   padding: 11px 14px;
-  background: rgba(3, 11, 20, 0.8);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #ffffff;
+  color: var(--text-dark);
   outline: none;
   transition: all 0.3s ease;
 }
 
 .form-group input:focus {
-  border-color: var(--accent-green);
-  box-shadow: var(--shadow-glow-green);
-  background: rgba(10, 22, 40, 0.9);
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.form-group input[readonly] {
+  background-color: #f8fafc;
+  color: #475569;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
 }
 
 .form-row-2col {
@@ -152,30 +154,48 @@ body {
 .btn-primary {
   width: 100%;
   padding: 13px;
-  background: linear-gradient(135deg, var(--brand-sea), var(--brand-cyan));
+  background: linear-gradient(135deg, var(--brand-primary), var(--accent-blue));
   color: #ffffff;
   border: none;
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
   margin-top: 10px;
   text-transform: uppercase;
-  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.6);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+}
+
+.btn-warning {
+  width: 100%;
+  padding: 12px;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.btn-warning:hover {
+  background: #b45309;
 }
 
 .btn-secondary {
   padding: 13px 20px;
-  background: var(--bg-panel);
-  color: var(--brand-cyan);
-  border: 1px solid var(--brand-cyan);
+  background: #ffffff;
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
   border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -184,8 +204,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: rgba(34, 211, 238, 0.15);
-  box-shadow: var(--shadow-glow-cyan);
+  background: #eff6ff;
 }
 
 .error-msg {
@@ -194,14 +213,13 @@ body {
   text-align: center;
   margin-top: 14px;
   font-weight: 600;
-  text-shadow: 0 0 5px rgba(244, 63, 94, 0.4);
 }
 
 /* Footer Motivasi */
 .footer-motto {
   margin-top: 25px;
   padding-top: 15px;
-  border-top: 1px dashed rgba(56, 189, 248, 0.2);
+  border-top: 1px dashed #e2e8f0;
   text-align: center;
 }
 
@@ -218,21 +236,20 @@ body {
    ========================================== */
 .info-kegiatan-box {
   background-color: var(--bg-panel);
-  border: var(--border-glass);
+  border: var(--border-light);
   border-radius: 12px;
   padding: 18px 22px;
   margin-bottom: 22px;
-  box-shadow: inset 0 0 10px rgba(2, 132, 199, 0.1);
 }
 
 .info-kegiatan-box h4 {
   font-size: 0.95rem;
-  color: var(--brand-cyan);
+  color: var(--brand-primary);
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   font-weight: 700;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+  border-bottom: 1px solid #cbd5e1;
   padding-bottom: 6px;
 }
 
@@ -254,24 +271,23 @@ body {
 }
 
 .badge-code {
-  background: rgba(34, 211, 238, 0.15);
-  color: var(--brand-cyan);
-  border: 1px solid var(--brand-cyan);
+  background: #dbeafe;
+  color: var(--brand-primary);
+  border: 1px solid #93c5fd;
   padding: 2px 10px;
   border-radius: 6px;
   font-size: 0.85rem;
-  letter-spacing: 1px;
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.2);
+  letter-spacing: 0.5px;
 }
 
 .table-info tr:not(:last-child) td {
-  border-bottom: 1px dashed rgba(56, 189, 248, 0.2);
+  border-bottom: 1px dashed #cbd5e1;
 }
 
 /* Box Rules / Tata Tertib Ujian */
 .rules-box {
-  background: rgba(3, 11, 20, 0.6);
-  border: var(--border-glass);
+  background: #ffffff;
+  border: var(--border-light);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 22px;
@@ -279,7 +295,7 @@ body {
 
 .rules-box h4 {
   font-size: 0.95rem;
-  color: var(--brand-cyan);
+  color: var(--brand-primary);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -297,11 +313,11 @@ body {
 }
 
 .warning-rule {
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.4);
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
   padding: 10px 14px;
   border-radius: 8px;
-  color: #fda4af;
+  color: #991b1b;
 }
 
 .warning-rule ul {
@@ -316,7 +332,7 @@ body {
 /* Checkbox Persetujuan Custom */
 .agreement-box {
   background: var(--bg-panel);
-  border: var(--border-glass);
+  border: var(--border-light);
   padding: 14px 18px;
   border-radius: 10px;
   margin-bottom: 22px;
@@ -337,7 +353,7 @@ body {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: var(--brand-cyan);
+  accent-color: var(--brand-primary);
   cursor: pointer;
 }
 
@@ -350,7 +366,7 @@ body {
 .btn-start-disabled {
   opacity: 0.5;
   cursor: not-allowed !important;
-  background: #334155 !important;
+  background: #94a3b8 !important;
   box-shadow: none !important;
 }
 
@@ -365,14 +381,14 @@ body {
 }
 
 .top-bar {
-  background: linear-gradient(90deg, #020813, #0a1b33);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.3);
-  color: #ffffff;
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+  color: var(--text-dark);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 25px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .header-left {
@@ -384,13 +400,12 @@ body {
 .logo-img {
   height: 42px;
   width: auto;
-  filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.5));
 }
 
 .title-box h2 {
   font-size: 1.1rem;
-  letter-spacing: 1px;
-  color: var(--brand-cyan);
+  letter-spacing: 0.5px;
+  color: var(--brand-primary);
   text-transform: uppercase;
 }
 
@@ -408,15 +423,14 @@ body {
 .user-avatar {
   width: 36px;
   height: 36px;
-  background: rgba(34, 211, 238, 0.15);
-  border: 1px solid var(--brand-cyan);
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
-  color: var(--brand-cyan);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+  color: var(--brand-primary);
 }
 
 .user-details {
@@ -440,10 +454,10 @@ body {
   font-size: 0.7rem;
   font-weight: bold;
   margin-top: 2px;
-  transition: text-shadow 0.2s;
 }
+
 .btn-keluar:hover {
-  text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+  text-decoration: underline;
 }
 
 .cbt-body {
@@ -466,36 +480,35 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px dashed rgba(56, 189, 248, 0.3);
+  border-bottom: 1px dashed #cbd5e1;
   padding-bottom: 12px;
   margin-bottom: 20px;
 }
 
 .q-title {
   font-size: 1.2rem;
-  color: var(--brand-sky);
+  color: var(--brand-primary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .timer-display {
-  background: rgba(0, 255, 170, 0.1);
+  background: #f0fdf4;
   padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid var(--accent-green);
+  border: 1px solid #86efac;
   font-weight: 700;
-  color: var(--accent-green);
-  box-shadow: var(--shadow-glow-green);
+  color: #166534;
   letter-spacing: 1px;
 }
 
-/* Mobile Touch Fix: Z-index layer */
+/* Question Content Box */
 .question-content {
-  background: var(--bg-panel);
+  background: #ffffff;
   padding: 25px;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: var(--border-glass);
+  box-shadow: var(--shadow-card);
+  border: var(--border-light);
   flex: 1;
   position: relative;
   z-index: 10;
@@ -506,7 +519,7 @@ body {
   max-height: 300px;
   border-radius: 10px;
   margin-bottom: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid #e2e8f0;
 }
 
 /* Teks Soal & Format Baris Baru */
@@ -528,45 +541,43 @@ body {
   z-index: 10;
 }
 
-/* Touch area & Alignment opsi multi-baris */
 .option-row {
   display: flex;
   align-items: flex-start;
   padding: 12px 18px;
-  background: rgba(3, 11, 20, 0.6);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
   user-select: none;
 }
 
 .option-row:hover {
-  background: rgba(34, 211, 238, 0.08);
-  border-color: var(--brand-sky);
+  background: #eff6ff;
+  border-color: #93c5fd;
   transform: translateX(4px);
 }
 
 .option-row.selected {
-  background: rgba(0, 255, 170, 0.1);
-  border-color: var(--accent-green);
-  box-shadow: inset 0 0 10px rgba(0, 255, 170, 0.15);
+  background: #dbeafe;
+  border-color: var(--accent-blue);
+  box-shadow: inset 0 0 5px rgba(37, 99, 235, 0.1);
 }
 
 .option-row input[type="radio"] {
   margin-right: 15px;
   margin-top: 4px;
-  accent-color: var(--accent-green);
+  accent-color: var(--accent-blue);
   transform: scale(1.2);
 }
 
 .opt-key {
   font-weight: 700;
   margin-right: 8px;
-  color: var(--brand-cyan);
+  color: var(--brand-primary);
   line-height: 1.5;
 }
 
@@ -578,7 +589,7 @@ body {
   word-break: break-word;
 }
 
-/* MathJax / KaTeX Styling untuk Dark Mode */
+/* MathJax / KaTeX Styling Light Mode */
 .q-text .mjx-chtml, .opt-val .mjx-chtml,
 .q-text .MathJax, .opt-val .MathJax,
 .q-text .katex, .opt-val .katex {
@@ -587,15 +598,14 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   vertical-align: middle;
-  color: var(--brand-cyan); /* Mewarnai equation agar terlihat futuristik */
+  color: var(--brand-primary);
 }
 
 /* Sidebar Navigasi Bulatan (Kanan) */
 .sidebar-nav {
   width: 220px;
-  background: var(--bg-card);
-  backdrop-filter: blur(10px);
-  border-left: var(--border-glass);
+  background: #ffffff;
+  border-left: var(--border-light);
   padding: 20px 15px;
   overflow-y: auto;
 }
@@ -618,32 +628,28 @@ body {
   font-size: 0.9rem;
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   transition: all 0.2s ease;
   user-select: none;
   border: 1px solid transparent;
 }
 
 .circle-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  transform: scale(1.08);
 }
 
 .circle-btn.unanswered {
   background: var(--color-unanswered); 
-  border-color: rgba(244, 63, 94, 0.5);
 }
 
 .circle-btn.answered {
   background: var(--color-answered); 
-  border-color: rgba(14, 165, 233, 0.5);
 }
 
 .circle-btn.active {
-  background: transparent;
-  border: 2px solid var(--accent-green);
-  color: var(--accent-green);
-  box-shadow: var(--shadow-glow-green), inset 0 0 8px rgba(0, 255, 170, 0.3);
+  background: #ffffff;
+  border: 2px solid var(--color-active);
+  color: var(--color-active);
   transform: scale(1.15);
 }
 
@@ -652,20 +658,20 @@ body {
    4. FOOTER BOTTOM BAR
    ========================================== */
 .bottom-bar {
-  background: var(--bg-card);
-  border-top: var(--border-glass);
+  background: #ffffff;
+  border-top: var(--border-light);
   padding: 12px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .btn-footer {
   padding: 10px 18px;
-  background: rgba(3, 11, 20, 0.8);
-  color: var(--brand-sky);
-  border: 1px solid var(--brand-sky);
+  background: #ffffff;
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
   border-radius: 10px;
   font-weight: 600;
   font-size: 0.85rem;
@@ -676,20 +682,18 @@ body {
 }
 
 .btn-footer:hover {
-  background: rgba(56, 189, 248, 0.15);
-  box-shadow: var(--shadow-glow-cyan);
+  background: #eff6ff;
 }
 
 .btn-selesai {
-  background: rgba(0, 255, 170, 0.15);
-  color: var(--accent-green);
-  border: 1px solid var(--accent-green);
+  background: #16a34a;
+  color: #ffffff;
+  border: 1px solid #16a34a;
 }
 
 .btn-selesai:hover {
-  background: var(--accent-green);
-  color: #000000; /* Dark text when hovered for contrast */
-  box-shadow: var(--shadow-glow-green);
+  background: #15803d;
+  color: #ffffff;
 }
 
 .bottom-center {
@@ -699,16 +703,16 @@ body {
 
 
 /* ==========================================
-   5. PAGE RESULT: PENGUMUMAN SKOR MODERN (NEW)
+   5. PAGE RESULT: PENGUMUMAN SKOR MODERN
    ========================================== */
 .result-card-container {
   max-width: 540px;
   width: 92%;
   margin: 40px auto;
-  background: var(--bg-card);
+  background: #ffffff;
   border-radius: 20px;
-  border: var(--border-glass);
-  box-shadow: var(--shadow-glow-cyan);
+  border: var(--border-light);
+  box-shadow: var(--shadow-card);
   padding: 35px 30px;
   text-align: center;
   animation: fadeInScale 0.4s ease-out forwards;
@@ -729,24 +733,23 @@ body {
   width: 68px;
   height: 68px;
   margin: 0 auto 15px;
-  background: rgba(0, 255, 170, 0.1);
-  color: var(--accent-green);
-  border: 1px solid var(--accent-green);
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #86efac;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  box-shadow: var(--shadow-glow-green);
 }
 
 .result-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--brand-cyan);
+  color: var(--brand-primary);
   margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .result-subtitle {
@@ -755,10 +758,9 @@ body {
   margin-bottom: 25px;
 }
 
-/* Card Hasil Ujian Detail */
 .result-detail-box {
   background: var(--bg-panel);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: var(--border-light);
   border-radius: 16px;
   padding: 20px;
   text-align: left;
@@ -768,8 +770,8 @@ body {
 .result-detail-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--brand-sky);
-  border-bottom: 1px dashed rgba(56, 189, 248, 0.3);
+  color: var(--brand-primary);
+  border-bottom: 1px dashed #cbd5e1;
   padding-bottom: 10px;
   margin-bottom: 15px;
   display: flex;
@@ -777,82 +779,40 @@ body {
   gap: 8px;
 }
 
-/* Breakdown Kategori CAT (TWK/TIU/TKP) */
-.cat-breakdown-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.cat-item-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: rgba(3, 11, 20, 0.6);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.cat-item-row:hover {
-  border-color: var(--brand-cyan);
-  background: rgba(34, 211, 238, 0.1);
-  transform: translateX(3px);
-}
-
-.cat-item-label {
-  font-weight: 600;
-  color: var(--text-dark);
-  font-size: 0.92rem;
-}
-
-.cat-item-score {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--brand-cyan);
-  text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
-}
-
-/* Big Score Display Box */
 .score-badge-main {
-  background: rgba(0, 255, 170, 0.05);
-  border: 1.5px solid var(--accent-green);
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
   border-radius: 14px;
   padding: 18px;
   text-align: center;
   margin-bottom: 18px;
-  box-shadow: inset 0 0 20px rgba(0, 255, 170, 0.1);
 }
 
 .score-badge-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--brand-cyan);
+  color: #166534;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
 }
 
 .score-badge-val {
   font-size: 2.8rem;
   font-weight: 800;
-  color: var(--accent-green);
+  color: #15803d;
   line-height: 1.1;
   margin-top: 4px;
-  text-shadow: var(--shadow-glow-green);
 }
 
-/* Stat Grid (Benar, Salah, Kosong) */
 .stat-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   text-align: center;
-  background: rgba(3, 11, 20, 0.6);
+  background: #ffffff;
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  border: var(--border-light);
   font-size: 0.85rem;
 }
 
@@ -893,7 +853,7 @@ body {
     width: 100%;
     height: 150px;
     border-left: none;
-    border-top: var(--border-glass);
+    border-top: var(--border-light);
   }
   .circle-grid {
     grid-template-columns: repeat(6, 1fr);
