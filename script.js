@@ -1,9 +1,10 @@
 // ==========================================================
-// CBT KIBI Versi 1.2.1 - Core Engine (Isolated CBT System)
+// CBT KIBI Versi 1.3.0 - Core Engine (Isolated CBT System)
+// Fitur: Verifikasi 2 Langkah (Cek Verifikasi -> Auto-Fill -> Lanjut)
 // ==========================================================
 
 // Variable Global
-let WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec"; 
+let WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwrFDLCm2S-6q9r4M_8QvY1ZThBptmS1K9_X0o9TqH99R41Q/exec"; 
 let questionsDataConfig = {};
 let questionsData = [];
 let validToken = "";
@@ -14,8 +15,14 @@ let userIdentitas = {};
 let timerInterval = null;
 let currentKodeUjian = "";
 
-// Variable Mode Ujian & Verifikasi Peserta
+// State Verifikasi Peserta
+let isVerified = false;
+let verifiedPesertaData = null;
+
+// Variable Mode Ujian & Scoring Engine CBT
 let modeUjian = "LATIHAN"; // Default
+let modePenilaian = "1A";  // Default 1A (Standard)
+let skorConfig = {};
 let daftarPesertaValid = [];
 
 // Variable Anti-Kecurangan & Submit Lock
@@ -25,31 +32,49 @@ let warningCount = 0;
 const MAX_WARNINGS = 3;
 
 // ==========================================================
-// HELPER: UTILS VERIFIKASI PESERTA
+// HELPER: UTILS VERIFIKASI PESERTA (VERSI 1.3.0 - UX REVISION)
 // ==========================================================
 async function loadDaftarPeserta() {
   try {
     const response = await fetch("peserta.json");
     if (response.ok) {
       const data = await response.json();
-      // Simpan semua nama dalam format UPPERCASE agar matching akurat
-      daftarPesertaValid = data.map(nama => String(nama).trim().toUpperCase());
+      if (Array.isArray(data)) {
+        daftarPesertaValid = data;
+      } else {
+        daftarPesertaValid = [];
+        console.warn("Format peserta.json bukan array.");
+      }
     } else {
+      daftarPesertaValid = [];
       console.warn("File peserta.json tidak ditemukan.");
     }
   } catch (err) {
+    daftarPesertaValid = [];
     console.error("Gagal membaca peserta.json:", err);
   }
 }
 
+// Auto-Fill Form Identitas berdasarkan data peserta terverifikasi
+function autoFillIdentitas(dataPeserta) {
+  const setInputValue = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val || "";
+  };
+
+  setInputValue("sekolah", dataPeserta["Asal Instansi"]);
+  setInputValue("kelas", dataPeserta["Pekerjaan / Jurusan"]);
+  setInputValue("nisn", dataPeserta["NIK / NISN / NIM"]);
+  setInputValue("daerah", `${dataPeserta["Asal Kabupaten"] || ''}, ${dataPeserta["Asal Provinsi"] || ''}`.replace(/^,\s*|,\s*$/g, ''));
+  setInputValue("email", dataPeserta["Email (Terverifikasi)"]);
+  setInputValue("hp", dataPeserta["No HP / WA"]);
+}
+
 // ==========================================================
-// 1. PAGE 1: VERIFIKASI IDENTITAS, KODE UJIAN & TOKEN
+// 1. TAHAP 1: CEK VERIFIKASI PESERTA (BUTTON CLICK)
 // ==========================================================
-document.getElementById("form-identitas").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  
+async function cekVerifikasiPeserta() {
   const kodeInput = document.getElementById("kode-ujian-input").value.trim().toUpperCase();
-  const inputToken = document.getElementById("token-input").value.trim();
   const inputNamaRaw = document.getElementById("nama").value.trim();
   const inputNama = inputNamaRaw.toUpperCase();
   
@@ -57,28 +82,127 @@ document.getElementById("form-identitas").addEventListener("submit", async funct
   document.getElementById("nama").value = inputNama;
 
   const errorElement = document.getElementById("pesan-error-login");
-  const btnSubmit = document.getElementById("btn-lanjut-info");
+  const btnLanjut = document.getElementById("btn-lanjut-info");
+  const btnCek = document.getElementById("btn-cek-verifikasi");
 
   if (!inputNama) {
-    errorElement.textContent = "Silakan masukkan Nama Lengkap Anda!";
+    errorElement.className = "text-danger mt-2 alert alert-danger";
+    errorElement.innerHTML = "Silakan masukkan Nama Lengkap Anda!";
     return;
   }
   if (!kodeInput) {
-    errorElement.textContent = "Silakan masukkan Kode Ujian!";
-    return;
-  }
-  if (!inputToken) {
-    errorElement.textContent = "Silakan masukkan Token Ujian!";
+    errorElement.className = "text-danger mt-2 alert alert-danger";
+    errorElement.innerHTML = "Silakan masukkan Kode Ujian / Kode Kegiatan!";
     return;
   }
 
-  errorElement.textContent = "";
+  if (btnCek) btnCek.disabled = true;
+  errorElement.className = "text-info mt-2 alert alert-info";
+  errorElement.innerHTML = "Memeriksa database peserta.json...";
+
+  try {
+    await loadDaftarPeserta();
+
+    if (!daftarPesertaValid || daftarPesertaValid.length === 0) {
+      throw new Error("Sistem tidak dapat memverifikasi peserta: Database peserta.json tidak ditemukan atau kosong!");
+    }
+
+    // Mencari match data: Kode Ujian === Kode Kegiatan DAN Nama Lengkap === Nama Input
+    const pesertaMatch = daftarPesertaValid.find(p => {
+      const kodeMatch = String(p["Kode Kegiatan"] || "").trim().toUpperCase() === kodeInput;
+      const namaMatch = String(p["Nama Lengkap"] || "").trim().toUpperCase() === inputNama;
+      return kodeMatch && namaMatch;
+    });
+
+    if (pesertaMatch) {
+      isVerified = true;
+      verifiedPesertaData = pesertaMatch;
+
+      // Auto-fill field pendukung jika elemen ada di DOM
+      autoFillIdentitas(pesertaMatch);
+
+      // Notifikasi Sukses
+      errorElement.className = "text-success mt-2 alert alert-success";
+      errorElement.innerHTML = "<strong>Selamat Anda Terverifikasi</strong>";
+
+      // Tampilkan / Aktifkan tombol Lanjut ke Petunjuk
+      if (btnLanjut) {
+        btnLanjut.style.display = "inline-block";
+        btnLanjut.disabled = false;
+      }
+    } else {
+      isVerified = false;
+      verifiedPesertaData = null;
+
+      if (btnLanjut) btnLanjut.style.display = "none";
+
+      // Notifikasi Gagal + Simbol WA Link Admin
+      errorElement.className = "text-danger mt-2 alert alert-danger";
+      errorElement.innerHTML = `
+        Maaf, <strong>VERIFIKASI GAGAL</strong>: Kombinasi Nama '<b>${inputNama}</b>' dan Kode Kegiatan '<b>${kodeInput}</b>' tidak ditemukan dalam sistem!, 
+        Silahkan Hubungi Admin <a href="https://wa.me/6285711000363" target="_blank" style="color: #25D366; font-weight: bold; text-decoration: underline;">
+          <i class="fab fa-whatsapp"></i> wa.me/6285711000363
+        </a> untuk Pendaftaran
+      `;
+    }
+  } catch (err) {
+    console.error(err);
+    isVerified = false;
+    verifiedPesertaData = null;
+    if (btnLanjut) btnLanjut.style.display = "none";
+
+    errorElement.className = "text-danger mt-2 alert alert-danger";
+    errorElement.innerHTML = err.message;
+  } finally {
+    if (btnCek) btnCek.disabled = false;
+  }
+}
+
+// Event Listener tombol Cek Verifikasi jika menggunakan ID terpisah
+document.addEventListener("DOMContentLoaded", () => {
+  const btnCek = document.getElementById("btn-cek-verifikasi");
+  if (btnCek) {
+    btnCek.addEventListener("click", function(e) {
+      e.preventDefault();
+      cekVerifikasiPeserta();
+    });
+  }
+});
+
+// ==========================================================
+// 2. TAHAP 2: PROSES KELANJUTAN KE PETUNJUK (SUBMIT FORM)
+// ==========================================================
+document.getElementById("form-identitas").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  
+  const kodeInput = document.getElementById("kode-ujian-input").value.trim().toUpperCase();
+  const inputToken = document.getElementById("token-input").value.trim();
+  const inputNama = document.getElementById("nama").value.trim().toUpperCase();
+  
+  const errorElement = document.getElementById("pesan-error-login");
+  const btnSubmit = document.getElementById("btn-lanjut-info");
+
+  // Jika belum klik Cek Verifikasi atau status belum match
+  if (!isVerified || !verifiedPesertaData) {
+    await cekVerifikasiPeserta();
+    if (!isVerified) return;
+  }
+
+  if (!inputToken) {
+    errorElement.className = "text-danger mt-2 alert alert-danger";
+    errorElement.innerHTML = "Silakan masukkan Token Ujian!";
+    return;
+  }
+
   btnSubmit.disabled = true;
-  btnSubmit.textContent = "Memeriksa Kode Ujian...";
+  btnSubmit.textContent = "Memuat Soal Ujian...";
 
   const targetJsonFile = `${kodeInput}-Soal.json`;
 
   try {
+    const pesertaMatch = verifiedPesertaData;
+
+    // LOAD FILE SOAL
     const res = await fetch(targetJsonFile);
     if (!res.ok) {
       throw new Error(`Kode Ujian '${kodeInput}' tidak ditemukan atau belum dipublikasikan!`);
@@ -90,41 +214,50 @@ document.getElementById("form-identitas").addEventListener("submit", async funct
       throw new Error("Token Ujian salah atau tidak berlaku untuk paket ini!");
     }
 
-    // Tetapkan Config
+    // Tetapkan Config Ujian & Penilaian CBT
     questionsDataConfig = data;
     currentKodeUjian = kodeInput;
     validToken = data.token || "";
     timerDurationMinutes = data.timer_menit || 60;
     questionsData = data.questions || [];
     modeUjian = (data.mode_ujian || "LATIHAN").toUpperCase();
+    modePenilaian = (data.mode_penilaian || "1A").toUpperCase();
+    skorConfig = data.skor_config || {};
 
-    // PERCABANGAN MODE UJIAN
+    // PROTEKSI SEKALI SUBMIT (KHUSUS MODE SIMULASI)
     if (modeUjian === "SIMULASI") {
-      // 1. Cek LocalStorage (Proteksi Sekali Submit)
       const lockKey = `SUBMITTED_${currentKodeUjian}_${inputNama}`;
       if (localStorage.getItem(lockKey) === "TRUE") {
-        throw new Error("AKSES DITOLAK: Anda sudah pernah menyelesaikan ujian ini!");
-      }
-
-      // 2. Load & Verifikasi Nama Peserta dari peserta.json
-      await loadDaftarPeserta();
-      if (daftarPesertaValid.length > 0 && !daftarPesertaValid.includes(inputNama)) {
-        throw new Error("NAMA TIDAK TERDAFTAR! Periksa kembali penulisan nama Anda sesuai pendaftaran.");
+        throw new Error("AKSES DITOLAK: Anda sudah pernah menyelesaikan ujian CBT ini!");
       }
     }
 
     // Simpan Identitas Peserta
+    const getVal = id => {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    };
+
     userIdentitas = {
-      nama: inputNama,
-      sekolah: document.getElementById("sekolah").value.trim(),
-      kelas: document.getElementById("kelas").value.trim(),
-      nisn: document.getElementById("nisn").value.trim(),
-      daerah: document.getElementById("daerah").value.trim(),
+      nama: pesertaMatch["Nama Lengkap"] || inputNama,
+      sekolah: getVal("sekolah") || pesertaMatch["Asal Instansi"] || "-",
+      kelas: getVal("kelas") || pesertaMatch["Pekerjaan / Jurusan"] || "-",
+      nisn: getVal("nisn") || pesertaMatch["NIK / NISN / NIM"] || "-",
+      daerah: getVal("daerah") || `${pesertaMatch["Asal Kabupaten"] || ''}, ${pesertaMatch["Asal Provinsi"] || ''}`.replace(/^,\s*|,\s*$/g, '') || "-",
+      email: pesertaMatch["Email (Terverifikasi)"] || "-",
+      no_hp: pesertaMatch["No HP / WA"] || "-",
+      skema_tarif: pesertaMatch["Skema Tarif"] || "-",
+      bidang_kategori: pesertaMatch["Bidang / Kategori"] || "-",
       kode_ujian: currentKodeUjian,
       mode_ujian: modeUjian
     };
 
-    // Update Header Lembaga
+    // Update Sambutan & Header Lembaga (UX v1.3 Revision)
+    const dispHeaderTitle = document.getElementById("disp-header-title");
+    const dispHeaderSub = document.getElementById("disp-header-sub");
+    if (dispHeaderTitle) dispHeaderTitle.textContent = "Selamat Datang di Sistem Tes Berbasis Komputer (CBT)";
+    if (dispHeaderSub) dispHeaderSub.textContent = "Briska Corporation";
+
     if (data.logo) {
       const logoInfo = document.getElementById("logo-lembaga-info");
       const logoCbt = document.getElementById("logo-lembaga-cbt");
@@ -156,15 +289,16 @@ document.getElementById("form-identitas").addEventListener("submit", async funct
 
   } catch (err) {
     console.error(err);
+    errorElement.className = "text-danger mt-2 alert alert-danger";
     errorElement.textContent = err.message;
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.textContent = "Verifikasi & Lanjut ke Petunjuk >>";
+    btnSubmit.textContent = "Lanjut ke Petunjuk >>";
   }
 });
 
 // ==========================================================
-// 2. PAGE 2: CONTROLLER KETENTUAN & TOMBOL MULAI
+// 3. PAGE 2: CONTROLLER KETENTUAN & TOMBOL MULAI
 // ==========================================================
 function toggleMulaiButton() {
   const isChecked = document.getElementById("check-setuju").checked;
@@ -196,7 +330,7 @@ function mulaiUjianPenuh() {
 }
 
 // ==========================================================
-// 3. PAGE 3: INISIALISASI CBT, ANTI-CHEAT & TIMER
+// 4. PAGE 3: INISIALISASI CBT, ANTI-CHEAT & TIMER
 // ==========================================================
 function initCBT() {
   isExamStarted = true;
@@ -275,7 +409,7 @@ function prosesPeringatanKecurangan() {
 }
 
 // ==========================================================
-// 4. RENDER SOAL & NAVIGASI (FIXED UNTUK MOBILE & MATHJAX)
+// 5. RENDER SOAL & NAVIGASI 
 // ==========================================================
 function loadQuestion(index) {
   const q = questionsData[index];
@@ -404,7 +538,7 @@ function konfirmasiKeluar() {
 }
 
 // ==========================================================
-// 5. SUBMIT JAWABAN & ENGINE KOREKSI CBT (MODE 1A, 1B, 1C)
+// 6. SUBMIT JAWABAN & MULTI-SCORING ENGINE CBT (1A, 1B, 1C)
 // ==========================================================
 function submitJawaban() {
   if (isExamSubmitted) return;
@@ -420,49 +554,69 @@ function submitJawaban() {
     localStorage.setItem(lockKey, "TRUE");
   }
 
-  const modeCBT = questionsDataConfig.mode_penilaian || "1A";
-  const skorCfg = questionsDataConfig.skor_config || { skor_benar: 1, skor_salah: 0, skor_kosong: 0 };
-
   let totalSkor = 0;
   let jumlahBenar = 0;
   let jumlahSalah = 0;
   let jumlahKosong = 0;
 
-  // CORE ENGINE KOREKSI CBT
+  // MULTI-MODE SCORING ENGINE CBT
   questionsData.forEach((q, idx) => {
     const displayNo = idx + 1;
     const ans = userAnswers[displayNo];
     const kunci = q.Kunci ? String(q.Kunci).trim().toUpperCase() : "";
 
-    if (!ans) {
-      jumlahKosong++;
-      if (modeCBT === "1B") {
-        totalSkor += (skorCfg.skor_kosong || 0);
-      }
-    } else if (ans === kunci) {
-      jumlahBenar++;
-      if (modeCBT === "1C") {
-        const lvl = String(q.Level || "E").trim().toUpperCase();
-        let poin = 1;
-        if (lvl === "H") poin = 5;
-        else if (lvl === "M") poin = 3;
-        totalSkor += poin;
+    if (modePenilaian === "1A") {
+      // 1A: Standard Benar (Skala 100)
+      if (!ans) {
+        jumlahKosong++;
+      } else if (ans === kunci) {
+        jumlahBenar++;
       } else {
-        totalSkor += (skorCfg.skor_benar || 1);
+        jumlahSalah++;
       }
-    } else {
-      jumlahSalah++;
-      if (modeCBT === "1B") {
-        totalSkor += (skorCfg.skor_salah || 0);
+    } else if (modePenilaian === "1B") {
+      // 1B: Custom Skor Penalti / Kosong
+      const pBenar = skorConfig.benar !== undefined ? skorConfig.benar : 4;
+      const pSalah = skorConfig.salah !== undefined ? skorConfig.salah : -1;
+      const pKosong = skorConfig.kosong !== undefined ? skorConfig.kosong : 0;
+
+      if (!ans) {
+        jumlahKosong++;
+        totalSkor += pKosong;
+      } else if (ans === kunci) {
+        jumlahBenar++;
+        totalSkor += pBenar;
+      } else {
+        jumlahSalah++;
+        totalSkor += pSalah;
+      }
+    } else if (modePenilaian === "1C") {
+      // 1C: Dynamic Difficulty (Easy, Medium, Hard)
+      const diff = q.Difficulty ? String(q.Difficulty).toUpperCase() : "MEDIUM";
+      const weightMap = skorConfig.bobot_difficulty || { EASY: 2, MEDIUM: 3, HARD: 5 };
+      const poinMax = weightMap[diff] || 3;
+
+      if (!ans) {
+        jumlahKosong++;
+      } else if (ans === kunci) {
+        jumlahBenar++;
+        totalSkor += poinMax;
+      } else {
+        jumlahSalah++;
       }
     }
   });
 
   const totalSoal = questionsData.length;
-  const skorAkhir = Number(totalSkor.toFixed(2));
+  let skorAkhir = 0;
+
+  if (modePenilaian === "1A") {
+    skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
+  } else {
+    skorAkhir = Number(totalSkor.toFixed(2));
+  }
 
   const detailHasil = {
-    mode: modeCBT,
     benar: jumlahBenar,
     salah: jumlahSalah,
     kosong: jumlahKosong,
@@ -472,8 +626,8 @@ function submitJawaban() {
 
   document.getElementById("page-cbt").innerHTML = `
     <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
-      <h2 style="color: #4a3e56; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
-      <p style="color: #7d756d;">Mohon tunggu sebentar, jawaban Anda sedang disimpan dan diproses oleh sistem CBT.</p>
+      <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
+      <p style="color: #666;">Mohon tunggu sebentar, jawaban Anda sedang disimpan dan diproses oleh sistem CBT.</p>
     </div>
   `;
 
@@ -481,7 +635,7 @@ function submitJawaban() {
     kode_soal: currentKodeUjian,
     sistem_ujian: "CBT",
     mode_ujian: modeUjian,
-    mode_penilaian: modeCBT,
+    mode_penilaian: modePenilaian,
     identitas: userIdentitas,
     jawaban: userAnswers,
     total_dijawab: Object.keys(userAnswers).length,
@@ -517,27 +671,22 @@ function submitJawaban() {
 }
 
 // ==========================================================
-// 6. PANEL PENGUMUMAN SKOR AKHIR (KHUSUS CBT)
+// 7. PANEL PENGUMUMAN SKOR AKHIR (KHUSUS CBT)
 // ==========================================================
 function tampilkanLayarSelesai(detail) {
   const htmlContent = `
     <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
       <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian CBT Selesai!</h2>
-      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Terima kasih telah menyelesaikan ujian [Kode: <strong>${currentKodeUjian}</strong>]</p>
+      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hasil Pengumuman Skor Resmi [Kode: <strong>${currentKodeUjian}</strong>]</p>
       
-      <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-        <h3 style="color: #4a3e56; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; font-size: 16px;">📊 Hasil Ujian Anda</h3>
+      <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+        <span style="font-size: 13px; color: #555; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Skor Perolehan Akhir</span>
+        <div style="font-size: 54px; font-weight: bold; color: #1a237e; margin: 10px 0;">${detail.skor}</div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 15px; margin-bottom: 20px;">
-          <div>✔️ Benar: <strong style="color: #2e7d32;">${detail.benar}</strong></div>
-          <div>❌ Salah: <strong style="color: #c62828;">${detail.salah}</strong></div>
-          <div>⚪ Kosong: <strong style="color: #f57c00;">${detail.kosong}</strong></div>
-          <div>📝 Total Soal: <strong>${detail.totalSoal}</strong></div>
-        </div>
-
-        <div style="background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 10px; padding: 15px; text-align: center;">
-          <span style="font-size: 12px; color: #33691e; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Skor Akhir CBT</span>
-          <div style="font-size: 40px; font-weight: bold; color: #2e7d32; margin-top: 5px;">${detail.skor}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
+          <div>✔️ Benar<br><strong style="color: #2e7d32; font-size: 18px;">${detail.benar}</strong></div>
+          <div>❌ Salah<br><strong style="color: #c62828; font-size: 18px;">${detail.salah}</strong></div>
+          <div>⚪ Kosong<br><strong style="color: #f57c00; font-size: 18px;">${detail.kosong}</strong></div>
         </div>
       </div>
     </div>
