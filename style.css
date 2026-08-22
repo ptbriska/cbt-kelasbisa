@@ -1,0 +1,908 @@
+/* ==========================================================================
+   TEMA: CYAN TECHNO FUTURISTIC (CBT Dark Mode)
+   Warna Utama: Deep Ocean (Background), Sky Cyan & Sea Blue (Gradient), Techno Green (Accent)
+   ========================================================================== */
+
+:root {
+  /* Background & Surface Dark Theme */
+  --bg-main: #030b14; /* Deep space / ocean dark */
+  --bg-card: rgba(10, 22, 40, 0.75); /* Glassmorphism background */
+  --bg-panel: rgba(16, 33, 61, 0.85); /* Slightly lighter for panels */
+  
+  /* Text Colors */
+  --text-dark: #e0f2fe; /* Light cyan-white for readability */
+  --text-muted: #7dd3fc; /* Muted cyan */
+  
+  /* Brand & Accents */
+  --brand-cyan: #22d3ee; /* Bright Cyan */
+  --brand-sky: #38bdf8; /* Sky Blue */
+  --brand-sea: #0284c7; /* Sea Blue */
+  --accent-green: #00ffaa; /* Techno Green Glow */
+  
+  /* Status Warna Bulatan CBT */
+  --color-unanswered: #f43f5e; /* Neon Red */
+  --color-answered: #0ea5e9;   /* Sky Blue */
+  --color-active: #00ffaa;     /* Techno Green Glow */
+  
+  /* Status Hasil Ujian */
+  --color-success: #00ffaa;
+  --color-danger: #f43f5e;
+  --color-warning: #fbbf24;
+  --color-info: #22d3ee;
+
+  /* Shadows & Borders */
+  --shadow-glow-cyan: 0 0 15px rgba(34, 211, 238, 0.3);
+  --shadow-glow-green: 0 0 15px rgba(0, 255, 170, 0.4);
+  --border-glass: 1px solid rgba(56, 189, 248, 0.25);
+  --border-radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(0, 255, 170, 0.05), transparent 25%);
+  color: var(--text-dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================
+   1. CARD LAYOUT (PAGE 1 & PAGE 2)
+   ========================================== */
+.card {
+  max-width: 680px;
+  width: 92%;
+  margin: 35px auto;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 35px 40px;
+  border-radius: 20px;
+  border: var(--border-glass);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+/* Header Welcome Rata Tengah */
+.header-welcome {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.header-welcome .logo-img {
+  max-height: 80px;
+  width: auto;
+  margin-bottom: 12px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.5));
+}
+
+.header-welcome h2 {
+  font-size: 1.45rem;
+  color: var(--brand-cyan);
+  margin-bottom: 6px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+}
+
+.header-welcome h3 {
+  font-size: 1.1rem;
+  color: var(--brand-sky);
+  font-weight: 600;
+}
+
+/* Form Identitas & Grid 2-Kolom (Kode & Token) */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brand-sky);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.hint-label {
+  font-weight: normal;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(3, 11, 20, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--accent-green);
+  box-shadow: var(--shadow-glow-green);
+  background: rgba(10, 22, 40, 0.9);
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--brand-sea), var(--brand-cyan));
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  margin-top: 10px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.6);
+}
+
+.btn-secondary {
+  padding: 13px 20px;
+  background: var(--bg-panel);
+  color: var(--brand-cyan);
+  border: 1px solid var(--brand-cyan);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(34, 211, 238, 0.15);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.error-msg {
+  color: var(--color-danger);
+  font-size: 0.88rem;
+  text-align: center;
+  margin-top: 14px;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(244, 63, 94, 0.4);
+}
+
+/* Footer Motivasi */
+.footer-motto {
+  margin-top: 25px;
+  padding-top: 15px;
+  border-top: 1px dashed rgba(56, 189, 248, 0.2);
+  text-align: center;
+}
+
+.footer-motto p {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+
+/* ==========================================
+   2. PAGE 2: INFORMASI KEGIATAN & TATA TERTIB
+   ========================================== */
+.info-kegiatan-box {
+  background-color: var(--bg-panel);
+  border: var(--border-glass);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 22px;
+  box-shadow: inset 0 0 10px rgba(2, 132, 199, 0.1);
+}
+
+.info-kegiatan-box h4 {
+  font-size: 0.95rem;
+  color: var(--brand-cyan);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+  padding-bottom: 6px;
+}
+
+.table-info {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-info td {
+  padding: 8px 0;
+  font-size: 0.92rem;
+  color: var(--text-dark);
+}
+
+.table-info td:first-child {
+  font-weight: 600;
+  width: 38%;
+  color: var(--brand-sky);
+}
+
+.badge-code {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--brand-cyan);
+  border: 1px solid var(--brand-cyan);
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.2);
+}
+
+.table-info tr:not(:last-child) td {
+  border-bottom: 1px dashed rgba(56, 189, 248, 0.2);
+}
+
+/* Box Rules / Tata Tertib Ujian */
+.rules-box {
+  background: rgba(3, 11, 20, 0.6);
+  border: var(--border-glass);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 22px;
+}
+
+.rules-box h4 {
+  font-size: 0.95rem;
+  color: var(--brand-cyan);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rules-content ol {
+  padding-left: 18px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-dark);
+}
+
+.rules-content li {
+  margin-bottom: 10px;
+}
+
+.warning-rule {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #fda4af;
+}
+
+.warning-rule ul {
+  padding-left: 18px;
+  margin-top: 6px;
+}
+
+.warning-rule li {
+  margin-bottom: 4px;
+}
+
+/* Checkbox Persetujuan Custom */
+.agreement-box {
+  background: var(--bg-panel);
+  border: var(--border-glass);
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--brand-cyan);
+  cursor: pointer;
+}
+
+.action-buttons-page2 {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.btn-start-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  background: #334155 !important;
+  box-shadow: none !important;
+}
+
+
+/* ==========================================
+   3. PAGE 3: ARENA SOAL CBT
+   ========================================== */
+.cbt-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.top-bar {
+  background: linear-gradient(90deg, #020813, #0a1b33);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-img {
+  height: 42px;
+  width: auto;
+  filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.5));
+}
+
+.title-box h2 {
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  color: var(--brand-cyan);
+  text-transform: uppercase;
+}
+
+.title-box small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid var(--brand-cyan);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--brand-cyan);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+
+.u-name {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.u-id {
+  color: var(--text-muted);
+}
+
+.btn-keluar {
+  color: var(--color-danger);
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-top: 2px;
+  transition: text-shadow 0.2s;
+}
+.btn-keluar:hover {
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+}
+
+.cbt-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-main);
+}
+
+/* Area Soal (Kiri) */
+.question-area {
+  flex: 1;
+  padding: 25px 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(56, 189, 248, 0.3);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.q-title {
+  font-size: 1.2rem;
+  color: var(--brand-sky);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.timer-display {
+  background: rgba(0, 255, 170, 0.1);
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--accent-green);
+  font-weight: 700;
+  color: var(--accent-green);
+  box-shadow: var(--shadow-glow-green);
+  letter-spacing: 1px;
+}
+
+/* Mobile Touch Fix: Z-index layer */
+.question-content {
+  background: var(--bg-panel);
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: var(--border-glass);
+  flex: 1;
+  position: relative;
+  z-index: 10;
+}
+
+.img-box img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* Teks Soal & Format Baris Baru */
+.q-text {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-dark);
+  margin-bottom: 25px;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* Opsi Pilihan Ganda */
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Touch area & Alignment opsi multi-baris */
+.option-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 18px;
+  background: rgba(3, 11, 20, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+  user-select: none;
+}
+
+.option-row:hover {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: var(--brand-sky);
+  transform: translateX(4px);
+}
+
+.option-row.selected {
+  background: rgba(0, 255, 170, 0.1);
+  border-color: var(--accent-green);
+  box-shadow: inset 0 0 10px rgba(0, 255, 170, 0.15);
+}
+
+.option-row input[type="radio"] {
+  margin-right: 15px;
+  margin-top: 4px;
+  accent-color: var(--accent-green);
+  transform: scale(1.2);
+}
+
+.opt-key {
+  font-weight: 700;
+  margin-right: 8px;
+  color: var(--brand-cyan);
+  line-height: 1.5;
+}
+
+.opt-val {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* MathJax / KaTeX Styling untuk Dark Mode */
+.q-text .mjx-chtml, .opt-val .mjx-chtml,
+.q-text .MathJax, .opt-val .MathJax,
+.q-text .katex, .opt-val .katex {
+  font-size: 105% !important;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+  color: var(--brand-cyan); /* Mewarnai equation agar terlihat futuristik */
+}
+
+/* Sidebar Navigasi Bulatan (Kanan) */
+.sidebar-nav {
+  width: 220px;
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border-left: var(--border-glass);
+  padding: 20px 15px;
+  overflow-y: auto;
+}
+
+.circle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  justify-items: center;
+}
+
+.circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.circle-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.circle-btn.unanswered {
+  background: var(--color-unanswered); 
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.circle-btn.answered {
+  background: var(--color-answered); 
+  border-color: rgba(14, 165, 233, 0.5);
+}
+
+.circle-btn.active {
+  background: transparent;
+  border: 2px solid var(--accent-green);
+  color: var(--accent-green);
+  box-shadow: var(--shadow-glow-green), inset 0 0 8px rgba(0, 255, 170, 0.3);
+  transform: scale(1.15);
+}
+
+
+/* ==========================================
+   4. FOOTER BOTTOM BAR
+   ========================================== */
+.bottom-bar {
+  background: var(--bg-card);
+  border-top: var(--border-glass);
+  padding: 12px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-footer {
+  padding: 10px 18px;
+  background: rgba(3, 11, 20, 0.8);
+  color: var(--brand-sky);
+  border: 1px solid var(--brand-sky);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-footer:hover {
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.btn-selesai {
+  background: rgba(0, 255, 170, 0.15);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+}
+
+.btn-selesai:hover {
+  background: var(--accent-green);
+  color: #000000; /* Dark text when hovered for contrast */
+  box-shadow: var(--shadow-glow-green);
+}
+
+.bottom-center {
+  display: flex;
+  gap: 12px;
+}
+
+
+/* ==========================================
+   5. PAGE RESULT: PENGUMUMAN SKOR MODERN (NEW)
+   ========================================== */
+.result-card-container {
+  max-width: 540px;
+  width: 92%;
+  margin: 40px auto;
+  background: var(--bg-card);
+  border-radius: 20px;
+  border: var(--border-glass);
+  box-shadow: var(--shadow-glow-cyan);
+  padding: 35px 30px;
+  text-align: center;
+  animation: fadeInScale 0.4s ease-out forwards;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.result-badge-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 15px;
+  background: rgba(0, 255, 170, 0.1);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: var(--shadow-glow-green);
+}
+
+.result-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--brand-cyan);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.result-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 25px;
+}
+
+/* Card Hasil Ujian Detail */
+.result-detail-box {
+  background: var(--bg-panel);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: left;
+  margin-bottom: 25px;
+}
+
+.result-detail-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--brand-sky);
+  border-bottom: 1px dashed rgba(56, 189, 248, 0.3);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Breakdown Kategori CAT (TWK/TIU/TKP) */
+.cat-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cat-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(3, 11, 20, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.cat-item-row:hover {
+  border-color: var(--brand-cyan);
+  background: rgba(34, 211, 238, 0.1);
+  transform: translateX(3px);
+}
+
+.cat-item-label {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.92rem;
+}
+
+.cat-item-score {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--brand-cyan);
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+}
+
+/* Big Score Display Box */
+.score-badge-main {
+  background: rgba(0, 255, 170, 0.05);
+  border: 1.5px solid var(--accent-green);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  margin-bottom: 18px;
+  box-shadow: inset 0 0 20px rgba(0, 255, 170, 0.1);
+}
+
+.score-badge-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-cyan);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.score-badge-val {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  line-height: 1.1;
+  margin-top: 4px;
+  text-shadow: var(--shadow-glow-green);
+}
+
+/* Stat Grid (Benar, Salah, Kosong) */
+.stat-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+  background: rgba(3, 11, 20, 0.6);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font-size: 0.85rem;
+}
+
+.stat-box-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-box-item span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.stat-box-item strong {
+  font-size: 1rem;
+  color: var(--text-dark);
+}
+
+
+/* ==========================================
+   RESPONSIF MOBILE
+   ========================================== */
+@media (max-width: 768px) {
+  .card {
+    padding: 25px 20px;
+  }
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+  .action-buttons-page2 {
+    flex-direction: column;
+  }
+  .cbt-body {
+    flex-direction: column;
+  }
+  .sidebar-nav {
+    width: 100%;
+    height: 150px;
+    border-left: none;
+    border-top: var(--border-glass);
+  }
+  .circle-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .result-card-container {
+    padding: 25px 18px;
+    margin: 20px auto;
+  }
+  .score-badge-val {
+    font-size: 2.3rem;
+  }
+}
