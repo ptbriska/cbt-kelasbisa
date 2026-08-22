@@ -1,5 +1,5 @@
 // ==========================================================
-// CBT KIBI Versi 1.2.1 - Core Engine (Isolated CBT System)
+// CBT KIBI Versi 1.2.1 - Core Engine (Isolated CBT System))
 // ==========================================================
 
 // Variable Global
