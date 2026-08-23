@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.4)
+// security.js - Engine Keamanan & Photo Proctoring (v1.3.6)
 // ==========================================================
 
 const GOOGLE_DRIVE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmc09UotPen4uw0-UX0zJDYydHp1iNs8HkjpQl3B4jdQ-U1hPLNM2EoUhnpL5AgNsLOQ/exec";
@@ -26,6 +26,7 @@ async function initWebcamProctoring() {
         videoEl.srcObject = stream;
         App.webcamStream = stream;
         App.isWebcamActive = true;
+        console.log("📷 WebCam Proctoring Berhasil Diaktifkan.");
     } catch (err) {
         console.warn("Kamera WebCam tidak diizinkan atau tidak tersedia:", err);
         App.isWebcamActive = false;
@@ -109,14 +110,17 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     // 1. Ambil Foto Wajah
     const fotoBukti = captureSnapshot();
     
-    // 2. Simpan Log Pelanggaran di State Global
+    // 2. Simpan Log Pelanggaran di State Global & LocalStorage
     if (!App.warningLogs) App.warningLogs = [];
-    App.warningLogs.push({
+    const logData = {
         peringatan_ke: App.warningCount,
-        waktu: new Date().toLocaleTimeString(),
+        waktu: new Date().toLocaleTimeString('id-ID'),
+        timestamp: new Date().toISOString(),
         alasan: alasan,
         foto_captured: Boolean(fotoBukti)
-    });
+    };
+    App.warningLogs.push(logData);
+    localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
 
     // 3. Unggah Foto ke Google Drive secara otomatis
     if (fotoBukti) {
@@ -126,16 +130,26 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     // 4. Eksekusi Sanksi & Notifikasi
     if (App.warningCount >= App.MAX_WARNINGS) {
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
-        alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan foto bukti telah disimpan.`);
+        alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
         isWarningActive = false;
         if (typeof submitJawaban === "function") {
             submitJawaban();
         }
     } else {
-        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang berpindah aplikasi!`);
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto pelanggaran telah direkam oleh sistem!`);
+        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
         isWarningActive = false;
+    }
+}
+
+/**
+ * Paksa Kembalikan Tampilan ke Fullscreen
+ */
+function mintaMintaFullscreen() {
+    if (!App.isExamStarted || App.isExamSubmitted) return;
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
     }
 }
 
@@ -143,6 +157,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
  * Inisialisasi Event Listener Keamanan saat Ujian Dimulai
  */
 function initSecurityListeners() {
+    console.log("🛡️ Initializing Security Listeners...");
     App.warningCount = 0;
     App.warningLogs = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
@@ -150,25 +165,77 @@ function initSecurityListeners() {
     // Aktifkan Kamera WebCam
     initWebcamProctoring();
 
-    // 1. Deteksi Pindah Tab / Pindah Aplikasi
+    // 1. Deteksi Pindah Tab / Browser
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) prosesPeringatanKecurangan("Pindah Tab / Browser");
-    });
-
-    // 2. Deteksi Keluar Mode Fullscreen
-    document.addEventListener("fullscreenchange", () => {
-        if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted) {
-            prosesPeringatanKecurangan("Keluar dari Mode Fullscreen");
+        if (document.hidden && App.isExamStarted && !App.isExamSubmitted) {
+            prosesPeringatanKecurangan("Meninggalkan Tab / Pindah Browser");
         }
     });
 
-    // 3. Deteksi Print Screen (PrtScn) & Clears Clipboard
-    document.addEventListener("keyup", (e) => {
-        if (e.key === "PrintScreen") {
+    // 2. Deteksi Fokus Layar Lepas (Alt+Tab / Snipping Tool Overlay)
+    window.addEventListener("blur", () => {
+        if (App.isExamStarted && !App.isExamSubmitted) {
+            prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi / Snipping Tool)");
+        }
+    });
+
+    // 3. Deteksi Keluar Mode Fullscreen
+    document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted) {
+            prosesPeringatanKecurangan("Keluar dari Mode Fullscreen");
+            setTimeout(mintaMintaFullscreen, 1000);
+        }
+    });
+
+    // 4. Deteksi Kombinasi Shortcut Terlarang, PrintScreen, dan Win+Shift+S
+    document.addEventListener("keydown", (e) => {
+        if (!App.isExamStarted || App.isExamSubmitted) return;
+
+        // Blokir Windows + Shift + S (Snipping Tool Windows)
+        if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
+            e.preventDefault();
+            
+            // Pengaburan layar sekejap agar hasil tangkapan layar menjadi hitam
+            document.body.style.display = "none";
+            setTimeout(() => { document.body.style.display = "block"; }, 1000);
+
+            prosesPeringatanKecurangan("Shortcut Screenshot (Win + Shift + S)");
+            return false;
+        }
+
+        // Blokir F12 (DevTools)
+        if (e.key === "F12") {
+            e.preventDefault();
+            prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
+            return false;
+        }
+
+        // Blokir Ctrl+Shift+I / J / C (DevTools Inspect)
+        if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
+            e.preventDefault();
+            prosesPeringatanKecurangan("Mencoba Membuka Inspect Element (Ctrl+Shift+I/J/C)");
+            return false;
+        }
+
+        // Blokir Ctrl+U (View Source), Ctrl+S (Save), Ctrl+P (Print), Ctrl+C (Copy)
+        if (e.ctrlKey && ["u", "U", "s", "S", "p", "P", "c", "C"].includes(e.key)) {
+            e.preventDefault();
+            prosesPeringatanKecurangan(`Shortcut Terlarang (Ctrl+${e.key.toUpperCase()})`);
+            return false;
+        }
+
+        // Deteksi Tombol PrintScreen
+        if (e.key === "PrintScreen" || e.keyCode === 44) {
+            e.preventDefault();
             if (navigator.clipboard) {
                 navigator.clipboard.writeText("[Sistem Keamanan CBT] Tangkapan layar dilarang.");
             }
-            prosesPeringatanKecurangan("Menekan Tombol PrintScreen");
+            
+            document.body.style.display = "none";
+            setTimeout(() => { document.body.style.display = "block"; }, 1000);
+
+            prosesPeringatanKecurangan("Menekan Tombol PrintScreen (Capture Layar)");
+            return false;
         }
     });
 }
@@ -178,16 +245,7 @@ window.initSecurityListeners = initSecurityListeners;
 window.initWebcamProctoring = initWebcamProctoring;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
 
-// Proteksi Langsung Klik Kanan & DevTools Sejak Halaman Dimuat
+// Proteksi Langsung Klik Kanan Sejak Halaman Dimuat
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", (e) => e.preventDefault());
-    document.addEventListener("keydown", (e) => {
-        if (
-            e.key === "F12" ||
-            (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) ||
-            (e.ctrlKey && ["u", "U"].includes(e.key))
-        ) {
-            e.preventDefault();
-        }
-    });
 });
