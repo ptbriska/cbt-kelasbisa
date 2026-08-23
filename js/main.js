@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.5)
+// main.js - Entry Point & Window Bridge Handler (v1.4.0 - SINKRONISASI SUBMIT)
 // ==========================================================
 
 // ⚠️ PASTI INI DILAKUKAN SEBELUM EVENT DOMContentLoaded
@@ -15,6 +15,7 @@ window.App = window.App || {
     skorConfig: null,
     isExamStarted: false,
     isExamSubmitted: false,
+    isSubmitting: false, // [PERBAIKAN] Tambahan state awal untuk bypass sensor keamanan
     
     // State Pengawasan Keamanan & Proctoring
     warningCount: 0,
@@ -66,29 +67,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Engine Penilaian & Webhook
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
 
+    // ==========================================================
     // Konfirmasi & Dialog Actions
+    // ==========================================================
     window.konfirmasiSubmit = function() {
-        if (!window.App || !App.questionsData) return;
+        // [PERBAIKAN] Pop-up confirm() dihapus dari sini karena sudah ditangani
+        // dengan aman di dalam submitJawaban() (exam.js) lengkap dengan penonaktifan sensor.
+        
+        if (window.App && App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
+            const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
+            const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
+            const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
+            localStorage.setItem(lockKey, "TRUE");
+        }
 
-        const total = App.questionsData.length;
-        const dijawab = Object.keys(App.userAnswers || {}).length;
-
-        if (confirm(`Anda telah menjawab ${dijawab} dari ${total} soal.\nYakin ingin mengakhiri ujian CBT?`)) {
-            // Pasang gembok submit jika dalam Mode SIMULASI
-            if (App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
-                const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
-                const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
-                const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
-                localStorage.setItem(lockKey, "TRUE");
-            }
-
-            if (typeof submitJawaban === "function") {
-                submitJawaban();
-            }
+        if (typeof submitJawaban === "function") {
+            submitJawaban(false); // Panggil fungsi utama di exam.js
         }
     };
 
     window.konfirmasiKeluar = function() {
+        // [PERBAIKAN] Matikan sensor keamanan sementara agar pop-up ini tidak dianggap curang (blur/lepas fokus)
+        if (window.App) App.isSubmitting = true; 
+
         if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
             // Hentikan timer jika ada
             if (window.App && App.timerInterval) {
@@ -104,6 +105,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             localStorage.removeItem("cbt_violation_logs");
             
             location.reload();
+        } else {
+            // [PERBAIKAN] Jika peserta batal keluar, nyalakan kembali sensor keamanan
+            setTimeout(() => { 
+                if (window.App) App.isSubmitting = false; 
+            }, 500);
         }
     };
 });
