@@ -3,7 +3,8 @@
 // ==========================================================
 
 function submitJawabanScoring() {
-    if (!window.App || App.isExamSubmitted) return;
+    if (!window.App || App.isScoringCompleted) return;
+    App.isScoringCompleted = true;
     App.isExamSubmitted = true;
 
     // 1. Hentikan Timer Ujian
@@ -120,7 +121,7 @@ function submitJawabanScoring() {
         } catch(e) {}
     }
 
-    const realJmlPelanggaran = rawLogs.length; // Hitung akurat dari jumlah item array
+    const realJmlPelanggaran = rawLogs.length; 
     const formattedLogsText = rawLogs.map(item => `[${item.waktu || ''}] ${item.alasan || ''}`).join(" | ");
 
     const payload = {
@@ -131,8 +132,8 @@ function submitJawabanScoring() {
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
-        jml_pelanggaran: realJmlPelanggaran, // <-- Dikirim eksplisit ke Apps Script
-        log_pelanggaran: formattedLogsText || "-", // <-- Dikirim berupa String terformat
+        jml_pelanggaran: realJmlPelanggaran, 
+        log_pelanggaran: formattedLogsText || "-", 
         log_pelanggaran_raw: rawLogs,
         foto_bukti_kecurangan: [], 
         waktu_mulai: App.startTime || "",
