@@ -245,9 +245,12 @@ function loadQuestion(index) {
     if (optionsBox) {
         optionsBox.innerHTML = "";
 
+        // Mengambil jawaban terdaftar untuk soal nomor ini (undefined jika tidak/batal dijawab)
+        const currentAnswer = App.userAnswers ? App.userAnswers[displayNo] : undefined;
+
         ["A", "B", "C", "D", "E"].forEach(key => {
             if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "") {
-                const isSelected = App.userAnswers[displayNo] === key;
+                const isSelected = (currentAnswer === key);
                 const optionRow = document.createElement("div"); 
                 optionRow.className = `option-row ${isSelected ? 'selected' : ''}`;
                 
@@ -277,17 +280,19 @@ function loadQuestion(index) {
 }
 
 /**
- * Menyimpan / Mengubah Pilihan Jawaban Peserta
+ * Menyimpan / Mengubah / Membatalkan Pilihan Jawaban Peserta
  */
 function pilihJawaban(questionNum, selectedOption) {
     if (!window.App) return;
     
+    // PERBAIKAN: Jika opsi yang diklik sudah terpilih sebelumnya, hapus jawaban (batal dijawab)
     if (App.userAnswers[questionNum] === selectedOption) {
         delete App.userAnswers[questionNum]; 
     } else {
         App.userAnswers[questionNum] = selectedOption;
     }
     
+    // Muat ulang soal untuk me-refresh status visual radio dan grid nomor
     loadQuestion(App.currentIndex);
 }
 
