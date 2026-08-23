@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.1)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.2)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -11,8 +11,8 @@ function toggleMulaiButton() {
 }
 
 function kembaliKePage1() {
-    document.getElementById("page-info").classList.add("hidden");
-    document.getElementById("page-login").classList.remove("hidden");
+    document.getElementById("page-info")?.classList.add("hidden");
+    document.getElementById("page-login")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 }
 
@@ -27,8 +27,8 @@ function mulaiUjianPenuh() {
     updateHeaderUserProfile();
 
     // 2. Pindah Tampilan ke Page 3 (CBT Engine)
-    document.getElementById("page-info").classList.add("hidden");
-    document.getElementById("page-cbt").classList.remove("hidden");
+    document.getElementById("page-info")?.classList.add("hidden");
+    document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
     // 3. Tandai State Ujian Dimulai
@@ -47,15 +47,16 @@ function mulaiUjianPenuh() {
 }
 
 /**
- * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian
+ * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian Sesuai peserta.json
  */
 function updateHeaderUserProfile() {
     const elNama = document.getElementById("disp-user-name");
     const elInstansi = document.getElementById("disp-user-school");
 
-    if (window.App && App.verifiedPesertaData) {
-        if (elNama) elNama.textContent = App.verifiedPesertaData["Nama Lengkap"] || "-";
-        if (elInstansi) elInstansi.textContent = App.verifiedPesertaData["Asal Instansi"] || "-";
+    if (window.App) {
+        const p = App.verifiedPesertaData || App.userIdentitas || {};
+        if (elNama) elNama.textContent = p["Nama Lengkap"] || p.nama || "-";[cite: 1]
+        if (elInstansi) elInstansi.textContent = p["Asal Instansi"] || p.sekolah || "-";[cite: 1]
     }
 }
 
@@ -72,19 +73,29 @@ function initCBT() {
     // Load Soal Pertama
     loadQuestion(App.currentIndex);
 
-    // Ambil durasi dari JSON Soal (default: 10 menit jika undfined)
-    const durasiMenit = App.timerDurationMinutes || (App.soalData && App.soalData.timer_menit) || 10;
-    
-    // Jalankan Timer Ujian (Konversi ke Detik)
-    startTimer(durasiMenit * 60);
+    // Deteksi Durasi Ujian (Dalam Menit) dari Berbagai Sumber Data
+    let durasiMenit = 10; // Default Fallback
+
+    if (App.timerDurationMinutes) {
+        durasiMenit = App.timerDurationMinutes;
+    } else if (App.soalData) {
+        durasiMenit = App.soalData.timer_menit || App.soalData.durasi_menit || App.soalData.waktu_menit || App.soalData.durasi || 10;
+    } else if (App.examConfig) {
+        durasiMenit = App.examConfig.durasi_menit || App.examConfig.waktu || 10;
+    }
+
+    // Jalankan Timer Ujian (Diubah ke Detik)
+    startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
 function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
     if (isNaN(timer) || timer <= 0) timer = 600; // Fallback ke 10 menit jika invalid
 
-    const timerDisplay = document.getElementById("timer-display");
+    // Cari elemen display timer (Mendukung ID #timer-display atau #timer)
+    const timerDisplay = document.getElementById("timer-display") || document.getElementById("timer");
 
+    // Hentikan timer sebelumnya jika ada
     if (window.App && App.timerInterval) {
         clearInterval(App.timerInterval);
     }
@@ -122,8 +133,10 @@ function startTimer(durationInSeconds) {
         }
     };
 
-    // Jalankan langsung render awal, lalu set interval
+    // Jalankan render detik pertama secara mendadak
     intervalFunc();
+    
+    // Set Interval dan simpan ke App global state
     if (window.App) {
         App.timerInterval = setInterval(intervalFunc, 1000);
     }
