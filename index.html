@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CBT Online - Kelas Bisa Exam System v1.3.0</title>
   
-  <!-- File CSS Internal -->
-  <link rel="stylesheet" href="css/style.css">
+  <!-- File CSS Modular -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/cbt.css">
   
   <!-- FontAwesome untuk Icon (External CDN) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -249,7 +251,17 @@
     <!-- Konten diisi secara dinamis oleh JavaScript -->
   </div>
 
-  <!-- File JavaScript Internal -->
-  <script src="js/script.js" defer></script>
+  <!-- ========================================== -->
+  <!-- FILE JAVASCRIPT MODULAR                    -->
+  <!-- Catatan: Jangan tambahkan atribut 'defer'  -->
+  <!-- agar variabel global terbaca berurutan    -->
+  <!-- ========================================== -->
+  <script src="js/state.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/exam.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/main.js"></script>
+
 </body>
 </html>
