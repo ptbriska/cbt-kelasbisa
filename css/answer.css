@@ -1,5 +1,5 @@
 /* ==========================================================================
-   answer.css - Review Kunci Jawaban & Cetak PDF (CBT-KIBI v1.4)
+   answer.css - Review Kunci Jawaban & Cetak PDF (CBT-KIBI v1.4.1)
    ========================================================================== */
 
 /* Halaman / Container Review */
@@ -88,7 +88,7 @@
     margin-bottom: 20px;
     background: #fff;
     overflow: hidden;
-    page-break-inside: avoid; /* Mencegah terpotong halaman saat print */
+    page-break-inside: avoid;
 }
 
 /* Sub-Blok 1: Soal */
@@ -103,23 +103,40 @@
     font-size: 15px;
     margin-bottom: 8px;
 }
-.q-text { font-size: 14px; color: #222; line-height: 1.5; }
+.q-text { font-size: 14px; color: #222; line-height: 1.5; margin-bottom: 12px; }
+
+/* LAYOUT OPSI JAWABAN */
+.review-options-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.review-option-item {
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #ffffff;
+    color: #333;
+}
 
 /* Sub-Blok 2: Kunci & Jawaban Siswa */
 .subblock-answer {
-    padding: 15px;
+    padding: 12px 15px;
     background: #ffffff;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    font-size: 13px;
 }
 
 .status-badge {
     padding: 4px 10px;
     border-radius: 20px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
     text-transform: uppercase;
 }
@@ -127,15 +144,19 @@
 .badge-salah { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
 .badge-kosong { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
 
-/* Watermark ASET BRISKA saat Print */
-.watermark-briska {
-    display: none;
-}
+/* Watermark & Footer Cetak Kustom */
+.watermark-briska { display: none; }
+.print-footer-custom { display: none; }
 
 /* ==========================================================================
    CSS PRINT (Tampilan Ala Dokumen Kunci Jawaban Resmi)
    ========================================================================== */
 @media print {
+    /* Sembunyikan URL/Header bawaan browser */
+    @page {
+        margin: 15mm;
+    }
+
     body * { visibility: hidden; }
     #review-modal, #review-modal * { visibility: visible; }
     #review-modal {
@@ -154,22 +175,38 @@
         display: block !important;
         position: fixed;
         top: 40%;
-        left: 15%;
+        left: 10%;
         font-size: 65px;
         font-weight: 900;
-        color: rgba(200, 200, 200, 0.25) !important;
+        color: rgba(200, 200, 200, 0.22) !important;
         transform: rotate(-35deg);
         z-index: 9999;
         pointer-events: none;
         letter-spacing: 12px;
     }
-    
+
+    /* Footer Cetak Kustom */
+    .print-footer-custom {
+        display: block !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 11px;
+        font-weight: bold;
+        color: #444;
+        border-top: 1px solid #ccc;
+        padding-top: 5px;
+        background: #fff;
+    }
+
     .question-block {
         border: 1px solid #000 !important;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
     }
     .subblock-question {
-        background: #f0f0f0 !important;
+        background: #fdfdfd !important;
         border-bottom: 1px solid #000 !important;
     }
 }
