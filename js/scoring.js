@@ -1,5 +1,5 @@
 // ==========================================================
-// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.4 - FIXED)
+// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.6.0 - ULTRA FAST & NO CAMERA)
 // Murni membaca seluruh nilai dari file JSON secara dinamis
 // ==========================================================
 
@@ -11,16 +11,6 @@ function submitJawabanScoring() {
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
         App.timerInterval = null;
-    }
-
-    // 2. Hentikan Stream Webcam Proctoring
-    if (App.webcamStream) {
-        try {
-            App.webcamStream.getTracks().forEach(track => track.stop());
-        } catch (e) {
-            console.warn("Gagal menghentikan webcam stream:", e);
-        }
-        App.webcamStream = null;
     }
 
     // Ambil Data Utama dari State Global App
@@ -59,17 +49,14 @@ function submitJawabanScoring() {
 
             if (!userAns) {
                 jumlahKosong++;
-                // Kosong = 0 Poin
             } else if (String(userAns).trim().toUpperCase() === kunci) {
                 jumlahBenar++;
                 totalSkorMurni += (bobotSoal * valBenar);
             } else {
                 jumlahSalah++;
-                // Salah = 0 Poin (TIDAK DIKALI PENALTI MINUS)
             }
         });
 
-        // Proteksi Skor Minimal 0
         totalSkorMurni = Math.max(0, totalSkorMurni);
 
     } else if (modePenilaian === "1B") {
@@ -87,13 +74,13 @@ function submitJawabanScoring() {
                 totalSkorMurni += valBenar;
             } else {
                 jumlahSalah++;
-                totalSkorMurni += valSalah; // Memakai penalti minus dari JSON
+                totalSkorMurni += valSalah;
             }
         });
 
     } else {
         // MODE 1A: Standard / Proporsional (TIDAK ADA MINUS)
-        const skorSalah1A = valSalah < 0 ? 0 : valSalah; // Kunci paksa agar 1A tidak minus
+        const skorSalah1A = valSalah < 0 ? 0 : valSalah;
 
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
@@ -116,7 +103,6 @@ function submitJawabanScoring() {
             totalSkorMurni = (jumlahBenar / totalSoal) * 100;
         }
 
-        // Proteksi Skor Minimal 0
         totalSkorMurni = Math.max(0, totalSkorMurni);
     }
 
@@ -130,20 +116,10 @@ function submitJawabanScoring() {
         skor: skorAkhir
     };
 
-    const pageCbt = document.getElementById("page-cbt");
-    if (pageCbt) {
-        pageCbt.innerHTML = `
-            <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
-                <h2 style="color: #1a237e;">Mengirimkan Jawaban...</h2>
-                <p style="color: #666;">Mohon tunggu sebentar, jawaban sedang diproses ke server.</p>
-            </div>
-        `;
-    }
-
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
-    // Kirim Data Pengumpulan Ujian Lengkap Termasuk Snapshot Kecurangan
+    // Payload Ringkas & Cepat (Tanpa Foto/Snapshot Kamera)
     const payload = {
         action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
@@ -153,7 +129,7 @@ function submitJawabanScoring() {
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
         log_pelanggaran: App.warningLogs || [],
-        foto_bukti_kecurangan: App.cheatingSnapshots || [], // Kirim snapshot webcam jika ada
+        foto_bukti_kecurangan: [], // Kamera dimatikan
         waktu_mulai: App.startTime || "",
         waktu_selesai: new Date().toISOString(),
         total_dijawab: Object.keys(userAnswers).length,
@@ -165,28 +141,29 @@ function submitJawabanScoring() {
         kosong: jumlahKosong
     };
 
+    // Kirim data ke Webhook di background secara non-blocking (Fire & Forget)
     if (WEBHOOK_URL && WEBHOOK_URL.trim() !== "") {
         fetch(WEBHOOK_URL, {
             method: "POST",
             mode: "no-cors",
+            keepalive: true,
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(payload)
-        })
-        .then(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800))
-        .catch(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800));
-    } else {
-        setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
+        }).catch(err => console.warn("Webhook submit background error:", err));
     }
+
+    // Tampilkan layar selesai secara INSTAN tanpa delay
+    tampilkanLayarSelesai(detailHasil);
 }
 
 function tampilkanLayarSelesai(detail) {
-    // 1. SEMBUNYIKAN LOADING OVERLAY DENGAN AMAN
+    // 1. Sembunyikan Loading Overlay
     const overlayLoading = document.getElementById("loading-overlay");
     if (overlayLoading) {
         overlayLoading.classList.add("hidden");
     }
 
-    // 2. RENDER HALAMAN SKOR
+    // 2. Render Halaman Skor
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -208,3 +185,7 @@ function tampilkanLayarSelesai(detail) {
         `;
     }
 }
+
+// Expose Fungsi ke Global Window
+window.submitJawabanScoring = submitJawabanScoring;
+window.tampilkanLayarSelesai = tampilkanLayarSelesai;
