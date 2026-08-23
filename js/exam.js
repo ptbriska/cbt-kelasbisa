@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.4)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.5)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -35,24 +35,28 @@ function mulaiUjianPenuh() {
     if (window.App) {
         App.isExamStarted = true;
         App.isExamSubmitted = false;
+        App.warningCount = 0;
+        App.warningLogs = [];
     }
 
-    // 4. Aktifkan Fullscreen jika didukung
+    // 4. Minta Mode Fullscreen
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
     }
 
-    // 5. Aktifkan Pengawasan Keamanan & Kamera Proctoring
-    if (typeof initSecurityListeners === "function") {
+    // 5. AKTIFKAN PENGAWASAN KEAMANAN & KAMERA PROCTORING
+    if (typeof window.initSecurityListeners === "function") {
+        window.initSecurityListeners();
+    } else if (typeof initSecurityListeners === "function") {
         initSecurityListeners();
     }
 
-    // 6. Inisialisasi CBT
+    // 6. Inisialisasi CBT (Render Soal & Timer)
     initCBT();
 }
 
 /**
- * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian Sesuai data peserta
+ * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian
  */
 function updateHeaderUserProfile() {
     const elNama = document.getElementById("disp-user-name");
