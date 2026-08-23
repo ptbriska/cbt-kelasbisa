@@ -1,19 +1,22 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.4.0 - FAST SUBMIT & SINKRON)
+// main.js - Entry Point & Window Bridge Handler (v1.5.0 - NO CAMERA & FAST SUBMIT)
 // ==========================================================
 
-// Inisialisasi Objek Global State App
-window.App = window.App || {
-    verifiedPesertaData: null,
-    userIdentitas: null,
-    soalData: null,
-    questionsData: [],
-    userAnswers: {},
-    currentIndex: 0,
+// 1. Inisialisasi Objek Global State App Safe-Guard
+window.App = window.App || {};
+
+// Assign default values jika belum didefinisikan
+Object.assign(window.App, {
+    verifiedPesertaData: App.verifiedPesertaData || null,
+    userIdentitas: App.userIdentitas || null,
+    soalData: App.soalData || null,
+    questionsData: App.questionsData || [],
+    userAnswers: App.userAnswers || {},
+    currentIndex: App.currentIndex || 0,
     
-    // Konfigurasi Penilaian & Soal (Sesuai JSON)
-    modePenilaian: "1A", 
-    skorConfig: {
+    // Konfigurasi Penilaian & Soal
+    modePenilaian: App.modePenilaian || "1A", 
+    skorConfig: App.skorConfig || {
         skor_benar: 1,
         skor_salah: 0,
         skor_kosong: 0,
@@ -21,51 +24,74 @@ window.App = window.App || {
         use_scaling_100: false
     },
     
-    currentKodeUjian: "",
-    modeUjian: "LATIHAN", // Default disesuaikan dengan JSON ("SIMULASI" / "LATIHAN")
-    timerDurationMinutes: 10,
-    WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
+    currentKodeUjian: App.currentKodeUjian || "",
+    modeUjian: App.modeUjian || "LATIHAN",
+    timerDurationMinutes: App.timerDurationMinutes || 10,
+    WEBHOOK_URL: App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
     
     // Flag Alur Ujian
-    isExamStarted: false,
-    isExamSubmitted: false,
-    isSubmitting: false, // Bypass sensor keamanan saat proses submit/modal
+    isExamStarted: App.isExamStarted || false,
+    isExamSubmitted: App.isExamSubmitted || false,
+    isSubmitting: App.isSubmitting || false,
 
-    // State Pengawasan Keamanan & Proctoring
-    warningCount: 0,
-    MAX_WARNINGS: 3,
-    warningLogs: [],
-    cheatingSnapshots: [], // Inisialisasi wadah foto kecurangan
+    // State Keamanan (Kamera/Webcam Dinonaktifkan)
+    warningCount: App.warningCount || 0,
+    MAX_WARNINGS: App.MAX_WARNINGS || 3,
+    warningLogs: App.warningLogs || [],
+    cheatingSnapshots: [], // Kamera dimatikan, snapshot selalu kosong
     isWebcamActive: false,
     webcamStream: null,
-    timerInterval: null
+    timerInterval: App.timerInterval || null
+});
+
+// ==========================================================
+// BRIDGE INTEGRASI & DUMMY KAMERA HANDLER
+// ==========================================================
+
+// Dummy function agar tidak galat jika skrip lain memanggil pengawasan kamera
+window.initWebcamProctoring = function() {
+    console.log("ℹ️ Fitur Kamera / Proctoring WebCam dinonaktifkan.");
+    return Promise.resolve(true);
 };
 
+// Expose fungsi pendukung jika terdefinisi
+if (typeof processPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = processPeringatanKecurangan;
+if (typeof initSecurityListeners === "function") window.initSecurityListeners = initSecurityListeners;
+
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Muat Database Peserta saat aplikasi pertama kali dibuka
+    // 1. Muat Database Peserta saat pertama kali dibuka
     if (typeof loadDaftarPeserta === "function") {
-        await loadDaftarPeserta();
+        await loadDaftarPeserta().catch(err => console.warn("Load peserta error:", err));
     }
 
     // 2. Attach Event Listener Tombol Verifikasi
     const btnCek = document.getElementById("btn-cek-verifikasi");
-    if (btnCek && typeof cekVerifikasiPeserta === "function") {
+    if (btnCek) {
         btnCek.addEventListener("click", (e) => {
             e.preventDefault();
-            cekVerifikasiPeserta();
+            if (typeof cekVerifikasiPeserta === "function") {
+                cekVerifikasiPeserta();
+            } else if (typeof window.cekVerifikasiPeserta === "function") {
+                window.cekVerifikasiPeserta();
+            }
         });
     }
 
-    // 3. Attach Event Listener Checkbox Persetujuan Ujian (FIX TOMBOL ABU-ABU)
+    // 3. Attach Event Listener Checkbox Persetujuan Ujian
     const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
-    if (checkbox && typeof toggleMulaiButton === "function") {
-        checkbox.addEventListener("change", toggleMulaiButton);
-        // Set kondisi awal saat halaman pertama kali dimuat
-        toggleMulaiButton();
+    if (checkbox) {
+        checkbox.addEventListener("change", () => {
+            if (typeof toggleMulaiButton === "function") toggleMulaiButton();
+            else if (typeof window.toggleMulaiButton === "function") window.toggleMulaiButton();
+        });
+        
+        // Trigger initial state
+        if (typeof toggleMulaiButton === "function") toggleMulaiButton();
+        else if (typeof window.toggleMulaiButton === "function") window.toggleMulaiButton();
     }
 
     // ==========================================================
-    // EXPOSE FUNGSI KE GLOBAL (WINDOW) UNTUK HANDLER INLINE HTML
+    // EXPOSE FUNGSI KE GLOBAL (WINDOW)
     // ==========================================================
     
     // Auth & Verifikasi
@@ -83,22 +109,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
 
-    // Sistem Keamanan & Proctoring
-    if (typeof initSecurityListeners === "function") window.initSecurityListeners = initSecurityListeners;
-    if (typeof initWebcamProctoring === "function") window.initWebcamProctoring = initWebcamProctoring;
-    if (typeof prosesPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
-
-    // Engine Penilaian & Modal UI (Menyesuaikan scoring.js)
+    // Engine Penilaian & Modal UI
     if (typeof submitJawabanScoring === "function") window.submitJawabanScoring = submitJawabanScoring;
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
     if (typeof tampilkanPanelKonfirmasi === "function") window.tampilkanPanelKonfirmasi = tampilkanPanelKonfirmasi;
 
     // ==========================================================
-    // Konfirmasi & Dialog Actions
+    // HELPER ACTIONS & FAST SUBMIT BRIDGE
     // ==========================================================
     
     /**
-     * Mengunci LocalStorage jika dipanggil pada mode SIMULASI atau LATIHAN
+     * Mengunci LocalStorage setelah submit
      */
     window.simpanLockSubmitted = function() {
         const mode = (App.modeUjian || "").toUpperCase();
@@ -111,15 +132,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     /**
-     * Eksekusi Pengumpulan Ujian
+     * Eksekusi Pengumpulan Ujian Secara Cepat
      */
     window.konfirmasiSubmit = function() {
         if (window.App) App.isSubmitting = true;
         
         if (typeof submitJawaban === "function") {
             submitJawaban(false, true);
+        } else if (typeof window.submitJawaban === "function") {
+            window.submitJawaban(false, true);
         } else if (typeof submitJawabanScoring === "function") {
             submitJawabanScoring();
+        } else if (typeof window.submitJawabanScoring === "function") {
+            window.submitJawabanScoring();
         }
     };
 
@@ -127,7 +152,6 @@ document.addEventListener("DOMContentLoaded", async () => {
      * Dialog Keluar dari Ujian
      */
     window.konfirmasiKeluar = function() {
-        // Matikan sensor keamanan sementara agar konfirmasi keluar tidak dianggap kecurangan
         if (window.App) App.isSubmitting = true; 
 
         if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
@@ -135,21 +159,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 clearInterval(App.timerInterval);
             }
 
-            if (window.App && App.webcamStream) {
-                try {
-                    App.webcamStream.getTracks().forEach(track => track.stop());
-                } catch (e) {
-                    console.warn("Gagal menghentikan stream webcam:", e);
-                }
-            }
-
             localStorage.removeItem("cbt_violation_logs");
             location.reload();
         } else {
-            // Jika batal keluar, aktifkan kembali sensor
             setTimeout(() => { 
                 if (window.App) App.isSubmitting = false; 
-            }, 500);
+            }, 300);
         }
     };
 });
