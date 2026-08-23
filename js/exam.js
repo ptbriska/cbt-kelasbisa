@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.5)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.4.0 - FIXED SUBMIT ALGORITHM)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -35,6 +35,7 @@ function mulaiUjianPenuh() {
     if (window.App) {
         App.isExamStarted = true;
         App.isExamSubmitted = false;
+        App.isSubmitting = false; // Flag pengiriman data
         App.warningCount = 0;
         App.warningLogs = [];
     }
@@ -163,8 +164,9 @@ function startTimer(durationInSeconds) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
+            // PERBAIKAN: Lempar argumen "true" untuk menandakan ini auto-submit (tanpa konfirmasi pop-up)
             if (typeof submitJawaban === "function") {
-                submitJawaban();
+                submitJawaban(true);
             }
         }
     };
@@ -202,7 +204,7 @@ function loadQuestion(index) {
     const displayNo = index + 1; 
     const elNo = document.getElementById("q-num");
     const elText = document.getElementById("q-text");
-    const elLevel = document.getElementById("q-level"); // Opsional: Indikator Level Difficulty
+    const elLevel = document.getElementById("q-level");
     
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
@@ -293,5 +295,116 @@ function toggleNavigator() {
     const navDrawer = document.getElementById("nav-drawer");
     if (navDrawer) {
         navDrawer.classList.toggle("open");
+    }
+}
+
+// ==========================================================
+// ALGORITMA SUBMIT JAWABAN (FINAL FIX)
+// ==========================================================
+
+/**
+ * Fungsi Pengumpulan Ujian
+ * @param {boolean} isAuto - True jika dieksekusi otomatis oleh timer atau pelanggaran (tanpa confirm)
+ */
+async function submitJawaban(isAuto = false) {
+    if (!window.App) return;
+
+    // 1. Matikan Sensor Keamanan agar popup/loading tidak dianggap pelanggaran
+    App.isSubmitting = true;
+
+    // 2. Evaluasi Jumlah Jawaban
+    const totalSoal = App.questionsData ? App.questionsData.length : 0;
+    const dijawab = Object.keys(App.userAnswers).length;
+    const kosong = totalSoal - dijawab;
+
+    // 3. Konfirmasi Pengumpulan Manual (Bypass jika isAuto === true)
+    if (!isAuto) {
+        let pesan = `Anda telah menjawab ${dijawab} dari ${totalSoal} soal.`;
+        if (kosong > 0) {
+            pesan += `\n⚠️ Peringatan: Masih ada ${kosong} soal yang KOSONG.`;
+        }
+        pesan += `\n\nApakah Anda yakin ingin mengakhiri ujian dan mengirim jawaban sekarang?`;
+
+        const yakin = confirm(pesan);
+        if (!yakin) {
+            // Jika batal submit, nyalakan kembali sensor keamanan
+            setTimeout(() => { App.isSubmitting = false; }, 500);
+            return;
+        }
+    }
+
+    // 4. Hentikan Timer
+    if (App.timerInterval) {
+        clearInterval(App.timerInterval);
+    }
+
+    // 5. Ubah UI (Loading State)
+    const overlayLoading = document.getElementById("loading-overlay");
+    if (overlayLoading) overlayLoading.classList.remove("hidden");
+    
+    const btnSelesai = document.getElementById("btn-selesai") || document.querySelector("button:contains('Selesai')");
+    if (btnSelesai) {
+        btnSelesai.disabled = true;
+        btnSelesai.textContent = "Mengirim...";
+    }
+
+    // 6. Siapkan Payload (Paket Data Jawaban)
+    const p = App.verifiedPesertaData || App.userIdentitas || {};
+    const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
+    
+    const payloadData = {
+        action: "submit_ujian",
+        kode_ujian: App.currentKodeUjian || p.kode_ujian || "NO-KODE",
+        identitas: p,
+        jawaban: App.userAnswers,
+        log_pelanggaran: App.warningLogs || [],
+        waktu_mulai: App.startTime || "",
+        waktu_selesai: new Date().toISOString()
+    };
+
+    try {
+        // 7. Proses Fetch / Pengiriman ke GAS Backend
+        await fetch(WEBHOOK_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payloadData)
+        });
+
+        // 8. Bersihkan State & Redirect UI setelah Sukses
+        App.isExamSubmitted = true;
+        App.isSubmitting = false; // Kembalikan ke false walau tidak ngaruh lagi karena ujian sudah selesai
+
+        // Keluar dari Mode Fullscreen
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => console.log("Gagal exit fullscreen"));
+        }
+
+        // Pindah ke Halaman Selesai
+        if (overlayLoading) overlayLoading.classList.add("hidden");
+        document.getElementById("page-cbt")?.classList.add("hidden");
+        
+        const pageSelesai = document.getElementById("page-selesai");
+        if (pageSelesai) {
+            pageSelesai.classList.remove("hidden");
+        } else {
+            alert("✅ Ujian Selesai. Jawaban Anda telah berhasil dikirim ke server.");
+            window.location.reload(); // Fallback jika tidak ada page-selesai
+        }
+
+    } catch (err) {
+        // 9. Penanganan Error Gagal Kirim
+        console.error("Gagal mengirim jawaban:", err);
+        alert("❌ Terjadi kesalahan jaringan saat mengirim jawaban! Pastikan koneksi internet stabil lalu klik Selesai kembali.");
+        
+        // Reset UI agar peserta bisa coba kirim ulang
+        if (overlayLoading) overlayLoading.classList.add("hidden");
+        if (btnSelesai) {
+            btnSelesai.disabled = false;
+            btnSelesai.textContent = "Selesai Ujian";
+        }
+        
+        // Nyalakan sensor kembali (karena peserta kembali ke mode aktif)
+        App.isSubmitting = false;
     }
 }
