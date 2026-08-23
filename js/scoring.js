@@ -1,5 +1,6 @@
 // ==========================================================
-// scoring.js - Dynamic Scoring & Webhook Submission Engine (v1.3.7)
+// scoring.js - Dynamic Scoring & Webhook Submission Engine
+// 100% Automate dari JSON Soal (skor_config & questions)
 // ==========================================================
 
 function submitJawaban() {
@@ -33,62 +34,60 @@ function submitJawaban() {
         localStorage.setItem(lockKey, "TRUE");
     }
 
+    // 5. AMBIL KONFIGURASI 100% OTOMATIS DARI JSON SOAL
+    const examData = App.examData || {};
+    const modePenilaian = String(examData.mode_penilaian).trim().toUpperCase();[cite: 1]
+    const cfg = examData.skor_config;[cite: 1] // Mengakses langsung "skor_config" dari JSON
+
     let totalSkor = 0;
     let jumlahBenar = 0;
     let jumlahSalah = 0;
     let jumlahKosong = 0;
 
-    // 5. AMBIL KONFIGURASI SKOR DARI JSON METADATA
-    const modePenilaian = (App.modePenilaian || "1A").toUpperCase();
-    const skorConfig = App.skorConfig || {};
-
-    const pBenar = skorConfig.skor_benar !== undefined ? Number(skorConfig.skor_benar) : 1.0;
-    const pSalah = skorConfig.skor_salah !== undefined ? Number(skorConfig.skor_salah) : 0.0;
-    const pKosong = skorConfig.skor_kosong !== undefined ? Number(skorConfig.skor_kosong) : 0.0;
-    const useScaling100 = Boolean(skorConfig.use_scaling_100);
-
-    const bobotLevelMap = skorConfig.bobot_level || { E: 1.0, M: 3.0, H: 5.0 };
-
     // 6. PENILAIAN PER NOMOR SOAL
-    const questions = App.questionsData || [];
-    questions.forEach((q, idx) => {
-        const displayNo = idx + 1;
-        const ans = App.userAnswers[displayNo];
-        const kunci = q.Kunci ? String(q.Kunci).trim().toUpperCase() : (q.kunci ? String(q.kunci).trim().toUpperCase() : "");
+    const questions = examData.questions;[cite: 1] // Mengakses array "questions" dari JSON
+    const totalSoal = questions.length;
 
-        if (!ans) {
+    questions.forEach((q) => {
+        const userAns = App.userAnswers[q.No];[cite: 1] // Menggunakan key "No" dari JSON
+        const kunci = String(q.Kunci).trim().toUpperCase();[cite: 1] // Menggunakan key "Kunci" dari JSON
+
+        if (!userAns) {
+            // KOSONG
             jumlahKosong++;
-            if (modePenilaian === "1B") {
-                totalSkor += pKosong;
-            }
-        } else if (ans === kunci) {
+            totalSkor += cfg.skor_kosong;[cite: 1]
+        } else if (String(userAns).trim().toUpperCase() === kunci) {
+            // BENAR
             jumlahBenar++;
-            if (modePenilaian === "1A" || modePenilaian === "1B") {
-                totalSkor += pBenar;
-            } else if (modePenilaian === "1C") {
-                const lvl = (q.Level || q.level || "E").trim().toUpperCase();
-                const bobotSoal = bobotLevelMap[lvl] !== undefined ? Number(bobotLevelMap[lvl]) : 1.0;
-                totalSkor += (bobotSoal * pBenar);
+            if (modePenilaian === "1C") {
+                // Mode 1C: skor_benar * bobot_level[q.Level] dari JSON
+                const bobot = Number(cfg.bobot_level[q.Level]);[cite: 1]
+                totalSkor += (cfg.skor_benar * bobot);[cite: 1]
+            } else {
+                // Mode 1A / 1B
+                totalSkor += cfg.skor_benar;[cite: 1]
             }
         } else {
+            // SALAH
             jumlahSalah++;
-            if (modePenilaian === "1B" || modePenilaian === "1C") {
-                totalSkor += pSalah;
-            }
+            totalSkor += cfg.skor_salah;[cite: 1]
         }
     });
 
-    const totalSoal = questions.length;
+    // 7. PERHITUNGAN AKHIR KANONIKAL & PROTEKSI SKOR MINUS
     let skorAkhir = 0;
 
-    // 7. PERHITUNGAN AKHIR KANONIKAL
     if (modePenilaian === "1A") {
-        if (useScaling100) {
+        if (cfg.use_scaling_100) {[cite: 1]
             skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
         } else {
             skorAkhir = Number(totalSkor.toFixed(2));
         }
+    } else if (modePenilaian === "1C") {
+        // Proteksi Mutlak Mode 1C: Kunci nilai minimal di angka 0 (TIDAK BISA MINUS)
+        skorAkhir = Math.max(0, Number(totalSkor.toFixed(2)));
     } else {
+        // Mode 1B / Lainnya
         skorAkhir = Number(totalSkor.toFixed(2));
     }
 
@@ -113,10 +112,10 @@ function submitJawaban() {
 
     // 9. BENTUK PAYLOAD WEBHOOK TERLENGKAP
     const payload = {
-        kode_soal: App.currentKodeUjian,
+        kode_soal: examData.kode_ujian || App.currentKodeUjian,[cite: 1]
         sistem_ujian: "CBT",
-        mode_ujian: App.modeUjian || "UTAMA",
-        mode_penilaian: modePenilaian,
+        mode_ujian: examData.mode_ujian || App.modeUjian || "UTAMA",[cite: 1]
+        mode_penilaian: modePenilaian,[cite: 1]
         identitas: dataPesertaResmi,
         jawaban: App.userAnswers,
         total_dijawab: Object.keys(App.userAnswers).length,
@@ -131,7 +130,7 @@ function submitJawaban() {
         jumlah_kosong: jumlahKosong,
         skor_akhir: skorAkhir,
         
-        // Payload Log Keamanan & Bukti Kecurangan (Base64 Snapshots)
+        // Payload Log Keamanan & Bukti Kecurangan
         total_pelanggaran: App.warningCount || 0,
         log_pelanggaran: App.warningLogs || [],
         foto_pelanggaran: App.cheatingSnapshots || []
