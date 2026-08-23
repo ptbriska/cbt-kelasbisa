@@ -1,8 +1,7 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.4.0 - SINKRONISASI SUBMIT)
+// main.js - Entry Point & Window Bridge Handler (v1.5.0 - FIXED PREMATURE LOCK)
 // ==========================================================
 
-// ⚠️ PASTI INI DILAKUKAN SEBELUM EVENT DOMContentLoaded
 // Inisialisasi Objek Global State App
 window.App = window.App || {
     verifiedPesertaData: null,
@@ -13,9 +12,12 @@ window.App = window.App || {
     currentIndex: 0,
     modePenilaian: "1A",
     skorConfig: null,
+    currentKodeUjian: "",
+    modeUjian: "UTAMA",
+    timerDurationMinutes: 10,
     isExamStarted: false,
     isExamSubmitted: false,
-    isSubmitting: false, // [PERBAIKAN] Tambahan state awal untuk bypass sensor keamanan
+    isSubmitting: false, // Bypass sensor keamanan saat proses submit/modal
     
     // State Pengawasan Keamanan & Proctoring
     warningCount: 0,
@@ -64,49 +66,50 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof initWebcamProctoring === "function") window.initWebcamProctoring = initWebcamProctoring;
     if (typeof prosesPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
 
-    // Engine Penilaian & Webhook
+    // Engine Penilaian & Modal UI
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
+    if (typeof tampilkanPanelKonfirmasi === "function") window.tampilkanPanelKonfirmasi = tampilkanPanelKonfirmasi;
 
     // ==========================================================
     // Konfirmasi & Dialog Actions
     // ==========================================================
-    window.konfirmasiSubmit = function() {
-        // [PERBAIKAN] Pop-up confirm() dihapus dari sini karena sudah ditangani
-        // dengan aman di dalam submitJawaban() (exam.js) lengkap dengan penonaktifan sensor.
-        
+    
+    /**
+     * Mengunci LocalStorage HANYA jika dipanggil setelah konfirmasi YA
+     */
+    window.simpanLockSubmitted = function() {
         if (window.App && App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
             const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
             const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
             const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
             localStorage.setItem(lockKey, "TRUE");
         }
+    };
 
+    window.konfirmasiSubmit = function() {
+        // Panggil submitJawaban (tanpa mengunci localStorage dulu)
         if (typeof submitJawaban === "function") {
-            submitJawaban(false); // Panggil fungsi utama di exam.js
+            submitJawaban(false, false);
         }
     };
 
     window.konfirmasiKeluar = function() {
-        // [PERBAIKAN] Matikan sensor keamanan sementara agar pop-up ini tidak dianggap curang (blur/lepas fokus)
+        // Matikan sensor keamanan sementara agar konfirmasi keluar tidak dianggap kecurangan
         if (window.App) App.isSubmitting = true; 
 
         if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
-            // Hentikan timer jika ada
             if (window.App && App.timerInterval) {
                 clearInterval(App.timerInterval);
             }
 
-            // Hentikan stream kamera jika aktif
             if (window.App && App.webcamStream) {
                 App.webcamStream.getTracks().forEach(track => track.stop());
             }
 
-            // Clean up log sementara
             localStorage.removeItem("cbt_violation_logs");
-            
             location.reload();
         } else {
-            // [PERBAIKAN] Jika peserta batal keluar, nyalakan kembali sensor keamanan
+            // Jika batal keluar, aktifkan kembali sensor
             setTimeout(() => { 
                 if (window.App) App.isSubmitting = false; 
             }, 500);
