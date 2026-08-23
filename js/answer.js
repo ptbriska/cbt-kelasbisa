@@ -1,5 +1,5 @@
 /* ==========================================================================
-   answer.js - Module Pembuka Kunci Jawaban & Print PDF (CBT-KIBI v1.4)
+   answer.js - Review Kunci Jawaban & Print PDF (CBT-KIBI v1.4.1)
    ========================================================================== */
 
 window.App = window.App || {};
@@ -24,7 +24,7 @@ function bukaHalamanKunciJawaban() {
         document.body.appendChild(reviewModal);
     }
 
-    // Render HTML Container
+    // Render HTML Container & Footer Cetak Kustom
     reviewModal.innerHTML = `
         <div class="watermark-briska">ASET BRISKA</div>
         <div class="review-container">
@@ -52,19 +52,61 @@ function bukaHalamanKunciJawaban() {
 
             <!-- Blok-Blok Soal dan Kunci -->
             <div id="review-blocks-list"></div>
+
+            <!-- Footer Cetak Kustom (Print Only) -->
+            <div class="print-footer-custom">
+                www.briska.co.id - www.kelasbisa.com - www.barugahub.com
+            </div>
         </div>
     `;
 
     const blockContainer = document.getElementById("review-blocks-list");
     let htmlContent = "";
 
-    // Loop Menyusun Blok Soal & Sub-Blok Kunci
+    // Loop Menyusun Blok Soal, Opsi Jawaban, & Sub-Blok Kunci
     questions.forEach((q, idx) => {
         const noSoal = q.No || (idx + 1);
         const teksSoal = q.Soal || q.question || "Teks soal tidak tersedia";
         const kunci = String(q.Kunci || q.key || "-").trim().toUpperCase();
         const userAns = String(userAnswers[noSoal] || "").trim().toUpperCase();
 
+        // Menyusun daftar opsi A, B, C, D, E (jika ada)
+        let optionsHTML = "";
+        const optionKeys = ['A', 'B', 'C', 'D', 'E'];
+        
+        const hasOptions = optionKeys.some(key => q[key] || q[`Option_${key}`] || q[`opt_${key}`]);
+
+        if (hasOptions) {
+            optionsHTML += `<div class="review-options-list">`;
+            optionKeys.forEach(key => {
+                const optText = q[key] || q[`Option_${key}`] || q[`opt_${key}`];
+                if (optText) {
+                    let optStyle = "";
+                    let optBadge = "";
+
+                    // Highlight visual untuk Opsi
+                    if (key === kunci && key === userAns) {
+                        optStyle = "background: #e8f5e9; border-color: #2e7d32; font-weight: bold;";
+                        optBadge = ` <small style="color: #2e7d32;">(Jawaban Anda & Kunci)</small>`;
+                    } else if (key === kunci) {
+                        optStyle = "background: #e8f5e9; border-color: #2e7d32; font-weight: bold;";
+                        optBadge = ` <small style="color: #2e7d32;">(Kunci Jawaban)</small>`;
+                    } else if (key === userAns) {
+                        optStyle = "background: #ffebee; border-color: #c62828; font-weight: bold;";
+                        optBadge = ` <small style="color: #c62828;">(Jawaban Anda)</small>`;
+                    }
+
+                    optionsHTML += `
+                        <div class="review-option-item" style="${optStyle}">
+                            <strong>${key}.</strong> ${optText} ${optBadge}
+                        </div>
+                    `;
+                }
+            });
+            optionsHTML += `</div>`;
+        }
+
+        // Status Badge
         let statusBadge = "";
         if (!userAns) {
             statusBadge = `<span class="status-badge badge-kosong">⚪ Tidak Dijawab</span>`;
@@ -76,10 +118,11 @@ function bukaHalamanKunciJawaban() {
 
         htmlContent += `
             <div class="question-block">
-                <!-- Sub-blok 1: Soal -->
+                <!-- Sub-blok 1: Soal & Opsi Jawaban -->
                 <div class="subblock-question">
                     <div class="q-number">Soal Nomor #${noSoal}</div>
                     <div class="q-text">${teksSoal}</div>
+                    ${optionsHTML}
                 </div>
 
                 <!-- Sub-blok 2: Kunci & Analisis Jawaban -->
@@ -96,6 +139,11 @@ function bukaHalamanKunciJawaban() {
 
     blockContainer.innerHTML = htmlContent;
     reviewModal.style.display = "block";
+
+    // Re-render MathJax untuk simbol/rumus matematika (LaTeX)
+    if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
+        window.MathJax.typesetPromise([reviewModal]).catch(err => console.log("MathJax error:", err));
+    }
 }
 
 /**
