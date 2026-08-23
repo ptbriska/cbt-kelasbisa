@@ -4,7 +4,7 @@
 
 window.App = {
     // Endpoint Backend Google Apps Script Web App
-    WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbwrFDLCm2S-6q9r4M_8QvY1ZThBptmS1K9_X0o9TqH99R41Q/exec",
+    WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
     
     // State Soal & Konfigurasi Paket
     questionsDataConfig: {},
