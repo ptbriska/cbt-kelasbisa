@@ -1,12 +1,10 @@
-// ==========================================================
-// js/exam.js - Core Engine Ujian CBT & Navigasi Soal V1.5.0
-// ==========================================================
+/* ==========================================================
+   js/exam.js - Core Engine Ujian CBT Multi-Type V2.0.0
+   Sesuai Dokumen Pedoman Tipe Soal & Format JSON
+   ========================================================== */
 
 window.App = window.App || {};
 
-/**
- * Toggle Status Tombol Mulai Ujian
- */
 function toggleMulaiButton() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
     const btn = document.getElementById("btn-mulai-ujian") || document.getElementById("btn-start-exam");
@@ -26,18 +24,12 @@ function toggleMulaiButton() {
     }
 }
 
-/**
- * Navigasi Kembali ke Halaman Form Login / Verifikasi
- */
 function kembaliKePage1() {
     document.getElementById("page-info")?.classList.add("hidden");
     document.getElementById("page-login")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 }
 
-/**
- * Memulai Sesi Ujian CBT
- */
 function mulaiUjianPenuh() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
     if (chk && !chk.checked) {
@@ -54,7 +46,6 @@ function mulaiUjianPenuh() {
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
-    // Mandatory reset state kecurangan saat ujian baru dimulai
     App.isExamStarted = true;
     App.isExamSubmitted = false;
     App.isSubmitting = false; 
@@ -65,7 +56,6 @@ function mulaiUjianPenuh() {
     App.cheatingSnapshots = []; 
     App.startTime = new Date().toISOString();
 
-    // Hapus sisa cache kecurangan lama di browser
     try {
         localStorage.removeItem("cbt_warning_count");
         localStorage.removeItem("cbt_violation_logs");
@@ -86,9 +76,6 @@ function mulaiUjianPenuh() {
     initCBT();
 }
 
-/**
- * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian
- */
 function updateHeaderUserProfile() {
     const elNama = document.getElementById("disp-user-name");
     const elInstansi = document.getElementById("disp-user-school");
@@ -100,32 +87,27 @@ function updateHeaderUserProfile() {
     }
 }
 
-/**
- * Sinkronisasi Metadata dari JSON Soal ke App Global
- */
 function syncExamMetadataFromJSON(dataJSON) {
     if (!window.App || !dataJSON) return;
 
     App.soalData = dataJSON;
     App.questionsData = dataJSON.questions || [];
 
-    App.modePenilaian = dataJSON.mode_penilaian || "1A";
-    App.skorConfig = dataJSON.skor_config || {
-        skor_benar: 1.0,
-        skor_salah: 0.0,
-        skor_kosong: 0.0,
-        use_scaling_100: false,
-        bobot_level: { E: 1.0, M: 3.0, H: 5.0 }
+    // Sinkronkan aturan scoring per JSON
+    App.scoringRules = dataJSON.scoring_rules || {
+        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
+        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0 },
+        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },
+        "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },
+        "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 }
     };
 
     App.currentKodeUjian = dataJSON.kode_ujian || App.currentKodeUjian;
-    App.modeUjian = dataJSON.mode_ujian || App.modeUjian;
     App.timerDurationMinutes = dataJSON.timer_menit || dataJSON.durasi_menit || 10;
 }
 
-/**
- * Inisialisasi CBT
- */
 function initCBT() {
     if (!window.App) return;
 
@@ -143,9 +125,6 @@ function initCBT() {
     startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
-/**
- * Pengatur Timer Ujian
- */
 function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
     if (isNaN(timer) || timer <= 0) timer = 600;
@@ -180,7 +159,6 @@ function startTimer(durationInSeconds) {
         if (--timer < 0) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
-            
             submitJawaban(true, true);
         }
     };
@@ -189,12 +167,8 @@ function startTimer(durationInSeconds) {
     App.timerInterval = setInterval(intervalFunc, 1000);
 }
 
-/**
- * Render Panel Tombol Navigasi Nomor Soal
- */
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
-    
     if (!window.App || !App.questionsData) return;
     
     const fragment = document.createDocumentFragment();
@@ -217,7 +191,7 @@ function renderNumberGrid() {
 }
 
 /**
- * Memuat dan Menampilkan Soal Berdasarkan Index
+ * RENDER SOAL BERDASARKAN TIPE (1A-1C, 2A, 3A-3B, 4A)
  */
 function loadQuestion(index) {
     if (!window.App || !App.questionsData) return;
@@ -231,7 +205,7 @@ function loadQuestion(index) {
     
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
-    if (elLevel) elLevel.textContent = q.Level ? `[Level: ${q.Level}]` : "";
+    if (elLevel) elLevel.textContent = q.Tipe ? `[Tipe: ${q.Tipe}${q.Level ? ' | Level: ' + q.Level : ''}]` : "";
 
     const imgContainer = document.getElementById("q-image-container");
     if (imgContainer) {
@@ -242,27 +216,129 @@ function loadQuestion(index) {
     }
 
     const optionsBox = document.getElementById("options-box");
-    if (optionsBox) {
-        optionsBox.innerHTML = "";
+    if (!optionsBox) return;
+    optionsBox.innerHTML = "";
 
-        const currentAnswer = App.userAnswers ? App.userAnswers[displayNo] : undefined;
+    const currentAns = App.userAnswers[displayNo];
+    const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
 
+    // -------------------------------------------------------------------
+    // TIPE 1A, 1B, 1C: Single Choice (Radio Button)
+    // -------------------------------------------------------------------
+    if (["1A", "1B", "1C"].includes(tipeSoal)) {
         ["A", "B", "C", "D", "E"].forEach(key => {
-            if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "") {
-                const isSelected = (currentAnswer === key);
-                const optionRow = document.createElement("div"); 
-                optionRow.className = `option-row ${isSelected ? 'selected' : ''}`;
-                
-                optionRow.innerHTML = `
-                    <input type="radio" name="option_${displayNo}" value="${key}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
+            if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
+                const isSelected = (currentAns === key);
+                const row = document.createElement("div"); 
+                row.className = `option-row ${isSelected ? 'selected' : ''}`;
+                row.innerHTML = `
+                    <input type="radio" name="opt_${displayNo}" value="${key}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
                     <span class="opt-key">${key}.</span>
                     <span class="opt-val">${q[key]}</span>
                 `;
-                
-                optionRow.onclick = () => pilihJawaban(displayNo, key);
-                optionsBox.appendChild(optionRow);
+                row.onclick = () => {
+                    App.userAnswers[displayNo] = (App.userAnswers[displayNo] === key) ? undefined : key;
+                    loadQuestion(App.currentIndex);
+                };
+                optionsBox.appendChild(row);
             }
         });
+    } 
+    // -------------------------------------------------------------------
+    // TIPE 2A: Multiple Response (Checkbox)
+    // -------------------------------------------------------------------
+    else if (tipeSoal === "2A") {
+        let ansArray = Array.isArray(currentAns) ? currentAns : [];
+        ["A", "B", "C", "D", "E"].forEach(key => {
+            if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
+                const isSelected = ansArray.includes(key);
+                const row = document.createElement("div"); 
+                row.className = `option-row ${isSelected ? 'selected' : ''}`;
+                row.innerHTML = `
+                    <input type="checkbox" name="opt_${displayNo}" value="${key}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
+                    <span class="opt-key">${key}.</span>
+                    <span class="opt-val">${q[key]}</span>
+                `;
+                row.onclick = () => {
+                    let updated = Array.isArray(App.userAnswers[displayNo]) ? [...App.userAnswers[displayNo]] : [];
+                    if (updated.includes(key)) {
+                        updated = updated.filter(item => item !== key);
+                    } else {
+                        updated.push(key);
+                    }
+                    if (updated.length === 0) delete App.userAnswers[displayNo];
+                    else App.userAnswers[displayNo] = updated;
+                    loadQuestion(App.currentIndex);
+                };
+                optionsBox.appendChild(row);
+            }
+        });
+    }
+    // -------------------------------------------------------------------
+    // TIPE 3A & 3B: Short Answer (Input Text/Angka)
+    // -------------------------------------------------------------------
+    else if (tipeSoal === "3A" || tipeSoal === "3B") {
+        const textVal = currentAns || "";
+        const container = document.createElement("div");
+        container.style.padding = "10px 0";
+        container.innerHTML = `
+            <label style="display:block; margin-bottom: 8px; font-weight: bold; color: #333;">Jawaban Anda:</label>
+            <input type="${tipeSoal === '3A' ? 'number' : 'text'}" 
+                   id="input-short-answer" 
+                   value="${textVal}" 
+                   placeholder="${tipeSoal === '3A' ? 'Masukkan angka...' : 'Ketikkan kata/frasa...'}" 
+                   style="width: 100%; max-width: 400px; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px;">
+        `;
+        optionsBox.appendChild(container);
+
+        const inputEl = document.getElementById("input-short-answer");
+        if (inputEl) {
+            inputEl.oninput = (e) => {
+                const val = e.target.value.trim();
+                if (val === "") delete App.userAnswers[displayNo];
+                else App.userAnswers[displayNo] = val;
+                updateGridStatus();
+            };
+        }
+    }
+    // -------------------------------------------------------------------
+    // TIPE 4A: True/False Checklist Table
+    // -------------------------------------------------------------------
+    else if (tipeSoal === "4A") {
+        let userAnsArray = Array.isArray(currentAns) ? currentAns : [];
+        const statements = ["A", "B", "C", "D", "E"].filter(k => q[k] && String(q[k]).trim() !== "" && q[k] !== "-");
+        
+        let tableHTML = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f1f3f5; text-align: left; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">Pernyataan</th>
+                        <th style="padding: 10px; text-align: center; width: 80px; border: 1px solid #dee2e6;">Benar (B)</th>
+                        <th style="padding: 10px; text-align: center; width: 80px; border: 1px solid #dee2e6;">Salah (S)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        statements.forEach((key, idx) => {
+            const valPernyataan = q[key];
+            const currentChoice = userAnsArray[idx] || "";
+            
+            tableHTML += `
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #dee2e6;">${idx + 1}. ${valPernyataan}</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #dee2e6;">
+                        <input type="radio" name="tf_${displayNo}_${idx}" value="B" ${currentChoice === 'B' ? 'checked' : ''} onchange="simpanTFKlik(${displayNo}, ${idx}, 'B', ${statements.length})">
+                    </td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #dee2e6;">
+                        <input type="radio" name="tf_${displayNo}_${idx}" value="S" ${currentChoice === 'S' ? 'checked' : ''} onchange="simpanTFKlik(${displayNo}, ${idx}, 'S', ${statements.length})">
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `</tbody></table>`;
+        optionsBox.innerHTML = tableHTML;
     }
 
     if (window.MathJax && window.MathJax.typesetPromise) {
@@ -279,30 +355,32 @@ function loadQuestion(index) {
 }
 
 /**
- * Menyimpan / Mengubah / Membatalkan Pilihan Jawaban Peserta
+ * Helper Simpan Jawaban Tipe 4A (True/False Checklist)
  */
-function pilihJawaban(questionNum, selectedOption) {
+window.simpanTFKlik = function(displayNo, barisIdx, pilihan, totalBaris) {
     if (!window.App) return;
+    let currentArr = Array.isArray(App.userAnswers[displayNo]) ? [...App.userAnswers[displayNo]] : new Array(totalBaris).fill("");
     
-    if (App.userAnswers[questionNum] === selectedOption) {
-        delete App.userAnswers[questionNum]; 
-    } else {
-        App.userAnswers[questionNum] = selectedOption;
-    }
-    
-    loadQuestion(App.currentIndex);
-}
+    currentArr[barisIdx] = pilihan;
+    App.userAnswers[displayNo] = currentArr;
+    updateGridStatus();
+};
 
-/**
- * Memperbarui Warna/Status pada Grid Nomor Soal
- */
 function updateGridStatus() {
     if (!window.App || !App.questionsData) return;
     App.questionsData.forEach((_, idx) => {
         const circle = document.getElementById(`circle-num-${idx}`);
         if (!circle) return;
 
-        const isAnswered = !!App.userAnswers[idx + 1];
+        const ans = App.userAnswers[idx + 1];
+        let isAnswered = false;
+
+        if (Array.isArray(ans)) {
+            isAnswered = ans.some(val => val && val !== "");
+        } else if (typeof ans === "string") {
+            isAnswered = ans.trim() !== "";
+        }
+
         const isActive = (idx === App.currentIndex);
 
         let className = "circle-btn";
@@ -315,9 +393,6 @@ function updateGridStatus() {
     });
 }
 
-/**
- * Navigasi Ke Soal Sebelum / Selanjutnya
- */
 function navigasi(direction) {
     if (!window.App || !App.questionsData) return;
     const newIndex = App.currentIndex + direction;
@@ -327,18 +402,12 @@ function navigasi(direction) {
     }
 }
 
-/**
- * Konfirmasi Keluar dari Layar Ujian
- */
 function konfirmasiKeluar() {
     if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian? Jawaban yang belum dikirim mungkin akan hilang.")) {
         window.location.reload();
     }
 }
 
-/**
- * Menampilkan Modal Dialog Konfirmasi Pengumpulan Ujian
- */
 function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
     let totalSoal = totalSoalArg;
     let dijawab = dijawabArg;
@@ -396,9 +465,6 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
     };
 }
 
-/**
- * Handler Tombol "Ya, Kirim Jawaban"
- */
 function konfirmasiSubmit() {
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
@@ -408,9 +474,6 @@ function konfirmasiSubmit() {
     submitJawaban(false, true);
 }
 
-/**
- * Mengirim Jawaban Ujian ke Engine Penilaian (OPTIMIZED & INSTANT SUBMIT)
- */
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
