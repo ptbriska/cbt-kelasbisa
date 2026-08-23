@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Pasang gembok submit jika dalam Mode SIMULASI
             if (App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
                 const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
-                const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";[cite: 1]
+                const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
                 const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
                 localStorage.setItem(lockKey, "TRUE");
             }
