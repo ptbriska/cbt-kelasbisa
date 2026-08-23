@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.3.15</title>
+  <title>CBT Online - Kelas Bisa Exam System v1.3.16</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
@@ -32,6 +32,14 @@
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
+
+  <!-- ========================================== -->
+  <!-- ELEMENT SEMBUNYI UNTUK PROCTORING WEBCAM  -->
+  <!-- ========================================== -->
+  <div id="webcam-container" style="display: none;">
+    <video id="webcam-preview" autoplay playsinline muted></video>
+    <canvas id="webcam-canvas"></canvas>
+  </div>
 
   <!-- ========================================== -->
   <!-- OVERLAY LOADING SAAT SUBMIT JAWABAN        -->
@@ -275,7 +283,7 @@
   <!-- ========================================== -->
   <!-- MODAL DIALOG KONFIRMASI SUBMIT             -->
   <!-- ========================================== -->
-  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center;">
+  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; align-items: center; justify-content: center;">
     <div style="max-width: 480px; width: 90%; background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto;">
       <h3 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">Konfirmasi Selesai Ujian</h3>
       <p id="teks-ringkasan-konfirmasi" style="color: #475569; font-size: 0.95rem; margin: 15px 0; line-height: 1.5;"></p>
@@ -284,14 +292,6 @@
         <button type="button" class="btn-primary" onclick="konfirmasiSubmit()">Ya, Kirim Jawaban</button>
       </div>
     </div>
-  </div>
-
-
-  <!-- ========================================== -->
-  <!-- PAGE 4: PENGUMUMAN SKOR & HASIL UJIAN CBT  -->
-  <!-- ========================================== -->
-  <div id="page-selesai" class="result-card-container card hidden">
-    <!-- Konten diisi secara dinamis oleh scoring.js -->
   </div>
 
   <!-- ========================================== -->
