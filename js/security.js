@@ -1,7 +1,7 @@
-// ==========================================================
-// security.js - Engine Keamanan & Monitoring (v1.7.0 - ULTRA FAST & NO CAMERA)
-// Terintegrasi dengan Dynamic Scoring, Webhook GAS, & State App
-// ==========================================================
+/* ==========================================================================
+   security.js - Engine Keamanan & Monitoring (v1.8.1 - VOICE & FULL NOTIF - NO CAMERA)
+   Sistem Pengawasan Ringan: Voice Warning Active, Audit Log Teks, No Camera/Drive
+   ========================================================================== */
 
 window.App = window.App || {};
 
@@ -9,26 +9,23 @@ let isWarningActive = false;
 let blurDebounceTimer = null;
 
 /**
- * Dummy WebCam Proctoring Handler (Kamera Dimatikan)
+ * Dummy WebCam Handler (Hanya untuk kompatibilitas agar sistem tidak error)
  */
 async function initWebcamProctoring() {
-    console.log("ℹ️ Fitur Kamera / Proctoring WebCam dinonaktifkan.");
+    console.log("ℹ️ Fitur Kamera dinonaktifkan.");
     App.isWebcamActive = false;
     App.webcamStream = null;
     return Promise.resolve(true);
 }
 
-/**
- * Dummy Snapshot Handler
- */
 function captureSnapshot() {
     return null;
 }
 
 /**
- * Mengirim data log kecurangan secara Non-Blocking (Background Process)
+ * Mengirim data log kecurangan teks secara Non-Blocking (Background Process)
  */
-function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
+function uploadLogKecurangan(alasanPelanggaran) {
     const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
     if (!webhookUrl || webhookUrl.trim() === "") return;
 
@@ -49,10 +46,9 @@ function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
         log_kecurangan: ringkasanLogText || alasanPelanggaran,
         alasan_terakhir: alasanPelanggaran,
         identitas: p,
-        image_base64: "" // Dikosongkan karena kamera dimatikan
+        image_base64: "" // Dikosongkan (kamera nonaktif)
     };
 
-    // Asynchronous Fire-and-Forget kirim log pelanggaran
     fetch(webhookUrl, {
         method: "POST",
         mode: "no-cors",
@@ -63,7 +59,7 @@ function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
 }
 
 /**
- * Peringatan Suara Bahasa Indonesia
+ * Peringatan Suara Bahasa Indonesia (VOICE WARNING ACTIVE)
  */
 function playVoiceWarning(text) {
     if ('speechSynthesis' in window) {
@@ -90,7 +86,6 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3; 
 
     if (!App.warningLogs) App.warningLogs = [];
-    if (!App.cheatingSnapshots) App.cheatingSnapshots = [];
 
     const timeString = new Date().toLocaleTimeString('id-ID');
     const timestampISO = new Date().toISOString();
@@ -110,10 +105,11 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         console.warn("Storage penuh / di-block.");
     }
 
-    // Kirim data log di background
-    uploadFotoKecuranganToDrive(null, alasan);
+    // Kirim data log teks di background
+    uploadLogKecurangan(alasan);
 
     if (App.warningCount >= App.MAX_WARNINGS) {
+        // SUARA PERINGATAN FINAL
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         
         App.isSubmitting = true; 
@@ -128,11 +124,14 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
             window.submitJawabanScoring();
         } else if (typeof submitJawabanScoring === "function") {
             submitJawabanScoring();
+        } else if (typeof window.konfirmasiSubmit === "function") {
+            window.konfirmasiSubmit(true);
         } else {
             console.error("Gagal auto-submit: Engine submit tidak ditemukan.");
         }
 
     } else {
+        // SUARA PERINGATAN TAHAP PERTAMA/KEDUA
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         
         alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\n\nAlasan: ${alasan}.\nPelanggaran telah dicatat!`);
@@ -157,10 +156,9 @@ function enforceFullscreen() {
  * Inisialisasi Event Listener Keamanan saat Ujian Dimulai
  */
 function initSecurityListeners() {
-    console.log("🛡️ Initializing Security Listeners...");
+    console.log("🛡️ Initializing Security Listeners (Voice & Text Violation Log Active)...");
     App.warningCount = 0;
     App.warningLogs = [];
-    App.cheatingSnapshots = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
     App.isSubmitting = false; 
 
@@ -247,7 +245,9 @@ function initSecurityListeners() {
 // Expose Fungsi ke Global Window
 window.initSecurityListeners = initSecurityListeners;
 window.initWebcamProctoring = initWebcamProctoring;
+window.captureSnapshot = captureSnapshot;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
+window.playVoiceWarning = playVoiceWarning;
 window.enforceFullscreen = enforceFullscreen;
 
 // Blokir Klik Kanan Pasif
