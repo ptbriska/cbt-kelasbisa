@@ -38,14 +38,11 @@ function submitJawaban() {
     // =========================================================
 
     if (modePenilaian === "1C") {
-        // ------------------------------------------------------
         // MODE 1C: Menggunakan Bobot Level Soal dari JSON
-        // ------------------------------------------------------
         questions.forEach((q) => {
             const userAns = userAnswers[q.No];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
             
-            // Ambil level soal & cari bobotnya di JSON, jika level tidak ada pakai default 1
             const levelSoal = String(q.Level || "").trim().toUpperCase();
             const bobotSoal = Number(bobotMap[levelSoal] ?? 1);
 
@@ -62,9 +59,7 @@ function submitJawaban() {
         });
 
     } else if (modePenilaian === "1B") {
-        // ------------------------------------------------------
-        // MODE 1B: Skor Minus / Penalty (Tanpa Mengabaikan Bobot Level)
-        // ------------------------------------------------------
+        // MODE 1B: Skor Minus / Penalty 
         questions.forEach((q) => {
             const userAns = userAnswers[q.No];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
@@ -82,9 +77,7 @@ function submitJawaban() {
         });
 
     } else {
-        // ------------------------------------------------------
         // MODE 1A: Standard / Proporsional
-        // ------------------------------------------------------
         questions.forEach((q) => {
             const userAns = userAnswers[q.No];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
@@ -101,7 +94,6 @@ function submitJawaban() {
             }
         });
 
-        // Opsi Skala 100 Khusus 1A jika diaktifkan di JSON
         if (cfg.use_scaling_100 && totalSoal > 0) {
             totalSkorMurni = (jumlahBenar / totalSoal) * 100;
         }
@@ -117,7 +109,6 @@ function submitJawaban() {
         skor: skorAkhir
     };
 
-    // Tampilkan Loading Pengiriman
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -128,13 +119,12 @@ function submitJawaban() {
         `;
     }
 
-    // Payload Webhook Dinamis
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const payload = {
         kode_soal: App.currentKodeUjian || App.examData?.kode_ujian || "UNKNOWN",
         sistem_ujian: "CBT",
         mode_ujian: App.modeUjian || "UTAMA",
-        mode_penilaian: modePenilaian, // Mengirim nilai mode acuan dinamis ke GS
+        mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
         total_dijawab: Object.keys(userAnswers).length,
