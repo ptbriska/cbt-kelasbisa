@@ -1,6 +1,5 @@
 /* ==========================================================================
-   security.js - Engine Keamanan & Monitoring (v1.8.2 - FAST AUTO SUBMIT)
-   Sistem Pengawasan Ringan: Voice Warning Active, Direct Submit, No Clogged Requests
+   security.js - Engine Keamanan & Monitoring (v1.8.3 - FIXED & SYNCHRONIZED)
    ========================================================================== */
 
 window.App = window.App || {};
@@ -9,7 +8,7 @@ let isWarningActive = false;
 let blurDebounceTimer = null;
 
 /**
- * Dummy WebCam Handler (Hanya untuk kompatibilitas agar sistem tidak error)
+ * Dummy WebCam Handler
  */
 async function initWebcamProctoring() {
     console.log("ℹ️ Fitur Kamera dinonaktifkan.");
@@ -23,7 +22,7 @@ function captureSnapshot() {
 }
 
 /**
- * Peringatan Suara Bahasa Indonesia (VOICE WARNING ACTIVE)
+ * Peringatan Suara Bahasa Indonesia
  */
 function playVoiceWarning(text) {
     if ('speechSynthesis' in window) {
@@ -46,13 +45,14 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
-    App.warningCount = (App.warningCount || 0) + 1;
+    App.warningCount = (parseInt(App.warningCount, 10) || 0) + 1;
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3; 
 
     if (!App.warningLogs) App.warningLogs = [];
 
-    const timeString = new Date().toLocaleTimeString('id-ID');
-    const timestampISO = new Date().toISOString();
+    const waktuSekarang = new Date();
+    const timeString = waktuSekarang.toLocaleTimeString('id-ID');
+    const timestampISO = waktuSekarang.toISOString();
 
     const logData = {
         peringatan_ke: App.warningCount,
@@ -63,23 +63,25 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     };
     App.warningLogs.push(logData);
     
+    // Backup konsisten ke LocalStorage
     try {
+        localStorage.setItem("cbt_warning_count", App.warningCount.toString());
         localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
     } catch (e) {
         console.warn("Storage penuh / di-block.");
     }
 
     if (App.warningCount >= App.MAX_WARNINGS) {
-        // BATAS TOLERANSI HABIS -> AUTO SUBMIT INSTAN TANPA BLOCKING ALERT
-        App.isSubmitting = true; 
-        App.isExamSubmitted = true;
+        // BATAS TOLERANSI HABIS -> AUTO SUBMIT INSTAN
         isWarningActive = false;
 
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
 
-        // Eksekusi Submit Langsung
+        // Panggil Engine Submit Tanpa Mengunci State Terlebih Dahulu
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban(true, true);
+        } else if (typeof submitJawaban === "function") {
+            submitJawaban(true, true);
         } else if (typeof window.submitJawabanScoring === "function") {
             window.submitJawabanScoring();
         } else if (typeof submitJawabanScoring === "function") {
@@ -91,14 +93,14 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         }
 
     } else {
-        // SUARA PERINGATAN TAHAP PERTAMA/KEDUA
+        // SUARA PERINGATAN TAHAP PERTAMA / KEDUA
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         
         alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\n\nAlasan: ${alasan}.\nPelanggaran telah dicatat!`);
         
         setTimeout(() => {
             isWarningActive = false;
-        }, 1000); 
+        }, 500); 
     }
 }
 
@@ -116,9 +118,19 @@ function enforceFullscreen() {
  * Inisialisasi Event Listener Keamanan saat Ujian Dimulai
  */
 function initSecurityListeners() {
-    console.log("🛡️ Initializing Security Listeners (Optimized & Fast Submit)...");
-    App.warningCount = 0;
-    App.warningLogs = [];
+    console.log("🛡️ Initializing Security Listeners (Fixed Auto-Submit & Sync Count)...");
+    
+    // Restore state jika sempat ter-refresh
+    const savedCount = parseInt(localStorage.getItem("cbt_warning_count"), 10);
+    App.warningCount = !isNaN(savedCount) ? savedCount : 0;
+    
+    try {
+        const savedLogs = localStorage.getItem("cbt_violation_logs");
+        App.warningLogs = savedLogs ? JSON.parse(savedLogs) : [];
+    } catch(e) {
+        App.warningLogs = [];
+    }
+
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
     App.isSubmitting = false; 
 
