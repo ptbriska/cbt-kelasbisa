@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.6)
+// security.js - Engine Keamanan & Photo Proctoring (v1.3.7)
 // ==========================================================
 
 const GOOGLE_DRIVE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmc09UotPen4uw0-UX0zJDYydHp1iNs8HkjpQl3B4jdQ-U1hPLNM2EoUhnpL5AgNsLOQ/exec";
@@ -73,10 +73,10 @@ async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
         await fetch(GOOGLE_DRIVE_WEB_APP_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(payload)
         });
-        console.log("📷 Foto pelanggaran berhasil dikirim ke Google Drive.");
+        console.log("📷 Foto pelanggaran dikirim ke Google Drive.");
     } catch (err) {
         console.error("Gagal mengunggah foto kecurangan:", err);
     }
@@ -94,7 +94,6 @@ function playVoiceWarning(text) {
     }
 }
 
-// Flag pengunci untuk mencegah infinite alert loop
 let isWarningActive = false;
 
 /**
@@ -110,24 +109,42 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     // 1. Ambil Foto Wajah
     const fotoBukti = captureSnapshot();
     
-    // 2. Simpan Log Pelanggaran di State Global & LocalStorage
+    // 2. Inisialisasi Penyimpanan Foto & Log Global
     if (!App.warningLogs) App.warningLogs = [];
+    if (!App.cheatingSnapshots) App.cheatingSnapshots = [];
+
+    if (fotoBukti) {
+        App.cheatingSnapshots.push({
+            peringatan_ke: App.warningCount,
+            alasan: alasan,
+            timestamp: new Date().toISOString(),
+            image_base64: fotoBukti
+        });
+    }
+
+    // 3. Simpan Log Detail ke State Global & LocalStorage
     const logData = {
         peringatan_ke: App.warningCount,
         waktu: new Date().toLocaleTimeString('id-ID'),
         timestamp: new Date().toISOString(),
         alasan: alasan,
-        foto_captured: Boolean(fotoBukti)
+        foto_captured: Boolean(fotoBukti),
+        foto_data: fotoBukti || null
     };
     App.warningLogs.push(logData);
-    localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
+    
+    try {
+        localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
+    } catch (e) {
+        console.warn("Storage penuh, menyimpan log tanpa base64 foto.");
+    }
 
-    // 3. Unggah Foto ke Google Drive secara otomatis
+    // 4. Unggah Foto ke Google Drive secara otomatis
     if (fotoBukti) {
         uploadFotoKecuranganToDrive(fotoBukti, alasan);
     }
 
-    // 4. Eksekusi Sanksi & Notifikasi
+    // 5. Eksekusi Sanksi & Notifikasi
     if (App.warningCount >= App.MAX_WARNINGS) {
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
@@ -160,9 +177,9 @@ function initSecurityListeners() {
     console.log("🛡️ Initializing Security Listeners...");
     App.warningCount = 0;
     App.warningLogs = [];
+    App.cheatingSnapshots = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
 
-    // Aktifkan Kamera WebCam
     initWebcamProctoring();
 
     // 1. Deteksi Pindah Tab / Browser
@@ -191,46 +208,37 @@ function initSecurityListeners() {
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted) return;
 
-        // Blokir Windows + Shift + S (Snipping Tool Windows)
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
-            
-            // Pengaburan layar sekejap agar hasil tangkapan layar menjadi hitam
             document.body.style.display = "none";
             setTimeout(() => { document.body.style.display = "block"; }, 1000);
-
             prosesPeringatanKecurangan("Shortcut Screenshot (Win + Shift + S)");
             return false;
         }
 
-        // Blokir F12 (DevTools)
         if (e.key === "F12") {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
             return false;
         }
 
-        // Blokir Ctrl+Shift+I / J / C (DevTools Inspect)
         if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka Inspect Element (Ctrl+Shift+I/J/C)");
             return false;
         }
 
-        // Blokir Ctrl+U (View Source), Ctrl+S (Save), Ctrl+P (Print), Ctrl+C (Copy)
         if (e.ctrlKey && ["u", "U", "s", "S", "p", "P", "c", "C"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan(`Shortcut Terlarang (Ctrl+${e.key.toUpperCase()})`);
             return false;
         }
 
-        // Deteksi Tombol PrintScreen
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
             if (navigator.clipboard) {
                 navigator.clipboard.writeText("[Sistem Keamanan CBT] Tangkapan layar dilarang.");
             }
-            
             document.body.style.display = "none";
             setTimeout(() => { document.body.style.display = "block"; }, 1000);
 
@@ -245,7 +253,6 @@ window.initSecurityListeners = initSecurityListeners;
 window.initWebcamProctoring = initWebcamProctoring;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
 
-// Proteksi Langsung Klik Kanan Sejak Halaman Dimuat
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", (e) => e.preventDefault());
 });
