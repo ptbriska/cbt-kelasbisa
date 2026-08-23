@@ -1,5 +1,5 @@
 // ==========================================================
-// state.js - Centralized Application State Engine (v1.6.0 - NO CAMERA & FAST SYNC)
+// state.js - Centralized Application State Engine (v1.5.0 - Dynamic Multi-Type Scoring)
 // ==========================================================
 
 // Inisialisasi Objek Global State App secara aman
@@ -9,7 +9,7 @@ Object.assign(window.App, {
     // Endpoint Backend Google Apps Script Web App
     WEBHOOK_URL: window.App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
     
-    // State Soal & Konfigurasi Paket
+    // State Soal & Konfigurasi Paket Ujian
     questionsDataConfig: window.App.questionsDataConfig || {},
     soalData: window.App.soalData || null,
     questionsData: window.App.questionsData || [],
@@ -27,21 +27,20 @@ Object.assign(window.App, {
     verifiedPesertaData: window.App.verifiedPesertaData || null,
     daftarPesertaValid: window.App.daftarPesertaValid || [],
 
-    // State Mode Ujian & Scoring Engine
+    // State Mode Ujian & Scoring Engine v1.5.0 (Dynamic Rules per Type)
     modeUjian: window.App.modeUjian || "LATIHAN", 
-    modePenilaian: window.App.modePenilaian || "1A", 
-    skorConfig: window.App.skorConfig || {
-        skor_benar: 1.0,
-        skor_salah: 0.0,
-        skor_kosong: 0.0,
-        use_scaling_100: false,
-        bobot_level: { 
-            E: 1.0, M: 3.0, H: 5.0,
-            EASY: 1.0, MEDIUM: 3.0, HARD: 5.0 
-        }
+    modePenilaian: window.App.modePenilaian || "DYNAMIC", 
+    scoringRules: window.App.scoringRules || {
+        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
+        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "3A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "3B": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0, "skor_per_baris_kosong": 0.0 }
     },
 
-    // State Anti-Kecurangan & Lock Engine (Kamera Dimatikan)
+    // State Anti-Kecurangan & Lock Engine (Non-Camera Proctoring)
     isExamStarted: window.App.isExamStarted || false,
     isExamSubmitted: window.App.isExamSubmitted || false,
     isSubmitting: window.App.isSubmitting || false,
