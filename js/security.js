@@ -1,8 +1,8 @@
-// security.js
-import { App } from './state.js';
-import { submitJawaban } from './scoring.js';
+// ==========================================================
+// security.js - Engine Keamanan & Proteksi Anti-Kecurangan (v1.3.0)
+// ==========================================================
 
-export function playVoiceWarning(text) {
+function playVoiceWarning(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
@@ -11,33 +11,13 @@ export function playVoiceWarning(text) {
     }
 }
 
-export function startTimer(totalSeconds) {
-    let timerSeconds = totalSeconds;
-    const timerDisplay = document.getElementById("timer");
-
-    App.timerInterval = setInterval(() => {
-        const hours = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
-        const minutes = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
-        const seconds = String(timerSeconds % 60).padStart(2, '0');
-
-        if (timerDisplay) timerDisplay.textContent = `${hours}:${minutes}:${seconds}`;
-
-        if (--timerSeconds < 0) {
-            clearInterval(App.timerInterval);
-            playVoiceWarning("Waktu ujian telah habis. Jawaban Anda otomatis dikirim.");
-            alert("⏱️ Waktu Ujian Habis!");
-            submitJawaban();
-        }
-    }, 1000);
-}
-
-export function handleVisibilityChange() {
+function handleVisibilityChange() {
     if (App.isExamStarted && !App.isExamSubmitted && document.hidden) {
         prosesPeringatanKecurangan();
     }
 }
 
-export function handleWindowBlur() {
+function handleWindowBlur() {
     if (App.isExamStarted && !App.isExamSubmitted) {
         prosesPeringatanKecurangan();
     }
@@ -45,12 +25,38 @@ export function handleWindowBlur() {
 
 function prosesPeringatanKecurangan() {
     App.warningCount++;
+    
     if (App.warningCount >= App.MAX_WARNINGS) {
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN! Ujian otomatis diakhiri.`);
-        submitJawaban();
+        
+        if (typeof submitJawaban === "function") {
+            submitJawaban();
+        }
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang membuka tab lain!`);
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})!`);
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})!\nDilarang berpindah tab atau meninggalkan halaman ujian.`);
     }
+}
+
+function initSecurityListeners() {
+    // Reset hitungan peringatan
+    App.warningCount = 0;
+
+    // Pasang Event Listener Keamanan
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+
+    // Mencegah Klik Kanan & Shortcut Inspeksi
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
+    document.addEventListener("keydown", (e) => {
+        // Blokir F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+        if (
+            e.key === "F12" ||
+            (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
+            (e.ctrlKey && e.key === "u")
+        ) {
+            e.preventDefault();
+        }
+    });
 }
