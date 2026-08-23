@@ -252,11 +252,15 @@ document.getElementById("form-identitas").addEventListener("submit", async funct
       mode_ujian: modeUjian
     };
 
-    // Update Sambutan & Header Lembaga (UX v1.3 Revision)
-    const dispHeaderTitle = document.getElementById("disp-header-title");
-    const dispHeaderSub = document.getElementById("disp-header-sub");
-    if (dispHeaderTitle) dispHeaderTitle.textContent = "Selamat Datang di Sistem Tes Berbasis Komputer (CBT)";
-    if (dispHeaderSub) dispHeaderSub.textContent = "Briska Corporation";
+    // Update Header Dinamis jika diset di JSON (opsional)
+    if (data.header_title) {
+      const dispHeaderTitle = document.getElementById("disp-header-title");
+      if (dispHeaderTitle) dispHeaderTitle.textContent = data.header_title;
+    }
+    if (data.header_sub) {
+      const dispHeaderSub = document.getElementById("disp-header-sub");
+      if (dispHeaderSub) dispHeaderSub.textContent = data.header_sub;
+    }
 
     if (data.logo) {
       const logoInfo = document.getElementById("logo-lembaga-info");
