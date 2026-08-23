@@ -1,6 +1,6 @@
 /* ==========================================================================
-   security.js - Engine Keamanan & Monitoring (v1.8.1 - VOICE & FULL NOTIF - NO CAMERA)
-   Sistem Pengawasan Ringan: Voice Warning Active, Audit Log Teks, No Camera/Drive
+   security.js - Engine Keamanan & Monitoring (v1.8.2 - FAST AUTO SUBMIT)
+   Sistem Pengawasan Ringan: Voice Warning Active, Direct Submit, No Clogged Requests
    ========================================================================== */
 
 window.App = window.App || {};
@@ -20,42 +20,6 @@ async function initWebcamProctoring() {
 
 function captureSnapshot() {
     return null;
-}
-
-/**
- * Mengirim data log kecurangan teks secara Non-Blocking (Background Process)
- */
-function uploadLogKecurangan(alasanPelanggaran) {
-    const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
-    if (!webhookUrl || webhookUrl.trim() === "") return;
-
-    const p = App.verifiedPesertaData || App.userIdentitas || {};
-    const namaPeserta = p["Nama Lengkap"] || p.nama || "Tanpa Nama";
-    const examData = App.examData || {};
-    const kodeUjian = examData.kode_ujian || App.currentKodeUjian || p.kode_ujian || "NO-KODE";
-
-    const ringkasanLogText = (App.warningLogs || [])
-        .map(l => `[${l.waktu}] ${l.alasan}`)
-        .join(" | ");
-
-    const payload = {
-        action: "LOG_PELANGGARAN",
-        kode_ujian: kodeUjian,
-        nama_peserta: namaPeserta,
-        jumlah_pelanggaran: App.warningCount || 1,
-        log_kecurangan: ringkasanLogText || alasanPelanggaran,
-        alasan_terakhir: alasanPelanggaran,
-        identitas: p,
-        image_base64: "" // Dikosongkan (kamera nonaktif)
-    };
-
-    fetch(webhookUrl, {
-        method: "POST",
-        mode: "no-cors",
-        keepalive: true,
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
-    }).catch(err => console.warn("Background upload log kecurangan error:", err));
 }
 
 /**
@@ -105,19 +69,15 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         console.warn("Storage penuh / di-block.");
     }
 
-    // Kirim data log teks di background
-    uploadLogKecurangan(alasan);
-
     if (App.warningCount >= App.MAX_WARNINGS) {
-        // SUARA PERINGATAN FINAL
-        playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
-        
+        // BATAS TOLERANSI HABIS -> AUTO SUBMIT INSTAN TANPA BLOCKING ALERT
         App.isSubmitting = true; 
-        alert(`🚨 BATAS MAKSIMAL KECURANGAN TERCAPAI (${App.warningCount}/${App.MAX_WARNINGS})!\n\nAlasan: ${alasan}.\nUjian otomatis diakhiri.`);
-
+        App.isExamSubmitted = true;
         isWarningActive = false;
 
-        // Auto-submit paksa instan
+        playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
+
+        // Eksekusi Submit Langsung
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban(true, true);
         } else if (typeof window.submitJawabanScoring === "function") {
@@ -138,7 +98,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         
         setTimeout(() => {
             isWarningActive = false;
-        }, 1200); 
+        }, 1000); 
     }
 }
 
@@ -156,7 +116,7 @@ function enforceFullscreen() {
  * Inisialisasi Event Listener Keamanan saat Ujian Dimulai
  */
 function initSecurityListeners() {
-    console.log("🛡️ Initializing Security Listeners (Voice & Text Violation Log Active)...");
+    console.log("🛡️ Initializing Security Listeners (Optimized & Fast Submit)...");
     App.warningCount = 0;
     App.warningLogs = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
@@ -174,7 +134,7 @@ function initSecurityListeners() {
         if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             clearTimeout(blurDebounceTimer);
             blurDebounceTimer = setTimeout(() => {
-                if (!document.hasFocus() && !App.isSubmitting) {
+                if (!document.hasFocus() && !App.isSubmitting && !App.isExamSubmitted) {
                     prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi)");
                 }
             }, 800);
