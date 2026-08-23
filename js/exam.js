@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.0 - WITH PANEL CONFIRMATION)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.1 - BUGFIXES APPLIED)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -31,13 +31,14 @@ function mulaiUjianPenuh() {
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
-    // 3. Tandai State Ujian Dimulai
+    // 3. Tandai State Ujian Dimulai & Catat Waktu Mulai
     if (window.App) {
         App.isExamStarted = true;
         App.isExamSubmitted = false;
-        App.isSubmitting = false; // Flag pengiriman data
+        App.isSubmitting = false; 
         App.warningCount = 0;
         App.warningLogs = [];
+        App.startTime = new Date().toISOString(); // [PERBAIKAN] Catat timestamp mulai
     }
 
     // 4. Minta Mode Fullscreen
@@ -99,24 +100,17 @@ function syncExamMetadataFromJSON(dataJSON) {
 function initCBT() {
     if (!window.App) return;
 
-    // Pastikan Metadata Ter-sinkron jika App.soalData sudah dimuat dari Fetch JSON sebelumnya
     if (App.soalData) {
         syncExamMetadataFromJSON(App.soalData);
     }
 
-    // Reset Jawaban dan Navigasi
     App.userAnswers = {};
     App.currentIndex = 0;
 
-    // Render Grid Nomor Soal
     renderNumberGrid();
-
-    // Load Soal Pertama
     loadQuestion(App.currentIndex);
 
-    // Deteksi Durasi Ujian (Dalam Menit) dari Berbagai Sumber Data
-    let durasiMenit = 10; // Default Fallback
-
+    let durasiMenit = 10;
     if (App.timerDurationMinutes) {
         durasiMenit = App.timerDurationMinutes;
     } else if (App.soalData) {
@@ -125,7 +119,6 @@ function initCBT() {
         durasiMenit = App.examConfig.durasi_menit || App.examConfig.waktu || 10;
     }
 
-    // Jalankan Timer Ujian (Diubah ke Detik)
     startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
@@ -164,7 +157,6 @@ function startTimer(durationInSeconds) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
-            // Auto-submit langsung tanpa modal konfirmasi
             if (typeof submitJawaban === "function") {
                 submitJawaban(true, true);
             }
@@ -210,7 +202,6 @@ function loadQuestion(index) {
     if (elText) elText.innerHTML = q.Soal || "";
     if (elLevel) elLevel.textContent = q.Level ? `[Level: ${q.Level}]` : "";
 
-    // Render Gambar Soal
     const imgContainer = document.getElementById("q-image-container");
     if (imgContainer) {
         const gambarVal = (q.Gambar && typeof q.Gambar === "string") ? q.Gambar.trim() : "";
@@ -219,7 +210,6 @@ function loadQuestion(index) {
             : "";
     }
 
-    // Render Pilihan Jawaban
     const optionsBox = document.getElementById("options-box");
     if (optionsBox) {
         optionsBox.innerHTML = "";
@@ -242,13 +232,11 @@ function loadQuestion(index) {
         });
     }
 
-    // MathJax Rendering
     if (window.MathJax && window.MathJax.typesetPromise) {
         MathJax.typesetPromise([document.getElementById("q-text"), document.getElementById("options-box")])
             .catch(err => console.error("MathJax Error:", err));
     }
 
-    // Navigasi Button Status
     const btnPrev = document.getElementById("btn-prev");
     const btnNext = document.getElementById("btn-next");
     if (btnPrev) btnPrev.disabled = (index === 0);
@@ -302,11 +290,6 @@ function toggleNavigator() {
 // ALGORITMA SUBMIT JAWABAN & PANEL KONFIRMASI
 // ==========================================================
 
-/**
- * Fungsi Pengumpulan Ujian
- * @param {boolean} isAuto - True jika dieksekusi otomatis oleh timer atau sistem
- * @param {boolean} isConfirmed - True jika pengguna telah mengklik 'Ya' pada Modal
- */
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
@@ -317,12 +300,16 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 
     // 1. TAMPILKAN PANEL KONFIRMASI (Jika klik manual dan belum dikonfirmasi)
     if (!isAuto && !isConfirmed) {
+        App.isSubmitting = true; // [PERBAIKAN] Nonaktifkan sensor kecurangan saat modal konfirmasi buka
         tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
         return;
     }
 
-    // 2. Matikan Sensor Keamanan
+    // 2. Matikan Sensor Keamanan & Kunci LocalStorage jika diperlukan
     App.isSubmitting = true;
+    if (typeof window.simpanLockSubmitted === "function") {
+        window.simpanLockSubmitted(); // [PERBAIKAN] Kunci status ujian di browser
+    }
 
     // 3. Hentikan Timer
     if (App.timerInterval) {
@@ -333,7 +320,8 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     const overlayLoading = document.getElementById("loading-overlay");
     if (overlayLoading) overlayLoading.classList.remove("hidden");
     
-    const btnSelesai = document.getElementById("btn-selesai") || document.querySelector("button:contains('Selesai')");
+    // [PERBAIKAN] Menggunakan selector DOM yang valid
+    const btnSelesai = document.getElementById("btn-selesai");
     if (btnSelesai) {
         btnSelesai.disabled = true;
         btnSelesai.textContent = "Mengirim...";
@@ -397,7 +385,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 }
 
 /**
- * Rendernya Panel Modal Konfirmasi Pengumpulan
+ * Render Panel Modal Konfirmasi Pengumpulan
  */
 function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
     const existingModal = document.getElementById("custom-confirm-modal");
@@ -439,10 +427,11 @@ function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
 
     document.getElementById("btn-modal-batal").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
+        if (window.App) App.isSubmitting = false; // [PERBAIKAN] Aktifkan kembali sensor jika membatalkan modal
     };
 
     document.getElementById("btn-modal-ya").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
-        submitJawaban(false, true); // Eksekusi kirim jawaban dengan status isConfirmed = true
+        submitJawaban(false, true);
     };
 }
