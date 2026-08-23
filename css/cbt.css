@@ -119,6 +119,39 @@
   color: var(--brand-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Badge Tingkat Kesulitan Soal (EASY / MEDIUM / HARD) */
+.badge-level {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+
+.badge-level.easy {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.badge-level.medium {
+  background-color: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fde047;
+}
+
+.badge-level.hard {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .timer-display {
@@ -333,18 +366,36 @@
   gap: 12px;
 }
 
-/* Responsif Mobile CBT */
+/* Responsif Mobile CBT & Navigation Grid */
 @media (max-width: 768px) {
   .cbt-body {
     flex-direction: column;
   }
+  
+  .question-area {
+    padding: 15px 18px;
+  }
+  
   .sidebar-nav {
     width: 100%;
-    height: 150px;
+    max-height: 180px;
     border-left: none;
     border-top: var(--border-light);
+    padding: 15px;
   }
+  
   .circle-grid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+    gap: 10px;
+  }
+
+  .top-bar {
+    padding: 10px 15px;
+  }
+
+  .bottom-bar {
+    padding: 10px 15px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 }
