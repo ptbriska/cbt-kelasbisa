@@ -157,13 +157,31 @@ function submitJawabanScoring() {
 }
 
 function tampilkanLayarSelesai(detail) {
-    // 1. Sembunyikan Loading Overlay
-    const overlayLoading = document.getElementById("loading-overlay");
-    if (overlayLoading) {
-        overlayLoading.classList.add("hidden");
+    // 1. Sembunyikan SEMUA kemungkinan overlay/modal loading
+    const possibleLoaders = [
+        "loading-overlay", 
+        "loading", 
+        "loading-screen", 
+        "modal-loading"
+    ];
+    
+    possibleLoaders.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add("hidden");
+            el.style.display = "none"; // Paksa sembunyikan via inline style
+        }
+    });
+
+    // 2. Reset atau sembunyikan tombol submit jika masih ada
+    const btnSubmit = document.getElementById("btn-submit") || document.getElementById("btn-kirim");
+    if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = "SUBMITTED";
+        btnSubmit.style.display = "none";
     }
 
-    // 2. Render Halaman Skor
+    // 3. Render Halaman Skor
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
