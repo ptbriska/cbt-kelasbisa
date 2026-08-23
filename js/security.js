@@ -1,26 +1,13 @@
 /* ==========================================================================
-   security.js - Engine Keamanan & Monitoring (v1.8.4 - FIXED & SYNCHRONIZED)
+   security.js - Engine Keamanan & Monitoring (FIXED: STRICT COUNTER 3X & LOGS)
    ========================================================================== */
 
 window.App = window.App || {};
 
 let isWarningActive = false;
 let blurDebounceTimer = null;
-let lastViolationTimestamp = 0; // Cooldown timer pencegah hitungan ganda
-
-/**
- * Dummy WebCam Handler
- */
-async function initWebcamProctoring() {
-    console.log("ℹ️ Fitur Kamera dinonaktifkan.");
-    App.isWebcamActive = false;
-    App.webcamStream = null;
-    return Promise.resolve(true);
-}
-
-function captureSnapshot() {
-    return null;
-}
+let lastViolationTimestamp = 0;
+let isSecurityInitialized = false; // Flag cegah duplikasi listener
 
 /**
  * Peringatan Suara Bahasa Indonesia
@@ -44,65 +31,68 @@ function playVoiceWarning(text) {
  */
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     const now = Date.now();
-    // Cooldown 1.5 Detik untuk mencegah pemicu ganda dari event bersamaan
+    
+    // Cooldown 1.5 detik cegah double click/trigger
     if (now - lastViolationTimestamp < 1500) return;
 
+    // Abaikan jika ujian belum mulai, sudah dikirim, atau sedang proses pengiriman
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
     lastViolationTimestamp = now;
 
-    App.warningCount = (parseInt(App.warningCount, 10) || 0) + 1;
-    App.MAX_WARNINGS = App.MAX_WARNINGS || 3; 
+    // 1. Pastikan hitungan angka valid (Number)
+    let currentCount = parseInt(App.warningCount, 10);
+    if (isNaN(currentCount)) currentCount = 0;
+    
+    currentCount += 1;
+    App.warningCount = currentCount;
 
-    if (!App.warningLogs) App.warningLogs = [];
+    const maxLimit = parseInt(App.MAX_WARNINGS, 10) || 3;
+
+    // 2. Format Logging
+    if (!Array.isArray(App.warningLogs)) {
+        App.warningLogs = [];
+    }
 
     const waktuSekarang = new Date();
     const timeString = waktuSekarang.toLocaleTimeString('id-ID');
     const timestampISO = waktuSekarang.toISOString();
 
     const logData = {
-        peringatan_ke: App.warningCount,
+        peringatan_ke: currentCount,
         waktu: timeString,
         timestamp: timestampISO,
-        alasan: alasan,
-        foto_captured: false
+        alasan: alasan
     };
     App.warningLogs.push(logData);
     
-    // Backup ke LocalStorage
+    // Backup instan ke LocalStorage
     try {
         localStorage.setItem("cbt_warning_count", App.warningCount.toString());
         localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
     } catch (e) {
-        console.warn("Storage penuh / di-block.");
+        console.warn("Storage error/full:", e);
     }
 
-    if (App.warningCount >= App.MAX_WARNINGS) {
-        // BATAS TOLERANSI HABIS -> AUTO SUBMIT INSTAN
+    // 3. Evaluasi Batas Pelanggaran
+    if (App.warningCount >= maxLimit) {
+        // TEPAT DIBATAS MAKSIMAL (3x) -> AUTO SUBMIT
         isWarningActive = false;
-
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
+
+        alert(`🚨 PELANGGARAN KE-${App.warningCount} DARI ${maxLimit}!\n\nBatas toleransi telah habis (${alasan}). Ujian Anda akan diakhiri dan dikirim otomatis.`);
 
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban(true, true);
-        } else if (typeof submitJawaban === "function") {
-            submitJawaban(true, true);
         } else if (typeof window.submitJawabanScoring === "function") {
             window.submitJawabanScoring();
-        } else if (typeof submitJawabanScoring === "function") {
-            submitJawabanScoring();
-        } else if (typeof window.konfirmasiSubmit === "function") {
-            window.konfirmasiSubmit(true);
-        } else {
-            console.error("Gagal auto-submit: Engine submit tidak ditemukan.");
         }
-
     } else {
-        // SUARA PERINGATAN TAHAP PERTAMA / KEDUA
-        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
+        // PELANGGARAN KE-1 DAN KE-2 -> HANYA PERINGATAN
+        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang berpindah halaman!`);
         
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\n\nAlasan: ${alasan}.\nPelanggaran telah dicatat!`);
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${maxLimit})\n\nAlasan: ${alasan}.\nJangan ulangi lagi! Ujian akan otomatis dikirim jika mencapai ${maxLimit} kali.`);
         
         setTimeout(() => {
             isWarningActive = false;
@@ -111,7 +101,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 }
 
 /**
- * Paksa Kembalikan Tampilan ke Fullscreen
+ * Paksa Fullscreen
  */
 function enforceFullscreen() {
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
@@ -121,11 +111,16 @@ function enforceFullscreen() {
 }
 
 /**
- * Inisialisasi Event Listener Keamanan saat Ujian Dimulai
+ * Inisialisasi Security Event Listeners
  */
 function initSecurityListeners() {
-    console.log("🛡️ Initializing Security Listeners (Fixed Auto-Submit & Sync Count)...");
-    
+    // Mencegah pendaftaran listener berulang kali
+    if (isSecurityInitialized) return;
+    isSecurityInitialized = true;
+
+    console.log("🛡️ Initializing Security Listeners (Limit 3x Strict Enforcement)...");
+
+    // Load state dari localStorage jika ada
     const savedCount = parseInt(localStorage.getItem("cbt_warning_count"), 10);
     App.warningCount = !isNaN(savedCount) ? savedCount : 0;
     
@@ -136,7 +131,7 @@ function initSecurityListeners() {
         App.warningLogs = [];
     }
 
-    App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
+    App.MAX_WARNINGS = 3; // Paksa default 3
     App.isSubmitting = false; 
 
     // 1. Deteksi Pindah Tab / Minimize
@@ -146,12 +141,11 @@ function initSecurityListeners() {
         }
     });
 
-    // 2. Deteksi Alt+Tab / Hilang Fokus Layar
+    // 2. Deteksi Alt+Tab / Hilang Fokus
     window.addEventListener("blur", () => {
         if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             clearTimeout(blurDebounceTimer);
             blurDebounceTimer = setTimeout(() => {
-                // Jangan pemicu blur jika dokumen sudah terdeteksi hidden oleh visibilitychange
                 if (!document.hasFocus() && !document.hidden && !App.isSubmitting && !App.isExamSubmitted) {
                     prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi)");
                 }
@@ -171,64 +165,46 @@ function initSecurityListeners() {
         }
     });
 
-    // 4. Deteksi Shortcut Kibor Terlarang
+    // 4. Shortcut Kibor Terlarang
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
-        // Shortcut Screenshot (Win + Shift + S)
+        // Win + Shift + S
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
-            document.body.style.display = "none";
-            setTimeout(() => { document.body.style.display = "block"; }, 1000);
             prosesPeringatanKecurangan("Shortcut Screenshot (Win + Shift + S)");
             return false;
         }
 
-        // DevTools (F12)
+        // F12
         if (e.key === "F12") {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
             return false;
         }
 
-        // Inspect Element (Ctrl + Shift + I/J/C)
+        // Ctrl + Shift + I/J/C
         if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
             e.preventDefault();
-            prosesPeringatanKecurangan("Mencoba Membuka Inspect Element (Ctrl+Shift+I/J/C)");
-            return false;
-        }
-
-        // Shortcut Kombinasi Ctrl (Ctrl+U, S, P, C, V)
-        if (e.ctrlKey && ["u", "U", "s", "S", "p", "P", "c", "C", "v", "V"].includes(e.key)) {
-            e.preventDefault();
-            prosesPeringatanKecurangan(`Shortcut Terlarang (Ctrl+${e.key.toUpperCase()})`);
+            prosesPeringatanKecurangan("Mencoba Membuka Inspect Element");
             return false;
         }
 
         // PrintScreen
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText("[Sistem Keamanan CBT] Tangkapan layar dilarang.").catch(() => {});
-            }
-            document.body.style.display = "none";
-            setTimeout(() => { document.body.style.display = "block"; }, 1000);
-
-            prosesPeringatanKecurangan("Menekan Tombol PrintScreen (Capture Layar)");
+            prosesPeringatanKecurangan("Menekan Tombol PrintScreen");
             return false;
         }
     });
 }
 
-// Expose Fungsi ke Global Window
+// Expose fungsi ke Window
 window.initSecurityListeners = initSecurityListeners;
-window.initWebcamProctoring = initWebcamProctoring;
-window.captureSnapshot = captureSnapshot;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
 window.playVoiceWarning = playVoiceWarning;
 window.enforceFullscreen = enforceFullscreen;
 
-// Blokir Klik Kanan Pasif
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", (e) => e.preventDefault());
 });
