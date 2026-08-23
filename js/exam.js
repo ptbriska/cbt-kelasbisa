@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.4.0 - FIXED SUBMIT ALGORITHM)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.0 - WITH PANEL CONFIRMATION)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -131,7 +131,7 @@ function initCBT() {
 
 function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
-    if (isNaN(timer) || timer <= 0) timer = 600; // Fallback ke 10 menit jika invalid
+    if (isNaN(timer) || timer <= 0) timer = 600;
 
     const timerDisplay = document.getElementById("timer-display") || document.getElementById("timer");
 
@@ -164,9 +164,9 @@ function startTimer(durationInSeconds) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
-            // PERBAIKAN: Lempar argumen "true" untuk menandakan ini auto-submit (tanpa konfirmasi pop-up)
+            // Auto-submit langsung tanpa modal konfirmasi
             if (typeof submitJawaban === "function") {
-                submitJawaban(true);
+                submitJawaban(true, true);
             }
         }
     };
@@ -210,7 +210,7 @@ function loadQuestion(index) {
     if (elText) elText.innerHTML = q.Soal || "";
     if (elLevel) elLevel.textContent = q.Level ? `[Level: ${q.Level}]` : "";
 
-    // Render Gambar Soal jika Ada
+    // Render Gambar Soal
     const imgContainer = document.getElementById("q-image-container");
     if (imgContainer) {
         const gambarVal = (q.Gambar && typeof q.Gambar === "string") ? q.Gambar.trim() : "";
@@ -242,13 +242,13 @@ function loadQuestion(index) {
         });
     }
 
-    // Render MathJax jika ada Formula Matematika/Fisika
+    // MathJax Rendering
     if (window.MathJax && window.MathJax.typesetPromise) {
         MathJax.typesetPromise([document.getElementById("q-text"), document.getElementById("options-box")])
             .catch(err => console.error("MathJax Error:", err));
     }
 
-    // Status Tombol Navigasi
+    // Navigasi Button Status
     const btnPrev = document.getElementById("btn-prev");
     const btnNext = document.getElementById("btn-next");
     if (btnPrev) btnPrev.disabled = (index === 0);
@@ -299,46 +299,37 @@ function toggleNavigator() {
 }
 
 // ==========================================================
-// ALGORITMA SUBMIT JAWABAN (FINAL FIX)
+// ALGORITMA SUBMIT JAWABAN & PANEL KONFIRMASI
 // ==========================================================
 
 /**
  * Fungsi Pengumpulan Ujian
- * @param {boolean} isAuto - True jika dieksekusi otomatis oleh timer atau pelanggaran (tanpa confirm)
+ * @param {boolean} isAuto - True jika dieksekusi otomatis oleh timer atau sistem
+ * @param {boolean} isConfirmed - True jika pengguna telah mengklik 'Ya' pada Modal
  */
-async function submitJawaban(isAuto = false) {
+async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
-    // 1. Matikan Sensor Keamanan agar popup/loading tidak dianggap pelanggaran
-    App.isSubmitting = true;
-
-    // 2. Evaluasi Jumlah Jawaban
-    const totalSoal = App.questionsData ? App.questionsData.length : 0;
-    const dijawab = Object.keys(App.userAnswers).length;
+    const questions = App.questionsData || App.questions || [];
+    const totalSoal = questions.length;
+    const dijawab = Object.keys(App.userAnswers || {}).length;
     const kosong = totalSoal - dijawab;
 
-    // 3. Konfirmasi Pengumpulan Manual (Bypass jika isAuto === true)
-    if (!isAuto) {
-        let pesan = `Anda telah menjawab ${dijawab} dari ${totalSoal} soal.`;
-        if (kosong > 0) {
-            pesan += `\n⚠️ Peringatan: Masih ada ${kosong} soal yang KOSONG.`;
-        }
-        pesan += `\n\nApakah Anda yakin ingin mengakhiri ujian dan mengirim jawaban sekarang?`;
-
-        const yakin = confirm(pesan);
-        if (!yakin) {
-            // Jika batal submit, nyalakan kembali sensor keamanan
-            setTimeout(() => { App.isSubmitting = false; }, 500);
-            return;
-        }
+    // 1. TAMPILKAN PANEL KONFIRMASI (Jika klik manual dan belum dikonfirmasi)
+    if (!isAuto && !isConfirmed) {
+        tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
+        return;
     }
 
-    // 4. Hentikan Timer
+    // 2. Matikan Sensor Keamanan
+    App.isSubmitting = true;
+
+    // 3. Hentikan Timer
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
     }
 
-    // 5. Ubah UI (Loading State)
+    // 4. Ubah UI (Loading State)
     const overlayLoading = document.getElementById("loading-overlay");
     if (overlayLoading) overlayLoading.classList.remove("hidden");
     
@@ -348,7 +339,7 @@ async function submitJawaban(isAuto = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    // 6. Siapkan Payload (Paket Data Jawaban)
+    // 5. Siapkan Payload Data Jawaban
     const p = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
     
@@ -363,7 +354,7 @@ async function submitJawaban(isAuto = false) {
     };
 
     try {
-        // 7. Proses Fetch / Pengiriman ke GAS Backend
+        // 6. Kirim Data
         await fetch(WEBHOOK_URL, {
             method: "POST",
             mode: "no-cors",
@@ -371,40 +362,87 @@ async function submitJawaban(isAuto = false) {
             body: JSON.stringify(payloadData)
         });
 
-        // 8. Bersihkan State & Redirect UI setelah Sukses
+        // 7. Reset State Ujian
         App.isExamSubmitted = true;
-        App.isSubmitting = false; // Kembalikan ke false walau tidak ngaruh lagi karena ujian sudah selesai
+        App.isSubmitting = false;
 
-        // Keluar dari Mode Fullscreen
         if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => console.log("Gagal exit fullscreen"));
+            document.exitFullscreen().catch(() => {});
         }
 
-        // Pindah ke Halaman Selesai
         if (overlayLoading) overlayLoading.classList.add("hidden");
         document.getElementById("page-cbt")?.classList.add("hidden");
         
         const pageSelesai = document.getElementById("page-selesai");
         if (pageSelesai) {
             pageSelesai.classList.remove("hidden");
+        } else if (typeof submitJawabanScoring === "function") {
+            submitJawabanScoring();
         } else {
             alert("✅ Ujian Selesai. Jawaban Anda telah berhasil dikirim ke server.");
-            window.location.reload(); // Fallback jika tidak ada page-selesai
+            window.location.reload();
         }
 
     } catch (err) {
-        // 9. Penanganan Error Gagal Kirim
         console.error("Gagal mengirim jawaban:", err);
-        alert("❌ Terjadi kesalahan jaringan saat mengirim jawaban! Pastikan koneksi internet stabil lalu klik Selesai kembali.");
+        alert("❌ Terjadi kesalahan jaringan saat mengirim jawaban! Silakan coba lagi.");
         
-        // Reset UI agar peserta bisa coba kirim ulang
         if (overlayLoading) overlayLoading.classList.add("hidden");
         if (btnSelesai) {
             btnSelesai.disabled = false;
             btnSelesai.textContent = "Selesai Ujian";
         }
-        
-        // Nyalakan sensor kembali (karena peserta kembali ke mode aktif)
         App.isSubmitting = false;
     }
+}
+
+/**
+ * Rendernya Panel Modal Konfirmasi Pengumpulan
+ */
+function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
+    const existingModal = document.getElementById("custom-confirm-modal");
+    if (existingModal) existingModal.remove();
+
+    const warningKosongText = kosong > 0 
+        ? `<div style="background: #fff3e0; color: #e65100; border-left: 4px solid #ef6c00; padding: 8px 12px; margin-top: 10px; font-size: 13px; border-radius: 4px;">⚠️ Ada <strong>${kosong} soal</strong> yang belum Anda jawab!</div>`
+        : `<div style="background: #e8f5e9; color: #2e7d32; border-left: 4px solid #4caf50; padding: 8px 12px; margin-top: 10px; font-size: 13px; border-radius: 4px;">✅ Semua soal telah dijawab dengan lengkap.</div>`;
+
+    const modalHTML = `
+        <div id="custom-confirm-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 99999; font-family: sans-serif; backdrop-filter: blur(3px);">
+            <div style="background: #ffffff; width: 90%; max-width: 440px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center;">
+                <div style="font-size: 42px; margin-bottom: 8px;">📋</div>
+                <h3 style="margin: 0 0 10px 0; color: #1a237e; font-size: 20px;">Konfirmasi Pengumpulan</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Apakah Anda yakin ingin mengakhiri sesi ujian dan mengumpulkan jawaban Anda sekarang?</p>
+                
+                <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 15px; text-align: left; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span>Total Soal:</span> <strong>${totalSoal} Soal</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #2e7d32;">
+                        <span>Sudah Dijawab:</span> <strong>${dijawab} Soal</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: ${kosong > 0 ? '#c62828' : '#555'};">
+                        <span>Belum Dijawab:</span> <strong>${kosong} Soal</strong>
+                    </div>
+                    ${warningKosongText}
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button id="btn-modal-batal" style="flex: 1; padding: 11px; border: 1px solid #ccc; background: #ffffff; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Batal</button>
+                    <button id="btn-modal-ya" style="flex: 1; padding: 11px; border: none; background: #1a237e; color: #ffffff; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Ya, Kirim</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    document.getElementById("btn-modal-batal").onclick = function() {
+        document.getElementById("custom-confirm-modal")?.remove();
+    };
+
+    document.getElementById("btn-modal-ya").onclick = function() {
+        document.getElementById("custom-confirm-modal")?.remove();
+        submitJawaban(false, true); // Eksekusi kirim jawaban dengan status isConfirmed = true
+    };
 }
