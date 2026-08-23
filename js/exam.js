@@ -35,6 +35,12 @@ function mulaiUjianPenuh() {
         return;
     }
 
+     // 👇 TAMBAHKAN 1 BARIS INI SAJA DI SINI 👇
+    fetch(App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec", { mode: 'no-cors' }).catch(() => {});
+    // 👆 ================================== 👆
+
+    // ... (Sisa kode Anda untuk memulai ujian tetap biarkan utuh ke bawah)
+
     // Initialize App Global jika belum ada
     window.App = window.App || {};
 
