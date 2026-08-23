@@ -354,7 +354,22 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 /**
  * Render Panel Modal Konfirmasi Pengumpulan
  */
-function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
+function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
+    // FIX UNDEFINED: Jika dipanggil langsung dari HTML tanpa argumen, hitung nilainya otomatis
+    let totalSoal = totalSoalArg;
+    let dijawab = dijawabArg;
+    let kosong = kosongArg;
+
+    if (totalSoal === undefined || dijawab === undefined || kosong === undefined) {
+        const questions = (window.App && (App.questionsData || App.questions)) || [];
+        totalSoal = questions.length;
+        dijawab = window.App && App.userAnswers ? Object.keys(App.userAnswers).length : 0;
+        kosong = totalSoal - dijawab;
+    }
+
+    // Amankan state agar sensor kecurangan tidak trigger saat modal terbuka
+    if (window.App) App.isSubmitting = true;
+
     const existingModal = document.getElementById("custom-confirm-modal");
     if (existingModal) existingModal.remove();
 
@@ -399,6 +414,6 @@ function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
 
     document.getElementById("btn-modal-ya").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
-        submitJawaban(false, true);
+        submitJawaban(false, true); // Eksekusi pengumpulan jawaban final
     };
 }
