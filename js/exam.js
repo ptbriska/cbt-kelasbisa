@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - core Engine Ujian CBT & Navigasi Soal (v1.3.16 - ANTI-CHEAT ROBUST)
+// exam.js - core Engine Ujian CBT & Navigasi Soal (v1.3.17 - FAST SUBMIT)
 // ==========================================================
 
 /**
@@ -35,13 +35,11 @@ function mulaiUjianPenuh() {
         return;
     }
 
-     // 👇 TAMBAHKAN 1 BARIS INI SAJA DI SINI 👇
-    fetch(App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec", { mode: 'no-cors' }).catch(() => {});
-    // 👆 ================================== 👆
+    // Ping Webhook secara non-blocking di latar belakang
+    const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
+    fetch(webhookUrl, { mode: 'no-cors' }).catch(() => {});
 
-    // ... (Sisa kode Anda untuk memulai ujian tetap biarkan utuh ke bawah)
-
-    // Initialize App Global jika belum ada
+    // Initialize App Global
     window.App = window.App || {};
 
     // 1. Set Profil Peserta di Header Kanan Atas
@@ -58,7 +56,7 @@ function mulaiUjianPenuh() {
     App.isSubmitting = false; 
     App.warningCount = App.warningCount || 0;
     App.warningLogs = App.warningLogs || [];
-    App.cheatingSnapshots = App.cheatingSnapshots || []; // FIX: Inisialisasi array penampung foto kecurangan
+    App.cheatingSnapshots = App.cheatingSnapshots || [];
     App.startTime = App.startTime || new Date().toISOString();
 
     // 4. Minta Mode Fullscreen
@@ -68,75 +66,15 @@ function mulaiUjianPenuh() {
         });
     }
 
-    // 5. AKTIFKAN PENGAWASAN KEAMANAN & KAMERA PROCTORING
+    // 5. AKTIFKAN PENGAWASAN KEAMANAN & KAMERA PROCTORING VIA SECURITY.JS
     if (typeof window.initSecurityListeners === "function") {
         window.initSecurityListeners();
     } else if (typeof initSecurityListeners === "function") {
         initSecurityListeners();
     }
 
-    // Proteksi Tambahan untuk Siswa Nakal: Mencegah Context Menu & Keyboard Shortcuts
-    initExtraProtections();
-
     // 6. Inisialisasi CBT (Render Soal & Timer)
     initCBT();
-}
-
-/**
- * Proteksi ekstra khusus untuk menangkal aksi siswa nakal (Inspect Element, Copy-Paste, Tab Change)
- */
-function initExtraProtections() {
-    // Disable Klik Kanan (Context Menu)
-    document.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    // Disable Shortcut DevTools & Copy Cut
-    document.addEventListener("keydown", (e) => {
-        if (!window.App || !App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
-
-        // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+C, Ctrl+V
-        if (
-            e.key === "F12" ||
-            (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
-            (e.ctrlKey && (e.key === "u" || e.key === "U" || e.key === "c" || e.key === "C" || e.key === "v" || e.key === "V"))
-        ) {
-            e.preventDefault();
-            catatPelanggaran("Percobaan shortcut terlarang: " + e.key);
-        }
-    });
-
-    // Sensor Perpindahan Tab / Minimasi Window
-    document.addEventListener("visibilitychange", () => {
-        if (!window.App || !App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
-
-        if (document.hidden) {
-            catatPelanggaran("Meninggalkan halaman ujian / Membuka tab lain");
-        }
-    });
-}
-
-/**
- * Perekam Log Pelanggaran Khusus Siswa Nakal
- */
-function catatPelanggaran(alasan) {
-    if (!window.App || App.isSubmitting || App.isExamSubmitted) return;
-    
-    App.warningCount = (App.warningCount || 0) + 1;
-    const logItem = {
-        waktu: new Date().toLocaleTimeString(),
-        alasan: alasan,
-        pelanggaranKe: App.warningCount
-    };
-    App.warningLogs.push(logItem);
-
-    const maxWarning = App.maxWarningsAllowed || 3;
-    
-    if (App.warningCount >= maxWarning) {
-        App.isSubmitting = true; // Nonaktifkan sensor agar tidak ada peringatan ganda
-        alert(`🚨 BATAS PELANGGARAN TERLAMPAUI (${App.warningCount}/${maxWarning})!\n\nSistem akan mengumpulkan ujian Anda secara otomatis karena terdeteksi melakukan indikasi kecurangan.`);
-        submitJawaban(true, true); // Auto-submit paksa
-    } else {
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${maxWarning})\n\nTerdeteksi: ${alasan}.\nJangan meninggalkan halaman ujian!`);
-    }
 }
 
 /**
