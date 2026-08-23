@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.5.3</title>
+  <title>CBT Online - Kelas Bisa Exam System v1.3.15</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
@@ -36,7 +36,7 @@
   <!-- ========================================== -->
   <!-- OVERLAY LOADING SAAT SUBMIT JAWABAN        -->
   <!-- ========================================== -->
-  <div id="loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+  <div id="loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
     <div style="font-size: 42px; color: #007bff; margin-bottom: 15px;">
       <i class="fas fa-spinner fa-spin"></i>
     </div>
@@ -135,7 +135,7 @@
   <!-- ========================================== -->
   <div id="page-info" class="card hidden">
     <div class="header-welcome">
-      <img id="logo-lembaga-info" src="" alt="Logo" class="logo-img">
+      <img id="logo-lembaga-info" src="https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz" alt="Logo" class="logo-img">
       <h2 id="disp-lembaga-info">NAMA LEMBAGA</h2>
       <h3 id="disp-sub-lembaga-info">SUB KETERANGAN</h3>
     </div>
@@ -204,7 +204,7 @@
 
     <header class="top-bar">
       <div class="header-left">
-        <img id="logo-lembaga-cbt" src="" alt="Logo" class="logo-img">
+        <img id="logo-lembaga-cbt" src="https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz" alt="Logo" class="logo-img">
         <div class="title-box">
           <h2 id="disp-lembaga-cbt">NAMA LEMBAGA</h2>
           <small id="disp-sub-lembaga-cbt">SUB KETERANGAN</small>
@@ -246,7 +246,6 @@
 
     <footer class="bottom-bar">
       <div class="bottom-left">
-        <!-- [REVISI] Panggil tampilkanPanelKonfirmasi() sebelum submit -->
         <button id="btn-selesai" class="btn-footer btn-selesai" onclick="tampilkanPanelKonfirmasi()">🏁 SELESAI</button>
       </div>
       <div class="bottom-center">
@@ -276,10 +275,10 @@
   <!-- ========================================== -->
   <!-- MODAL DIALOG KONFIRMASI SUBMIT             -->
   <!-- ========================================== -->
-  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; justify-content: center; align-items: center;">
-    <div class="card" style="max-width: 480px; width: 90%; background: #fff; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-      <h3 style="margin-top: 0; color: #333;">Konfirmasi Selesai Ujian</h3>
-      <p id="teks-ringkasan-konfirmasi" style="color: #555; font-size: 15px; margin: 15px 0; line-height: 1.5;"></p>
+  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center;">
+    <div style="max-width: 480px; width: 90%; background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto;">
+      <h3 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">Konfirmasi Selesai Ujian</h3>
+      <p id="teks-ringkasan-konfirmasi" style="color: #475569; font-size: 0.95rem; margin: 15px 0; line-height: 1.5;"></p>
       <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
         <button type="button" class="btn-secondary" onclick="document.getElementById('modal-konfirmasi').classList.add('hidden')">Batal / Periksa Lagi</button>
         <button type="button" class="btn-primary" onclick="konfirmasiSubmit()">Ya, Kirim Jawaban</button>
