@@ -1,5 +1,5 @@
 // ==========================================================
-// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED)
+// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED & FAST SUBMIT)
 // ==========================================================
 
 window.App = window.App || {};
@@ -398,12 +398,13 @@ function konfirmasiSubmit() {
 }
 
 /**
- * Mengirim Jawaban Ujian ke Engine Penilaian
+ * Mengirim Jawaban Ujian ke Engine Penilaian (OPTIMIZED & INSTANT SUBMIT)
  */
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
-    if (App.isExamSubmitted) return;
+    // Cegah submit ganda dari klik manual
+    if (App.isExamSubmitted && !isAuto) return;
 
     const questions = App.questionsData || App.questions || [];
     const totalSoal = questions.length;
@@ -416,7 +417,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         return;
     }
 
-    // MEMATIKAN MODAL SECARA TEGAS SEBELUM PINDAH
+    // MEMATIKAN SEMUA MODAL SECARA TEGAS SEBELUM PROSES
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
         modalStatis.classList.add("hidden");
@@ -428,6 +429,13 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     App.isSubmitting = true;
     App.isExamSubmitted = true; 
     
+    // Backup & Ambil data kecurangan dari LocalStorage jika di memori kosong
+    if ((!App.warningLogs || App.warningLogs.length === 0) && localStorage.getItem("cbt_violation_logs")) {
+        try {
+            App.warningLogs = JSON.parse(localStorage.getItem("cbt_violation_logs")) || [];
+        } catch(e) {}
+    }
+
     if (typeof window.simpanLockSubmitted === "function") {
         window.simpanLockSubmitted(); 
     }
@@ -448,23 +456,22 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    setTimeout(() => {
-        if (typeof submitJawabanScoring === "function") {
-            submitJawabanScoring();
-        } else if (typeof window.submitJawabanScoring === "function") {
-            window.submitJawabanScoring();
-        } else {
-            alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
-            if (overlayLoading) {
-                overlayLoading.classList.add("hidden");
-                overlayLoading.style.display = "none";
-            }
-            if (btnSelesai) {
-                btnSelesai.disabled = false;
-                btnSelesai.textContent = "🏁 SELESAI";
-            }
-            App.isSubmitting = false;
-            App.isExamSubmitted = false;
+    // Eksekusi penilaian INSTAN tanpa setTimeout
+    if (typeof submitJawabanScoring === "function") {
+        submitJawabanScoring();
+    } else if (typeof window.submitJawabanScoring === "function") {
+        window.submitJawabanScoring();
+    } else {
+        alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
+        if (overlayLoading) {
+            overlayLoading.classList.add("hidden");
+            overlayLoading.style.display = "none";
         }
-    }, 10);
+        if (btnSelesai) {
+            btnSelesai.disabled = false;
+            btnSelesai.textContent = "🏁 SELESAI";
+        }
+        App.isSubmitting = false;
+        App.isExamSubmitted = false;
+    }
 }
