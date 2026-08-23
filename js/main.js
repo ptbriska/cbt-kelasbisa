@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.0)
+// main.js - Entry Point & Window Bridge Handler (v1.3.1)
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -21,6 +21,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // EXPOSE FUNGSI KE GLOBAL (WINDOW) UNTUK HANDLER INLINE HTML
     // ==========================================================
     
+    // Auth & Verifikasi
+    if (typeof cekVerifikasiPeserta === "function") window.cekVerifikasiPeserta = cekVerifikasiPeserta;
+
     // Navigasi & Rendering Soal
     if (typeof navigasi === "function") window.navigasi = navigasi;
     if (typeof loadQuestion === "function") window.loadQuestion = loadQuestion;
@@ -34,10 +37,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Konfirmasi & Dialog Actions
     window.konfirmasiSubmit = function() {
+        if (!window.App || !App.questionsData) return;
+
         const total = App.questionsData.length;
-        const dijawab = Object.keys(App.userAnswers).length;
+        const dijawab = Object.keys(App.userAnswers || {}).length;
 
         if (confirm(`Anda telah menjawab ${dijawab} dari ${total} soal.\nYakin ingin mengakhiri ujian CBT?`)) {
+            // Pasang gembok submit jika dalam Mode SIMULASI
+            if (App.modeUjian === "SIMULASI" && App.currentKodeUjian && App.userIdentitas?.nama) {
+                const lockKey = `SUBMITTED_${App.currentKodeUjian}_${App.userIdentitas.nama}`;
+                localStorage.setItem(lockKey, "TRUE");
+            }
+
             if (typeof submitJawaban === "function") {
                 submitJawaban();
             }
