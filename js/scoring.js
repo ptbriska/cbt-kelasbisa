@@ -1,5 +1,5 @@
 // ==========================================================
-// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.3 - FIXED)
+// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.4 - FIXED)
 // Murni membaca seluruh nilai dari file JSON secara dinamis
 // ==========================================================
 
@@ -7,8 +7,13 @@ function submitJawabanScoring() {
     if (!window.App || App.isExamSubmitted) return;
     App.isExamSubmitted = true;
 
-    // Hentikan Timer & Stream Webcam
-    if (App.timerInterval) clearInterval(App.timerInterval);
+    // 1. Hentikan Timer Ujian
+    if (App.timerInterval) {
+        clearInterval(App.timerInterval);
+        App.timerInterval = null;
+    }
+
+    // 2. Hentikan Stream Webcam Proctoring
     if (App.webcamStream) {
         try {
             App.webcamStream.getTracks().forEach(track => track.stop());
@@ -138,15 +143,17 @@ function submitJawabanScoring() {
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
+    // Kirim Data Pengumpulan Ujian Lengkap Termasuk Snapshot Kecurangan
     const payload = {
         action: "submit_ujian",
-        kode_soal: App.currentKodeUjian || App.examData?.kode_ujian || "UNKNOWN",
+        kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
         sistem_ujian: "CBT",
         mode_ujian: App.modeUjian || "UTAMA",
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
         log_pelanggaran: App.warningLogs || [],
+        foto_bukti_kecurangan: App.cheatingSnapshots || [], // Kirim snapshot webcam jika ada
         waktu_mulai: App.startTime || "",
         waktu_selesai: new Date().toISOString(),
         total_dijawab: Object.keys(userAnswers).length,
