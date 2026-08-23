@@ -68,7 +68,7 @@ window.simpanLockSubmitted = function() {
 };
 
 /**
- * Eksekusi Pengumpulan Ujian Secara Langsung & Cepat (Fast-Path Fix)
+ * Eksekusi Pengumpulkan Ujian Secara Langsung & Cepat (Fast-Path Fix)
  */
 window.konfirmasiSubmit = function() {
     if (window.App) window.App.isSubmitting = true;
@@ -137,14 +137,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 3. Attach Event Listener Checkbox Persetujuan Ujian
     const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
     if (checkbox) {
-        checkbox.addEventListener("change", () => {
+        const handleToggle = () => {
             if (typeof toggleMulaiButton === "function") toggleMulaiButton();
             else if (typeof window.toggleMulaiButton === "function") window.toggleMulaiButton();
-        });
+        };
+
+        checkbox.addEventListener("change", handleToggle);
         
         // Trigger initial state
-        if (typeof toggleMulaiButton === "function") toggleMulaiButton();
-        else if (typeof window.toggleMulaiButton === "function") window.toggleMulaiButton();
+        handleToggle();
     }
 
     // 4. Synergize Global References
