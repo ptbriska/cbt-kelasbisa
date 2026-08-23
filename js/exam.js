@@ -1,6 +1,9 @@
 // ==========================================================
-// exam.js - core Engine Ujian CBT & Navigasi Soal (v1.3.17 - FAST SUBMIT)
+// exam.js - Core Engine Ujian CBT & Navigasi Soal (v1.4.0 - ULTRA FAST SUBMIT & NO CAMERA)
 // ==========================================================
+
+// Inisialisasi Objek Global Safe Guard
+window.App = window.App || {};
 
 /**
  * Toggle Status Tombol Mulai Ujian (Sesuai Checkbox Persetujuan)
@@ -30,17 +33,14 @@ function kembaliKePage1() {
 
 function mulaiUjianPenuh() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
-    if (!chk || !chk.checked) {
+    if (chk && !chk.checked) {
         alert("Anda wajib menyetujui syarat dan ketentuan sebelum memulai ujian!");
         return;
     }
 
-    // Ping Webhook secara non-blocking di latar belakang
+    // Ping Webhook non-blocking (Fire & Forget)
     const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
-    fetch(webhookUrl, { mode: 'no-cors' }).catch(() => {});
-
-    // Initialize App Global
-    window.App = window.App || {};
+    fetch(webhookUrl, { mode: 'no-cors', keepalive: true }).catch(() => {});
 
     // 1. Set Profil Peserta di Header Kanan Atas
     updateHeaderUserProfile();
@@ -56,17 +56,17 @@ function mulaiUjianPenuh() {
     App.isSubmitting = false; 
     App.warningCount = App.warningCount || 0;
     App.warningLogs = App.warningLogs || [];
-    App.cheatingSnapshots = App.cheatingSnapshots || [];
+    App.cheatingSnapshots = []; // FITUR KAMERA/SNAPSHOT DIBEKUKAN
     App.startTime = App.startTime || new Date().toISOString();
 
-    // 4. Minta Mode Fullscreen
+    // 4. Minta Mode Fullscreen (Opsional)
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {
-            console.warn("Fullscreen request denied by user or browser policy.");
+            console.warn("Fullscreen request bypass/denied.");
         });
     }
 
-    // 5. AKTIFKAN PENGAWASAN KEAMANAN & KAMERA PROCTORING VIA SECURITY.JS
+    // 5. INISIALISASI KEAMANAN (Kamera Dimatikan)
     if (typeof window.initSecurityListeners === "function") {
         window.initSecurityListeners();
     } else if (typeof initSecurityListeners === "function") {
@@ -121,7 +121,7 @@ function initCBT() {
         syncExamMetadataFromJSON(App.soalData);
     }
 
-    // Proteksi data jawaban agar tidak tertimpa saat re-init kecuali kosong
+    // Proteksi data jawaban agar tidak tertimpa saat re-init
     App.userAnswers = App.userAnswers || {};
     App.currentIndex = App.currentIndex || 0;
 
@@ -167,24 +167,19 @@ function startTimer(durationInSeconds) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
-            if (typeof submitJawaban === "function") {
-                submitJawaban(true, true);
-            }
+            submitJawaban(true, true);
         }
     };
 
     intervalFunc();
-    
-    if (window.App) {
-        App.timerInterval = setInterval(intervalFunc, 1000);
-    }
+    App.timerInterval = setInterval(intervalFunc, 1000);
 }
 
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
     if (!grid || !window.App || !App.questionsData) return;
-    grid.innerHTML = "";
-
+    
+    const fragment = document.createDocumentFragment();
     App.questionsData.forEach((_, idx) => {
         const circle = document.createElement("div");
         circle.id = `circle-num-${idx}`;
@@ -194,8 +189,11 @@ function renderNumberGrid() {
             App.currentIndex = idx;
             loadQuestion(App.currentIndex);
         };
-        grid.appendChild(circle);
+        fragment.appendChild(circle);
     });
+
+    grid.innerHTML = "";
+    grid.appendChild(fragment);
 }
 
 function loadQuestion(index) {
@@ -258,7 +256,6 @@ function loadQuestion(index) {
 function pilihJawaban(questionNum, selectedOption) {
     if (!window.App) return;
     
-    // Skenario Toggle/Uncheck jika mengklik opsi yang sama
     if (App.userAnswers[questionNum] === selectedOption) {
         delete App.userAnswers[questionNum]; 
     } else {
@@ -304,13 +301,13 @@ function toggleNavigator() {
 }
 
 // ==========================================================
-// ALGORITMA SUBMIT JAWABAN & PANEL KONFIRMASI
+// FAST SUBMIT ALGORITHM & PANEL KONFIRMASI
 // ==========================================================
 
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
-    // Cegah double submit dari aksi spam / siswa nakal
+    // Cegah double submit
     if (App.isExamSubmitted) return;
 
     const questions = App.questionsData || App.questions || [];
@@ -318,16 +315,16 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     const dijawab = Object.keys(App.userAnswers || {}).length;
     const kosong = totalSoal - dijawab;
 
-    // 1. TAMPILKAN PANEL KONFIRMASI (Jika manual dan belum konfirmasi)
+    // 1. TAMPILKAN PANEL KONFIRMASI (Manual submission)
     if (!isAuto && !isConfirmed) {
-        App.isSubmitting = true; // Nonaktifkan sensor kecurangan sementara saat modal tampil
+        App.isSubmitting = true; 
         tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
         return;
     }
 
-    // 2. KUNCI STATUS SUBMIT & HENTIKAN TIMER
+    // 2. KUNCI STATUS SUBMIT & HENTIKAN TIMER INSTAN
     App.isSubmitting = true;
-    App.isExamSubmitted = true; // Tandai ujian selesai total
+    App.isExamSubmitted = true; 
     
     if (typeof window.simpanLockSubmitted === "function") {
         window.simpanLockSubmitted(); 
@@ -337,7 +334,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         clearInterval(App.timerInterval);
     }
 
-    // 3. TAMPILKAN LOADING OVERLAY
+    // 3. TAMPILKAN OVERLAY LOADING SECARA INSTAN
     const overlayLoading = document.getElementById("loading-overlay");
     if (overlayLoading) overlayLoading.classList.remove("hidden");
     
@@ -347,19 +344,23 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    // 4. LEMPAR DENGAN AMAN KE SCORING ENGINE (scoring.js)
-    if (typeof submitJawabanScoring === "function") {
-        submitJawabanScoring();
-    } else {
-        alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
-        if (overlayLoading) overlayLoading.classList.add("hidden");
-        if (btnSelesai) {
-            btnSelesai.disabled = false;
-            btnSelesai.textContent = "Selesai Ujian";
+    // 4. EKSEKUSI SUBMIT CEPAT KE SCORING ENGINE
+    setTimeout(() => {
+        if (typeof submitJawabanScoring === "function") {
+            submitJawabanScoring();
+        } else if (typeof window.submitJawabanScoring === "function") {
+            window.submitJawabanScoring();
+        } else {
+            alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
+            if (overlayLoading) overlayLoading.classList.add("hidden");
+            if (btnSelesai) {
+                btnSelesai.disabled = false;
+                btnSelesai.textContent = "Selesai Ujian";
+            }
+            App.isSubmitting = false;
+            App.isExamSubmitted = false;
         }
-        App.isSubmitting = false;
-        App.isExamSubmitted = false;
-    }
+    }, 10);
 }
 
 /**
@@ -418,11 +419,11 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
 
     document.getElementById("btn-modal-batal").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
-        if (window.App) App.isSubmitting = false; // Aktifkan kembali sensor jika batal
+        if (window.App) App.isSubmitting = false;
     };
 
     document.getElementById("btn-modal-ya").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
-        submitJawaban(false, true); // Eksekusi pengumpulan jawaban final
+        submitJawaban(false, true);
     };
 }
