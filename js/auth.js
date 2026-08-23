@@ -1,5 +1,5 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.0)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.1)
 // ==========================================================
 
 /**
@@ -185,7 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
         btnSubmit.disabled = true;
         btnSubmit.textContent = "Memuat Soal Ujian...";
 
-        const targetJsonFile = `${kodeInput}-Soal.json`;
+        // MEMBACA FILE DARI FOLDER json/
+        const targetJsonFile = `json/${kodeInput}-Soal.json`;
 
         try {
             const pesertaMatch = App.verifiedPesertaData;
@@ -193,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Fetch File Soal JSON
             const res = await fetch(targetJsonFile);
             if (!res.ok) {
-                throw new Error(`Paket Soal '${kodeInput}' tidak ditemukan atau belum dipublikasikan!`);
+                throw new Error(`Paket Soal '${kodeInput}' tidak ditemukan di lokasi (${targetJsonFile}) atau belum dipublikasikan!`);
             }
             
             const data = await res.json();
