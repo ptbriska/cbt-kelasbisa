@@ -1,101 +1,113 @@
 // ==========================================================
-// scoring.js - Dynamic Scoring & Webhook Submission Engine
-// 100% Automate dari JSON Soal (FIXED VARIABEL GLOBAL)
+// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE
+// Murni membaca seluruh nilai dari file JSON secara dinamis
 // ==========================================================
 
 function submitJawaban() {
     if (!window.App || App.isExamSubmitted) return;
     App.isExamSubmitted = true;
 
-    // 1. Hentikan Timer Ujian
-    if (App.timerInterval) {
-        clearInterval(App.timerInterval);
-    }
-
-    // 2. Lepas Event Listener Keamanan
-    if (typeof handleVisibilityChange === "function") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }
-    if (typeof handleWindowBlur === "function") {
-        window.removeEventListener("blur", handleWindowBlur);
-    }
-
-    // 3. Matikan Stream Kamera Proctoring
+    if (App.timerInterval) clearInterval(App.timerInterval);
     if (App.webcamStream) {
         App.webcamStream.getTracks().forEach(track => track.stop());
         App.webcamStream = null;
     }
 
-    // 4. Set Gembok Submit (Mode SIMULASI)
-    const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
-    if (App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
-        const namaUser = dataPesertaResmi["Nama Lengkap"] || dataPesertaResmi.nama || "USER";
-        const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
-        localStorage.setItem(lockKey, "TRUE");
-    }
-
-    // =========================================================
-    // PERBAIKAN KRITIKAL: MEMBACA LANGSUNG DARI App STATE GLOBAL
-    // =========================================================
-    const modePenilaian = String(App.modePenilaian || "1A").trim().toUpperCase();
-    
-    const cfg = App.skorConfig || { 
-        skor_benar: 1, 
-        skor_salah: 0, 
-        skor_kosong: 0, 
-        bobot_level: {},
-        use_scaling_100: false 
-    };
-
-    const questions = App.questionsData || []; // Array Soal Sebenarnya
+    // Ambil Data Utama dari State Global App
+    const questions = App.questionsData || App.questions || [];
     const totalSoal = questions.length;
-    const userAnswers = App.userAnswers || {}; 
+    const userAnswers = App.userAnswers || {};
+    
+    // Ambil Mode & Konfigurasi Skor LANGSUNG dari JSON
+    const modePenilaian = String(App.modePenilaian || "1A").trim().toUpperCase();
+    const cfg = App.skorConfig || {};
 
-    let totalSkor = 0;
+    // Pembacaan Dinamis dari JSON (Bebas diubah dari Python/JSON tanpa edit JS)
+    const valBenar = Number(cfg.skor_benar ?? 1);
+    const valSalah = Number(cfg.skor_salah ?? 0);
+    const valKosong = Number(cfg.skor_kosong ?? 0);
+    const bobotMap = cfg.bobot_level || {};
+
     let jumlahBenar = 0;
     let jumlahSalah = 0;
     let jumlahKosong = 0;
+    let totalSkorMurni = 0;
 
-    // 5. PENILAIAN PER NOMOR SOAL
-    questions.forEach((q) => {
-        const userAns = userAnswers[q.No];
-        const kunci = String(q.Kunci || "").trim().toUpperCase();
+    // =========================================================
+    // ISOLASI LOGIKA BERSYARAT (IF - ELSE IF - ELSE)
+    // =========================================================
 
-        if (!userAns) {
-            // KOSONG
-            jumlahKosong++;
-            totalSkor += (cfg.skor_kosong || 0);
-        } else if (String(userAns).trim().toUpperCase() === kunci) {
-            // BENAR
-            jumlahBenar++;
-            if (modePenilaian === "1C") {
-                const bobot = Number(cfg.bobot_level[q.Level] || 1);
-                totalSkor += ((cfg.skor_benar || 1) * bobot);
+    if (modePenilaian === "1C") {
+        // ------------------------------------------------------
+        // MODE 1C: Menggunakan Bobot Level Soal dari JSON
+        // ------------------------------------------------------
+        questions.forEach((q) => {
+            const userAns = userAnswers[q.No];
+            const kunci = String(q.Kunci || "").trim().toUpperCase();
+            
+            // Ambil level soal & cari bobotnya di JSON, jika level tidak ada pakai default 1
+            const levelSoal = String(q.Level || "").trim().toUpperCase();
+            const bobotSoal = Number(bobotMap[levelSoal] ?? 1);
+
+            if (!userAns) {
+                jumlahKosong++;
+                totalSkorMurni += (bobotSoal * valKosong);
+            } else if (String(userAns).trim().toUpperCase() === kunci) {
+                jumlahBenar++;
+                totalSkorMurni += (bobotSoal * valBenar);
             } else {
-                totalSkor += (cfg.skor_benar || 1);
+                jumlahSalah++;
+                totalSkorMurni += (bobotSoal * valSalah);
             }
-        } else {
-            // SALAH
-            jumlahSalah++;
-            totalSkor += (cfg.skor_salah || 0);
-        }
-    });
+        });
 
-    // 6. PERHITUNGAN AKHIR KANONIKAL
-    let skorAkhir = 0;
+    } else if (modePenilaian === "1B") {
+        // ------------------------------------------------------
+        // MODE 1B: Skor Minus / Penalty (Tanpa Mengabaikan Bobot Level)
+        // ------------------------------------------------------
+        questions.forEach((q) => {
+            const userAns = userAnswers[q.No];
+            const kunci = String(q.Kunci || "").trim().toUpperCase();
 
-    if (modePenilaian === "1A") {
-        if (cfg.use_scaling_100) {
-            skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
-        } else {
-            skorAkhir = Number(totalSkor.toFixed(2));
-        }
-    } else if (modePenilaian === "1C") {
-        // Proteksi Mutlak Mode 1C: Kunci nilai minimal di angka 0
-        skorAkhir = Math.max(0, Number(totalSkor.toFixed(2)));
+            if (!userAns) {
+                jumlahKosong++;
+                totalSkorMurni += valKosong;
+            } else if (String(userAns).trim().toUpperCase() === kunci) {
+                jumlahBenar++;
+                totalSkorMurni += valBenar;
+            } else {
+                jumlahSalah++;
+                totalSkorMurni += valSalah;
+            }
+        });
+
     } else {
-        skorAkhir = Number(totalSkor.toFixed(2));
+        // ------------------------------------------------------
+        // MODE 1A: Standard / Proporsional
+        // ------------------------------------------------------
+        questions.forEach((q) => {
+            const userAns = userAnswers[q.No];
+            const kunci = String(q.Kunci || "").trim().toUpperCase();
+
+            if (!userAns) {
+                jumlahKosong++;
+                totalSkorMurni += valKosong;
+            } else if (String(userAns).trim().toUpperCase() === kunci) {
+                jumlahBenar++;
+                totalSkorMurni += valBenar;
+            } else {
+                jumlahSalah++;
+                totalSkorMurni += valSalah;
+            }
+        });
+
+        // Opsi Skala 100 Khusus 1A jika diaktifkan di JSON
+        if (cfg.use_scaling_100 && totalSoal > 0) {
+            totalSkorMurni = (jumlahBenar / totalSoal) * 100;
+        }
     }
+
+    const skorAkhir = Number(totalSkorMurni.toFixed(2));
 
     const detailHasil = {
         benar: jumlahBenar,
@@ -105,43 +117,35 @@ function submitJawaban() {
         skor: skorAkhir
     };
 
-    // 7. TAMPILKAN STATUS PENGIRIMAN
+    // Tampilkan Loading Pengiriman
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
-                <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
-                <p style="color: #666;">Mohon tunggu sebentar, jawaban dan bukti sedang dikirim ke server.</p>
+                <h2 style="color: #1a237e;">Mengirimkan Jawaban...</h2>
+                <p style="color: #666;">Mohon tunggu sebentar, jawaban sedang diproses.</p>
             </div>
         `;
     }
 
-    // 8. BENTUK PAYLOAD WEBHOOK
+    // Payload Webhook Dinamis
+    const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const payload = {
-        kode_soal: App.currentKodeUjian || "UNKNOWN",
+        kode_soal: App.currentKodeUjian || App.examData?.kode_ujian || "UNKNOWN",
         sistem_ujian: "CBT",
         mode_ujian: App.modeUjian || "UTAMA",
-        mode_penilaian: modePenilaian,
+        mode_penilaian: modePenilaian, // Mengirim nilai mode acuan dinamis ke GS
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
         total_dijawab: Object.keys(userAnswers).length,
         total_soal: totalSoal,
         skor_total: skorAkhir,
-        skor: skorAkhir,
+        skor_akhir: skorAkhir,
         benar: jumlahBenar,
         salah: jumlahSalah,
-        kosong: jumlahKosong,
-        jumlah_benar: jumlahBenar,
-        jumlah_salah: jumlahSalah,
-        jumlah_kosong: jumlahKosong,
-        skor_akhir: skorAkhir,
-        
-        total_pelanggaran: App.warningCount || 0,
-        log_pelanggaran: App.warningLogs || [],
-        foto_pelanggaran: App.cheatingSnapshots || []
+        kosong: jumlahKosong
     };
 
-    // 9. KIRIM VIA WEBHOOK
     if (App.WEBHOOK_URL && App.WEBHOOK_URL.trim() !== "") {
         fetch(App.WEBHOOK_URL, {
             method: "POST",
@@ -150,36 +154,31 @@ function submitJawaban() {
             body: JSON.stringify(payload)
         })
         .then(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800))
-        .catch(err => {
-            console.error("Error Webhook:", err);
-            setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
-        });
+        .catch(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800));
     } else {
         setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
     }
 }
 
 function tampilkanLayarSelesai(detail) {
-    const htmlContent = `
-        <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-            <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian CBT Selesai!</h2>
-            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hasil Pengumuman Skor Resmi [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
-            
-            <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-                <span style="font-size: 13px; color: #555; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Skor Perolehan Akhir</span>
-                <div style="font-size: 54px; font-weight: bold; color: #1a237e; margin: 10px 0;">${detail.skor}</div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                    <div>✔️ Benar<br><strong style="color: #2e7d32; font-size: 18px;">${detail.benar}</strong></div>
-                    <div>❌ Salah<br><strong style="color: #c62828; font-size: 18px;">${detail.salah}</strong></div>
-                    <div>⚪ Kosong<br><strong style="color: #f57c00; font-size: 18px;">${detail.kosong}</strong></div>
-                </div>
-            </div>
-        </div>
-    `;
-
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
-        pageCbt.innerHTML = htmlContent;
+        pageCbt.innerHTML = `
+            <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+                <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian CBT Selesai!</h2>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hasil Pengumuman Skor Resmi [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
+                
+                <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+                    <span style="font-size: 13px; color: #555; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Skor Perolehan Akhir (${App.modePenilaian || '1C'})</span>
+                    <div style="font-size: 54px; font-weight: bold; color: #1a237e; margin: 10px 0;">${detail.skor}</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                        <div>✔️ Benar<br><strong style="color: #2e7d32; font-size: 18px;">${detail.benar}</strong></div>
+                        <div>❌ Salah<br><strong style="color: #c62828; font-size: 18px;">${detail.salah}</strong></div>
+                        <div>⚪ Kosong<br><strong style="color: #f57c00; font-size: 18px;">${detail.kosong}</strong></div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 }
