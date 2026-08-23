@@ -1,6 +1,5 @@
 // ==========================================================
-// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.6.0 - ULTRA FAST & NO CAMERA)
-// Murni membaca seluruh nilai dari file JSON secara dinamis
+// js/scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (FIXED)
 // ==========================================================
 
 function submitJawabanScoring() {
@@ -38,7 +37,6 @@ function submitJawabanScoring() {
     // =========================================================
 
     if (modePenilaian === "1C") {
-        // MODE 1C: Menggunakan Bobot Level Soal (TIDAK ADA MINUS)
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -56,11 +54,9 @@ function submitJawabanScoring() {
                 jumlahSalah++;
             }
         });
-
         totalSkorMurni = Math.max(0, totalSkorMurni);
 
     } else if (modePenilaian === "1B") {
-        // MODE 1B: Skor Minus / Penalty (ADA MINUS)
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -79,9 +75,7 @@ function submitJawabanScoring() {
         });
 
     } else {
-        // MODE 1A: Standard / Proporsional (TIDAK ADA MINUS)
         const skorSalah1A = valSalah < 0 ? 0 : valSalah;
-
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -102,7 +96,6 @@ function submitJawabanScoring() {
         if (cfg.use_scaling_100 && totalSoal > 0) {
             totalSkorMurni = (jumlahBenar / totalSoal) * 100;
         }
-
         totalSkorMurni = Math.max(0, totalSkorMurni);
     }
 
@@ -119,7 +112,6 @@ function submitJawabanScoring() {
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
-    // Payload Ringkas & Cepat (Tanpa Foto/Snapshot Kamera)
     const payload = {
         action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
@@ -129,7 +121,7 @@ function submitJawabanScoring() {
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
         log_pelanggaran: App.warningLogs || [],
-        foto_bukti_kecurangan: [], // Kamera dimatikan
+        foto_bukti_kecurangan: [], 
         waktu_mulai: App.startTime || "",
         waktu_selesai: new Date().toISOString(),
         total_dijawab: Object.keys(userAnswers).length,
@@ -141,7 +133,6 @@ function submitJawabanScoring() {
         kosong: jumlahKosong
     };
 
-    // Kirim data ke Webhook di background secara non-blocking (Fire & Forget)
     if (WEBHOOK_URL && WEBHOOK_URL.trim() !== "") {
         fetch(WEBHOOK_URL, {
             method: "POST",
@@ -152,28 +143,28 @@ function submitJawabanScoring() {
         }).catch(err => console.warn("Webhook submit background error:", err));
     }
 
-    // Tampilkan layar selesai secara INSTAN tanpa delay
     tampilkanLayarSelesai(detailHasil);
 }
 
 function tampilkanLayarSelesai(detail) {
-    // 1. Sembunyikan SEMUA kemungkinan overlay/modal loading
+    // Sembunyikan SEMUA jenis modal dan loader yang ada
     const possibleLoaders = [
         "loading-overlay", 
         "loading", 
         "loading-screen", 
-        "modal-loading"
+        "modal-loading",
+        "modal-konfirmasi",      
+        "custom-confirm-modal"   
     ];
     
     possibleLoaders.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add("hidden");
-            el.style.display = "none"; // Paksa sembunyikan via inline style
+            el.style.setProperty("display", "none", "important");
         }
     });
 
-    // 2. Reset atau sembunyikan tombol submit jika masih ada
     const btnSubmit = document.getElementById("btn-submit") || document.getElementById("btn-kirim");
     if (btnSubmit) {
         btnSubmit.disabled = false;
@@ -181,7 +172,7 @@ function tampilkanLayarSelesai(detail) {
         btnSubmit.style.display = "none";
     }
 
-    // 3. Render Halaman Skor
+    // Render Skor
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -204,6 +195,6 @@ function tampilkanLayarSelesai(detail) {
     }
 }
 
-// Expose Fungsi ke Global Window
+// Expose ke global window
 window.submitJawabanScoring = submitJawabanScoring;
 window.tampilkanLayarSelesai = tampilkanLayarSelesai;
