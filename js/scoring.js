@@ -165,6 +165,13 @@ function submitJawabanScoring() {
 }
 
 function tampilkanLayarSelesai(detail) {
+    // 1. SEMBUNYIKAN LOADING OVERLAY DENGAN AMAN
+    const overlayLoading = document.getElementById("loading-overlay");
+    if (overlayLoading) {
+        overlayLoading.classList.add("hidden");
+    }
+
+    // 2. RENDER HALAMAN SKOR
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
