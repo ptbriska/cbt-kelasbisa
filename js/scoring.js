@@ -34,10 +34,18 @@ function submitJawaban() {
         localStorage.setItem(lockKey, "TRUE");
     }
 
-    // 5. AMBIL KONFIGURASI 100% OTOMATIS DARI JSON SOAL
+    // 5. AMBIL KONFIGURASI DENGAN DEFENSIVE PROGRAMMING (FALLBACK AMAN)
     const examData = App.examData || {};
-    const modePenilaian = String(examData.mode_penilaian).trim().toUpperCase();[cite: 1]
-    const cfg = examData.skor_config;[cite: 1] // Mengakses langsung "skor_config" dari JSON
+    const modePenilaian = String(examData.mode_penilaian || "1A").trim().toUpperCase();
+    
+    // Pastikan cfg tidak undefined agar tidak error saat dipanggil
+    const cfg = examData.skor_config || { 
+        skor_benar: 1, 
+        skor_salah: 0, 
+        skor_kosong: 0, 
+        bobot_level: {},
+        use_scaling_100: false 
+    };
 
     let totalSkor = 0;
     let jumlahBenar = 0;
@@ -45,32 +53,32 @@ function submitJawaban() {
     let jumlahKosong = 0;
 
     // 6. PENILAIAN PER NOMOR SOAL
-    const questions = examData.questions;[cite: 1] // Mengakses array "questions" dari JSON
+    const questions = examData.questions || []; // Amankan dengan array kosong
     const totalSoal = questions.length;
+    const userAnswers = App.userAnswers || {}; // Amankan object jawaban
 
     questions.forEach((q) => {
-        const userAns = App.userAnswers[q.No];[cite: 1] // Menggunakan key "No" dari JSON
-        const kunci = String(q.Kunci).trim().toUpperCase();[cite: 1] // Menggunakan key "Kunci" dari JSON
+        const userAns = userAnswers[q.No];
+        const kunci = String(q.Kunci || "").trim().toUpperCase();
 
         if (!userAns) {
             // KOSONG
             jumlahKosong++;
-            totalSkor += cfg.skor_kosong;[cite: 1]
+            totalSkor += (cfg.skor_kosong || 0);
         } else if (String(userAns).trim().toUpperCase() === kunci) {
             // BENAR
             jumlahBenar++;
             if (modePenilaian === "1C") {
-                // Mode 1C: skor_benar * bobot_level[q.Level] dari JSON
-                const bobot = Number(cfg.bobot_level[q.Level]);[cite: 1]
-                totalSkor += (cfg.skor_benar * bobot);[cite: 1]
+                // Amankan pembobotan level
+                const bobot = Number(cfg.bobot_level[q.Level] || 1);
+                totalSkor += ((cfg.skor_benar || 1) * bobot);
             } else {
-                // Mode 1A / 1B
-                totalSkor += cfg.skor_benar;[cite: 1]
+                totalSkor += (cfg.skor_benar || 1);
             }
         } else {
             // SALAH
             jumlahSalah++;
-            totalSkor += cfg.skor_salah;[cite: 1]
+            totalSkor += (cfg.skor_salah || 0);
         }
     });
 
@@ -78,16 +86,15 @@ function submitJawaban() {
     let skorAkhir = 0;
 
     if (modePenilaian === "1A") {
-        if (cfg.use_scaling_100) {[cite: 1]
+        if (cfg.use_scaling_100) {
             skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
         } else {
             skorAkhir = Number(totalSkor.toFixed(2));
         }
     } else if (modePenilaian === "1C") {
-        // Proteksi Mutlak Mode 1C: Kunci nilai minimal di angka 0 (TIDAK BISA MINUS)
+        // Proteksi Mutlak Mode 1C: Kunci nilai minimal di angka 0
         skorAkhir = Math.max(0, Number(totalSkor.toFixed(2)));
     } else {
-        // Mode 1B / Lainnya
         skorAkhir = Number(totalSkor.toFixed(2));
     }
 
@@ -105,20 +112,20 @@ function submitJawaban() {
         pageCbt.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
                 <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
-                <p style="color: #666;">Mohon tunggu sebentar, jawaban dan bukti kecurangan sedang dikirim ke server.</p>
+                <p style="color: #666;">Mohon tunggu sebentar, jawaban dan bukti sedang dikirim ke server.</p>
             </div>
         `;
     }
 
-    // 9. BENTUK PAYLOAD WEBHOOK TERLENGKAP
+    // 9. BENTUK PAYLOAD WEBHOOK
     const payload = {
-        kode_soal: examData.kode_ujian || App.currentKodeUjian,[cite: 1]
+        kode_soal: examData.kode_ujian || App.currentKodeUjian || "UNKNOWN",
         sistem_ujian: "CBT",
-        mode_ujian: examData.mode_ujian || App.modeUjian || "UTAMA",[cite: 1]
-        mode_penilaian: modePenilaian,[cite: 1]
+        mode_ujian: examData.mode_ujian || App.modeUjian || "UTAMA",
+        mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
-        jawaban: App.userAnswers,
-        total_dijawab: Object.keys(App.userAnswers).length,
+        jawaban: userAnswers,
+        total_dijawab: Object.keys(userAnswers).length,
         total_soal: totalSoal,
         skor_total: skorAkhir,
         skor: skorAkhir,
@@ -130,7 +137,6 @@ function submitJawaban() {
         jumlah_kosong: jumlahKosong,
         skor_akhir: skorAkhir,
         
-        // Payload Log Keamanan & Bukti Kecurangan
         total_pelanggaran: App.warningCount || 0,
         log_pelanggaran: App.warningLogs || [],
         foto_pelanggaran: App.cheatingSnapshots || []
@@ -144,13 +150,16 @@ function submitJawaban() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         })
-        .then(() => tampilkanLayarSelesai(detailHasil))
+        .then(() => {
+            // Tambahkan sedikit delay agar text "Mengirimkan Jawaban..." terasa UX-nya
+            setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
+        })
         .catch(err => {
             console.error("Error Webhook:", err);
-            tampilkanLayarSelesai(detailHasil);
+            setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
         });
     } else {
-        tampilkanLayarSelesai(detailHasil);
+        setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
     }
 }
 
