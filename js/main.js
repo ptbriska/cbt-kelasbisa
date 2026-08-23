@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.5.4)
+// main.js - Entry Point & Window Bridge Handler (v1.3.9 - SINKRON)
 // ==========================================================
 
 // Inisialisasi Objek Global State App
@@ -40,26 +40,6 @@ window.App = window.App || {
     timerInterval: null
 };
 
-/**
- * Handler Toggle Checkbox & Tombol Mulai Ujian
- */
-function toggleMulaiButton() {
-    const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
-    const btnMulai = document.getElementById("btn-mulai-ujian") || document.getElementById("btn-start-exam");
-
-    if (!checkbox || !btnMulai) return;
-
-    if (checkbox.checked) {
-        btnMulai.disabled = false;
-        btnMulai.classList.add("active");
-        btnMulai.style.cursor = "pointer";
-    } else {
-        btnMulai.disabled = true;
-        btnMulai.classList.remove("active");
-        btnMulai.style.cursor = "not-allowed";
-    }
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Muat Database Peserta saat aplikasi pertama kali dibuka
     if (typeof loadDaftarPeserta === "function") {
@@ -77,7 +57,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 3. Attach Event Listener Checkbox Persetujuan Ujian (FIX TOMBOL ABU-ABU)
     const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
-    if (checkbox) {
+    if (checkbox && typeof toggleMulaiButton === "function") {
         checkbox.addEventListener("change", toggleMulaiButton);
         // Set kondisi awal saat halaman pertama kali dimuat
         toggleMulaiButton();
@@ -98,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof toggleNavigator === "function") window.toggleNavigator = toggleNavigator;
 
     // Alur Persetujuan & Pindah Halaman
-    window.toggleMulaiButton = toggleMulaiButton;
+    if (typeof toggleMulaiButton === "function") window.toggleMulaiButton = toggleMulaiButton;
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
 
@@ -135,11 +115,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.konfirmasiSubmit = function() {
         if (window.App) App.isSubmitting = true;
         
-        // Memanggil engine scoring resmi dari scoring.js
-        if (typeof submitJawabanScoring === "function") {
+        // FIX: Tambahkan parameter (false, true) agar tidak looping kembali ke modal
+        if (typeof submitJawaban === "function") {
+            submitJawaban(false, true);
+        } else if (typeof submitJawabanScoring === "function") {
             submitJawabanScoring();
-        } else if (typeof submitJawaban === "function") {
-            submitJawaban();
         }
     };
 
