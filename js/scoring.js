@@ -192,6 +192,11 @@ function submitJawabanScoring() {
 }
 
 function tampilkanLayarSelesai(detail) {
+    // Simpan skor ke memori App agar terbaca oleh answer.js saat dicetak
+    if (window.App) {
+        App.lastSkorAkhir = detail.skor;
+    }
+
     const possibleLoaders = [
         "loading-overlay", 
         "loading", 
@@ -213,8 +218,8 @@ function tampilkanLayarSelesai(detail) {
     if (pageCbt) {
         pageCbt.innerHTML = `
             <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-                <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian CBT Selesai!</h2>
-                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hasil Pengumuman Skor Resmi [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
+                <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Selamat Pelaksanaan Ujian CBT Anda Selesai!</h2>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Berikut Hasil Pengumuman Skor Resmi Tes CBT Anda [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
                 
                 <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
                     <span style="font-size: 13px; color: #555; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Skor Perolehan Akhir (${App.modePenilaian || '1C'})</span>
@@ -225,6 +230,11 @@ function tampilkanLayarSelesai(detail) {
                         <div>❌ Salah<br><strong style="color: #c62828; font-size: 18px;">${detail.salah}</strong></div>
                         <div>⚪ Kosong<br><strong style="color: #f57c00; font-size: 18px;">${detail.kosong}</strong></div>
                     </div>
+
+                    <!-- TOMBOL FITUR v1.4: REVIEW SOAL & KUNCI JAWABAN -->
+                    <button onclick="bukaHalamanKunciJawaban()" style="margin-top: 20px; width: 100%; background: #2e7d32; color: #ffffff; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: background 0.2s;">
+                        📖 Lihat Kunci Jawaban
+                    </button>
                 </div>
             </div>
         `;
