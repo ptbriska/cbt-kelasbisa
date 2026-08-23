@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.9 - FIXED AUTO SUBMIT)
+// security.js - Engine Keamanan & Photo Proctoring (v1.4.0 - FIXED MANUAL & AUTO SUBMIT)
 // Terintegrasi dengan Dynamic Scoring & Backend GAS
 // ==========================================================
 
@@ -63,7 +63,6 @@ async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
     const p = App.verifiedPesertaData || App.userIdentitas || {};
     const namaPeserta = p["Nama Lengkap"] || p.nama || "Tanpa Nama";
     
-    // Sinkronisasi dengan sumber JSON jika ada
     const examData = App.examData || {};
     const kodeUjian = examData.kode_ujian || App.currentKodeUjian || p.kode_ujian || "NO-KODE";
 
@@ -71,7 +70,7 @@ async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
         kode_ujian: kodeUjian,
         nama_peserta: namaPeserta,
         alasan: alasanPelanggaran,
-        identitas: p, // Kirim identitas penuh agar terbaca utuh di Code.gs
+        identitas: p,
         image: fotoBase64
     };
 
@@ -106,17 +105,15 @@ let isWarningActive = false;
  * Penanganan Utama Peringatan & Rekam Bukti Pelanggaran
  */
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
-    // Jika ujian belum mulai, sudah submit, atau peringatan sedang aktif -> abaikan
-    if (!App.isExamStarted || App.isExamSubmitted || isWarningActive) return;
+    // [PERBAIKAN] Tambahkan pengecekan App.isSubmitting agar sensor mati saat pengiriman jawaban
+    if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
     App.warningCount = (App.warningCount || 0) + 1;
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3; 
     
-    // 1. Ambil Foto Wajah
     const fotoBukti = captureSnapshot();
     
-    // 2. Inisialisasi Penyimpanan Foto & Log Global
     if (!App.warningLogs) App.warningLogs = [];
     if (!App.cheatingSnapshots) App.cheatingSnapshots = [];
 
@@ -132,7 +129,6 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         });
     }
 
-    // 3. Simpan Log Detail ke State Global & LocalStorage
     const logData = {
         peringatan_ke: App.warningCount,
         waktu: timeString,
@@ -149,35 +145,30 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         console.warn("Storage penuh, menyimpan log tanpa base64 foto.");
     }
 
-    // 4. Unggah Foto ke Google Drive secara otomatis
     if (fotoBukti) {
         uploadFotoKecuranganToDrive(fotoBukti, alasan);
     }
 
-    // 5. Eksekusi Sanksi & Notifikasi
     if (App.warningCount >= App.MAX_WARNINGS) {
-        
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
-        // Lepas status warning agar eksekusi submit tidak terblokir
         isWarningActive = false;
-
-        // PERBAIKAN: Jangan ubah App.isExamSubmitted di sini agar fungsi submitJawaban bisa berjalan normal.
         
-        // Panggil auto-submit dari global window
+        // [PERBAIKAN] Tandai bahwa proses submit sedang berlangsung
+        App.isSubmitting = true; 
+
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban();
         } else if (typeof window.selesaiUjian === "function") {
             window.selesaiUjian();
         } else {
-            // PERBAIKAN: Cara yang benar menggunakan Vanilla JS untuk mencari tombol
             console.warn("Mencari tombol selesai otomatis...");
             const buttons = document.querySelectorAll('button');
             let buttonDiklik = false;
             
             for (let btn of buttons) {
-                if (btn.innerText.toUpperCase().includes("SELESAI") || btn.innerText.toUpperCase().includes("KUMPUL")) {
+                if (btn.innerText.toUpperCase().includes("SELESAI") || btn.innerText.toUpperCase().includes("KUMPUL") || btn.innerText.toUpperCase().includes("SUBMIT")) {
                     btn.click();
                     buttonDiklik = true;
                     break;
@@ -192,7 +183,6 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
         
-        // Jeda 2 detik agar browser tidak salah membaca klik "OK" sebagai lepas fokus
         setTimeout(() => {
             isWarningActive = false;
         }, 2000); 
@@ -203,7 +193,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
  * Paksa Kembalikan Tampilan ke Fullscreen
  */
 function enforceFullscreen() {
-    if (!App.isExamStarted || App.isExamSubmitted) return;
+    if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {
             console.log("Pengguna menolak mode fullscreen.");
@@ -220,26 +210,45 @@ function initSecurityListeners() {
     App.warningLogs = [];
     App.cheatingSnapshots = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
+    App.isSubmitting = false; // [PERBAIKAN] Inisialisasi flag submit
 
     initWebcamProctoring();
 
+    // [PERBAIKAN] Deteksi interaksi klik pada tombol submit/selesai manual
+    document.addEventListener("click", (e) => {
+        const target = e.target.closest("button, a, input[type='button'], input[type='submit']");
+        if (target) {
+            const text = (target.innerText || target.value || "").toUpperCase();
+            if (text.includes("SELESAI") || text.includes("KUMPUL") || text.includes("SUBMIT") || text.includes("AKHIRI")) {
+                App.isSubmitting = true; // Nonaktifkan sensor keamanan secara instan
+                
+                // Jika peserta membatalkan pop-up konfirmasi, aktifkan kembali sensor setelah 10 detik
+                setTimeout(() => {
+                    if (!App.isExamSubmitted) {
+                        App.isSubmitting = false;
+                    }
+                }, 10000);
+            }
+        }
+    }, true);
+
     // 1. Deteksi Pindah Tab / Browser
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden && App.isExamStarted && !App.isExamSubmitted) {
+        if (document.hidden && App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             prosesPeringatanKecurangan("Meninggalkan Tab / Pindah Browser");
         }
     });
 
     // 2. Deteksi Fokus Layar Lepas (Alt+Tab / Snipping Tool Overlay)
     window.addEventListener("blur", () => {
-        if (App.isExamStarted && !App.isExamSubmitted) {
+        if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi / Snipping Tool)");
         }
     });
 
     // 3. Deteksi Keluar Mode Fullscreen
     document.addEventListener("fullscreenchange", () => {
-        if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted) {
+        if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             prosesPeringatanKecurangan("Keluar dari Mode Fullscreen");
             setTimeout(enforceFullscreen, 1000);
         }
@@ -247,9 +256,8 @@ function initSecurityListeners() {
 
     // 4. Deteksi Kombinasi Shortcut Terlarang, PrintScreen, dan Win+Shift+S
     document.addEventListener("keydown", (e) => {
-        if (!App.isExamStarted || App.isExamSubmitted) return;
+        if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
-        // Shortcut Screenshot Windows (Win + Shift + S)
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
             document.body.style.display = "none";
@@ -258,28 +266,24 @@ function initSecurityListeners() {
             return false;
         }
 
-        // F12 (DevTools)
         if (e.key === "F12") {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
             return false;
         }
 
-        // Inspect Element / Console (Ctrl+Shift+I/J/C)
         if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka Inspect Element (Ctrl+Shift+I/J/C)");
             return false;
         }
 
-        // Save, Print, Copy, View Source
         if (e.ctrlKey && ["u", "U", "s", "S", "p", "P", "c", "C"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan(`Shortcut Terlarang (Ctrl+${e.key.toUpperCase()})`);
             return false;
         }
 
-        // PrintScreen
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
             if (navigator.clipboard) {
@@ -298,7 +302,7 @@ function initSecurityListeners() {
 window.initSecurityListeners = initSecurityListeners;
 window.initWebcamProctoring = initWebcamProctoring;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
-window.enforceFullscreen = enforceFullscreen; // expose agar bisa diakses manual bila perlu
+window.enforceFullscreen = enforceFullscreen;
 
 // Blokir Klik Kanan
 document.addEventListener("DOMContentLoaded", () => {
