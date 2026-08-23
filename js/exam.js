@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Core Engine Ujian CBT & Navigasi Soal (v1.4.1 - REVISED & STABLE)
+// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (v1.4.1 - REVISED & STABLE)
 // ==========================================================
 
 // Inisialisasi Objek Global Safe Guard
@@ -27,12 +27,18 @@ function toggleMulaiButton() {
     }
 }
 
+/**
+ * Navigasi Kembali ke Halaman Form Login / Verifikasi
+ */
 function kembaliKePage1() {
     document.getElementById("page-info")?.classList.add("hidden");
     document.getElementById("page-login")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 }
 
+/**
+ * Memulai Sesi Ujian CBT
+ */
 function mulaiUjianPenuh() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
     if (chk && !chk.checked) {
@@ -116,6 +122,9 @@ function syncExamMetadataFromJSON(dataJSON) {
     App.timerDurationMinutes = dataJSON.timer_menit || dataJSON.durasi_menit || 10;
 }
 
+/**
+ * Inisialisasi CBT (Nomor Grid, Soal Pertama, & Timer)
+ */
 function initCBT() {
     if (!window.App) return;
 
@@ -134,6 +143,9 @@ function initCBT() {
     startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
+/**
+ * Pengatur Timer Ujian (Countdown)
+ */
 function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
     if (isNaN(timer) || timer <= 0) timer = 600;
@@ -177,9 +189,11 @@ function startTimer(durationInSeconds) {
     App.timerInterval = setInterval(intervalFunc, 1000);
 }
 
+/**
+ * Render Panel Tombol Navigasi Nomor Soal
+ */
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
-    const gridMobile = document.getElementById("number-grid-mobile");
     
     if (!window.App || !App.questionsData) return;
     
@@ -198,14 +212,13 @@ function renderNumberGrid() {
 
     if (grid) {
         grid.innerHTML = "";
-        grid.appendChild(fragment.cloneNode(true));
-    }
-    if (gridMobile) {
-        gridMobile.innerHTML = "";
-        gridMobile.appendChild(fragment);
+        grid.appendChild(fragment);
     }
 }
 
+/**
+ * Memuat dan Menampilkan Soal Berdasarkan Index
+ */
 function loadQuestion(index) {
     if (!window.App || !App.questionsData) return;
     const q = App.questionsData[index];
@@ -263,6 +276,9 @@ function loadQuestion(index) {
     updateGridStatus();
 }
 
+/**
+ * Menyimpan / Mengubah Pilihan Jawaban Peserta
+ */
 function pilihJawaban(questionNum, selectedOption) {
     if (!window.App) return;
     
@@ -275,10 +291,15 @@ function pilihJawaban(questionNum, selectedOption) {
     loadQuestion(App.currentIndex);
 }
 
+/**
+ * Memperbarui Warna/Status pada Grid Nomor Soal
+ */
 function updateGridStatus() {
     if (!window.App || !App.questionsData) return;
     App.questionsData.forEach((_, idx) => {
-        const circles = document.querySelectorAll(`#circle-num-${idx}`);
+        const circle = document.getElementById(`circle-num-${idx}`);
+        if (!circle) return;
+
         const isAnswered = !!App.userAnswers[idx + 1];
         const isActive = (idx === App.currentIndex);
 
@@ -288,12 +309,13 @@ function updateGridStatus() {
         
         if (isActive) className += " active";
 
-        circles.forEach(circle => {
-            circle.className = className;
-        });
+        circle.className = className;
     });
 }
 
+/**
+ * Navigasi Ke Soal Sebelum / Selanjutnya
+ */
 function navigasi(direction) {
     if (!window.App || !App.questionsData) return;
     const newIndex = App.currentIndex + direction;
@@ -303,13 +325,9 @@ function navigasi(direction) {
     }
 }
 
-function toggleNavigator() {
-    const navDrawer = document.getElementById("nav-drawer");
-    if (navDrawer) {
-        navDrawer.classList.toggle("open");
-    }
-}
-
+/**
+ * Konfirmasi Keluar dari Layar Ujian
+ */
 function konfirmasiKeluar() {
     if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian? Jawaban yang belum dikirim mungkin akan hilang.")) {
         window.location.reload();
@@ -320,6 +338,9 @@ function konfirmasiKeluar() {
 // FAST SUBMIT ALGORITHM & PANEL KONFIRMASI
 // ==========================================================
 
+/**
+ * Menampilkan Modal Dialog Konfirmasi Pengumpulan Ujian
+ */
 function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
     let totalSoal = totalSoalArg;
     let dijawab = dijawabArg;
@@ -334,7 +355,7 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
 
     if (window.App) App.isSubmitting = true;
 
-    // Mendukung Modal Statis (index.html) & Dynamic Modal Fallback
+    // Gunakan Modal Statis pada index.html
     const modalStatis = document.getElementById("modal-konfirmasi");
     const teksRingkasan = document.getElementById("teks-ringkasan-konfirmasi");
 
@@ -379,7 +400,9 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
     };
 }
 
-// Handler Tombol "Ya, Kirim Jawaban" pada Modal Statis di index.html
+/**
+ * Handler Tombol "Ya, Kirim Jawaban" pada Modal Statis
+ */
 function konfirmasiSubmit() {
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
@@ -389,6 +412,9 @@ function konfirmasiSubmit() {
     submitJawaban(false, true);
 }
 
+/**
+ * Mengirim Jawaban Ujian ke Engine Penilaian
+ */
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
