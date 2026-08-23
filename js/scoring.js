@@ -1,5 +1,5 @@
 // ==========================================================
-// js/scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (FIXED & SYNCHRONIZED)
+// js/scoring.js - SCORING & MULTI-KEY PAYLOAD AGGREGATION
 // ==========================================================
 
 function submitJawabanScoring() {
@@ -7,22 +7,18 @@ function submitJawabanScoring() {
     App.isScoringCompleted = true;
     App.isExamSubmitted = true;
 
-    // 1. Hentikan Timer Ujian
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
         App.timerInterval = null;
     }
 
-    // Ambil Data Utama dari State Global App
     const questions = App.questionsData || App.questions || [];
     const totalSoal = questions.length;
     const userAnswers = App.userAnswers || {};
     
-    // Ambil Mode & Konfigurasi Skor LANGSUNG dari JSON
     const modePenilaian = String(App.modePenilaian || "1A").trim().toUpperCase();
     const cfg = App.skorConfig || {};
 
-    // Pembacaan Dinamis dari JSON
     const valBenar = Number(cfg.skor_benar ?? 1);
     const valSalah = Number(cfg.skor_salah ?? 0);
     const valKosong = Number(cfg.skor_kosong ?? 0);
@@ -33,16 +29,12 @@ function submitJawabanScoring() {
     let jumlahKosong = 0;
     let totalSkorMurni = 0;
 
-    // =========================================================
-    // ISOLASI LOGIKA BERSYARAT (MODE 1C, 1B, 1A)
-    // =========================================================
-
+    // Kalkulasi Nilai
     if (modePenilaian === "1C") {
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
-            
             const levelSoal = String(q.Level || "").trim().toUpperCase();
             const bobotSoal = Number(bobotMap[levelSoal] ?? 1);
 
@@ -113,7 +105,7 @@ function submitJawabanScoring() {
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
-    // --- SINKRONISASI LOG & HITUNG JUMLAH PELANGGARAN RIL ---
+    // --- REKAP DATA PELANGGARAN ---
     let rawLogs = App.warningLogs || [];
     if ((!rawLogs || rawLogs.length === 0) && localStorage.getItem("cbt_violation_logs")) {
         try {
@@ -121,9 +113,18 @@ function submitJawabanScoring() {
         } catch(e) {}
     }
 
-    const realJmlPelanggaran = rawLogs.length; 
-    const formattedLogsText = rawLogs.map(item => `[${item.waktu || ''}] ${item.alasan || ''}`).join(" | ");
+    let countFromStorage = parseInt(localStorage.getItem("cbt_warning_count"), 10);
+    if (isNaN(countFromStorage)) countFromStorage = 0;
 
+    // Ambil angka tertinggi antara App.warningCount, panjang logs, dan LocalStorage
+    const realJmlPelanggaran = Math.max(App.warningCount || 0, rawLogs.length, countFromStorage);
+    
+    // Bikin string teks sederhana
+    const formattedLogsText = rawLogs.length > 0 
+        ? rawLogs.map(item => `[Peringatan ${item.peringatan_ke || '-'}] ${item.waktu || ''}: ${item.alasan || ''}`).join(" | ")
+        : (realJmlPelanggaran > 0 ? `${realJmlPelanggaran}x Pelanggaran Terdeteksi` : "Tidak ada");
+
+    // Send Payload dengan variasi alias key agar kompatibel dengan Google Apps Script manapun
     const payload = {
         action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
@@ -132,10 +133,18 @@ function submitJawabanScoring() {
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
-        jml_pelanggaran: realJmlPelanggaran, 
-        log_pelanggaran: formattedLogsText || "-", 
-        log_pelanggaran_raw: rawLogs,
-        foto_bukti_kecurangan: [], 
+        
+        // Multi-key alias untuk Jumlah Pelanggaran
+        jml_pelanggaran: realJmlPelanggaran,
+        jumlah_pelanggaran: realJmlPelanggaran,
+        total_pelanggaran: realJmlPelanggaran,
+        pelanggaran: realJmlPelanggaran,
+
+        // Multi-key alias untuk Log Teks Pelanggaran
+        log_pelanggaran: formattedLogsText,
+        log_pelanggaran_teks: formattedLogsText,
+        detail_pelanggaran: formattedLogsText,
+
         waktu_mulai: App.startTime || "",
         waktu_selesai: new Date().toISOString(),
         total_dijawab: Object.keys(userAnswers).length,
@@ -157,11 +166,16 @@ function submitJawabanScoring() {
         }).catch(err => console.warn("Webhook submit background error:", err));
     }
 
+    // Clear backup localstorage setelah berhasil submit
+    try {
+        localStorage.removeItem("cbt_warning_count");
+        localStorage.removeItem("cbt_violation_logs");
+    } catch(e) {}
+
     tampilkanLayarSelesai(detailHasil);
 }
 
 function tampilkanLayarSelesai(detail) {
-    // Sembunyikan SEMUA jenis modal dan loader yang ada
     const possibleLoaders = [
         "loading-overlay", 
         "loading", 
@@ -179,14 +193,6 @@ function tampilkanLayarSelesai(detail) {
         }
     });
 
-    const btnSubmit = document.getElementById("btn-submit") || document.getElementById("btn-kirim");
-    if (btnSubmit) {
-        btnSubmit.disabled = false;
-        btnSubmit.innerText = "SUBMITTED";
-        btnSubmit.style.display = "none";
-    }
-
-    // Render Skor
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -209,6 +215,5 @@ function tampilkanLayarSelesai(detail) {
     }
 }
 
-// Expose ke global window
 window.submitJawabanScoring = submitJawabanScoring;
 window.tampilkanLayarSelesai = tampilkanLayarSelesai;
