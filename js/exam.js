@@ -42,7 +42,12 @@ function mulaiUjianPenuh() {
         document.documentElement.requestFullscreen().catch(() => {});
     }
 
-    // 5. Inisialisasi CBT
+    // 5. Aktifkan Pengawasan Keamanan & Kamera Proctoring
+    if (typeof initSecurityListeners === "function") {
+        initSecurityListeners();
+    }
+
+    // 6. Inisialisasi CBT
     initCBT();
 }
 
