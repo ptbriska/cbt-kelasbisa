@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.9 - FIXED BUG LOOPING)
+// security.js - Engine Keamanan & Photo Proctoring (v1.3.9 - FIXED AUTO SUBMIT)
 // Terintegrasi dengan Dynamic Scoring & Backend GAS
 // ==========================================================
 
@@ -156,25 +156,43 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 
     // 5. Eksekusi Sanksi & Notifikasi
     if (App.warningCount >= App.MAX_WARNINGS) {
-        // [PERBAIKAN] Kunci ujian segera agar tidak mendeteksi pelanggaran berulang
-        App.isExamSubmitted = true; 
         
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
-        // Panggil auto-submit
-        if (typeof submitJawaban === "function") {
-            submitJawaban();
+        // Lepas status warning agar eksekusi submit tidak terblokir
+        isWarningActive = false;
+
+        // PERBAIKAN: Jangan ubah App.isExamSubmitted di sini agar fungsi submitJawaban bisa berjalan normal.
+        
+        // Panggil auto-submit dari global window
+        if (typeof window.submitJawaban === "function") {
+            window.submitJawaban();
+        } else if (typeof window.selesaiUjian === "function") {
+            window.selesaiUjian();
         } else {
-            // [PERBAIKAN] Jika submitJawaban gagal dipanggil, klik tombol Selesai otomatis
-            const btnSelesai = document.querySelector('button.btn-success, .btn-selesai, button:contains("SELESAI")'); 
-            if (btnSelesai) btnSelesai.click();
+            // PERBAIKAN: Cara yang benar menggunakan Vanilla JS untuk mencari tombol
+            console.warn("Mencari tombol selesai otomatis...");
+            const buttons = document.querySelectorAll('button');
+            let buttonDiklik = false;
+            
+            for (let btn of buttons) {
+                if (btn.innerText.toUpperCase().includes("SELESAI") || btn.innerText.toUpperCase().includes("KUMPUL")) {
+                    btn.click();
+                    buttonDiklik = true;
+                    break;
+                }
+            }
+            
+            if (!buttonDiklik) {
+                console.error("Gagal auto-submit: Tombol SELESAI tidak ditemukan atau fungsi submitJawaban() tidak ada.");
+            }
         }
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
         
-        // [PERBAIKAN] Beri jeda 2 detik agar browser tidak salah membaca klik "OK" sebagai lepas fokus
+        // Jeda 2 detik agar browser tidak salah membaca klik "OK" sebagai lepas fokus
         setTimeout(() => {
             isWarningActive = false;
         }, 2000); 
