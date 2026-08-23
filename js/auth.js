@@ -1,5 +1,5 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.2)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.4)
 // ==========================================================
 
 /**
@@ -259,19 +259,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (document.getElementById("disp-lembaga-cbt")) document.getElementById("disp-lembaga-cbt").textContent = data.lembaga;
             }
             
-            // Render Nama Sub-Lembaga
-            if (data.sub_lembaga) {
-                if (document.getElementById("disp-sub-lembaga")) document.getElementById("disp-sub-lembaga").textContent = data.sub_lembaga;
-                if (document.getElementById("disp-sub-lembaga-cbt")) document.getElementById("disp-sub-lembaga-cbt").textContent = data.sub_lembaga;
+            // 1. sub_lembaga (Contoh: "PILAR JUARA - KELAS BISA")
+            // Ditampilkan pada Header Sub-Lembaga di bawah Lembaga Utama
+            const valSubLembaga = data.sub_lembaga || data.sub_header || "-";
+            if (document.getElementById("disp-sub-lembaga-info")) {
+                document.getElementById("disp-sub-lembaga-info").textContent = valSubLembaga;
+            }
+            if (document.getElementById("disp-sub-lembaga")) {
+                document.getElementById("disp-sub-lembaga").textContent = valSubLembaga;
+            }
+            if (document.getElementById("disp-sub-lembaga-cbt")) {
+                document.getElementById("disp-sub-lembaga-cbt").textContent = valSubLembaga;
             }
 
-            // PERBAIKAN: Render Nama Kegiatan Ujian dari field `nama_kegiatan`
-            const namaKegiatanVal = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
-            if (document.getElementById("disp-sub-lembaga-info")) {
-                document.getElementById("disp-sub-lembaga-info").textContent = namaKegiatanVal;
-            }
+            // 2. nama_kegiatan (Contoh: "SIMULASI OSN")
+            // Ditampilkan pada Tabel Informasi Ujian CBT (<span id="disp-nama-kegiatan">)
+            const valNamaKegiatan = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
             if (document.getElementById("disp-nama-kegiatan")) {
-                document.getElementById("disp-nama-kegiatan").textContent = namaKegiatanVal;
+                document.getElementById("disp-nama-kegiatan").textContent = valNamaKegiatan;
             }
 
             // Render Detail Box Informasi Ujian CBT (Page 2)
