@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.4.0 - FIXED MANUAL & AUTO SUBMIT)
+// security.js - Engine Keamanan & Photo Proctoring (v1.4.0 - FIXED)
 // Terintegrasi dengan Dynamic Scoring & Backend GAS
 // ==========================================================
 
@@ -105,7 +105,6 @@ let isWarningActive = false;
  * Penanganan Utama Peringatan & Rekam Bukti Pelanggaran
  */
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
-    // [PERBAIKAN] Tambahkan pengecekan App.isSubmitting agar sensor mati saat pengiriman jawaban
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
@@ -151,13 +150,13 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 
     if (App.warningCount >= App.MAX_WARNINGS) {
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
-        alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
         isWarningActive = false;
         
-        // [PERBAIKAN] Tandai bahwa proses submit sedang berlangsung
+        // [PERBAIKAN KRITIKAL] Tandai bahwa proses submit sedang berlangsung 
         App.isSubmitting = true; 
 
+        // Eksekusi Submit di Background TERLEBIH DAHULU
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban();
         } else if (typeof window.selesaiUjian === "function") {
@@ -174,14 +173,23 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
                     break;
                 }
             }
-            
             if (!buttonDiklik) {
-                console.error("Gagal auto-submit: Tombol SELESAI tidak ditemukan atau fungsi submitJawaban() tidak ada.");
+                console.error("Gagal auto-submit: Tombol SELESAI tidak ditemukan.");
             }
         }
+
+        // Tampilkan Alert MENGGUNAKAN setTimeout agar eksekusi di atas TIDAK BLOKIR
+        setTimeout(() => {
+            alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan jawaban langsung dikirim.`);
+        }, 100);
+
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
+        
+        // Agar alert biasa juga tidak bentrok, kasih setTimeout kecil
+        setTimeout(() => {
+            alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
+        }, 50);
         
         setTimeout(() => {
             isWarningActive = false;
@@ -210,19 +218,18 @@ function initSecurityListeners() {
     App.warningLogs = [];
     App.cheatingSnapshots = [];
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3;
-    App.isSubmitting = false; // [PERBAIKAN] Inisialisasi flag submit
+    App.isSubmitting = false; 
 
     initWebcamProctoring();
 
-    // [PERBAIKAN] Deteksi interaksi klik pada tombol submit/selesai manual
+    // Deteksi interaksi klik pada tombol submit/selesai manual
     document.addEventListener("click", (e) => {
         const target = e.target.closest("button, a, input[type='button'], input[type='submit']");
         if (target) {
             const text = (target.innerText || target.value || "").toUpperCase();
             if (text.includes("SELESAI") || text.includes("KUMPUL") || text.includes("SUBMIT") || text.includes("AKHIRI")) {
-                App.isSubmitting = true; // Nonaktifkan sensor keamanan secara instan
+                App.isSubmitting = true; 
                 
-                // Jika peserta membatalkan pop-up konfirmasi, aktifkan kembali sensor setelah 10 detik
                 setTimeout(() => {
                     if (!App.isExamSubmitted) {
                         App.isSubmitting = false;
@@ -239,10 +246,10 @@ function initSecurityListeners() {
         }
     });
 
-    // 2. Deteksi Fokus Layar Lepas (Alt+Tab / Snipping Tool Overlay)
+    // 2. Deteksi Fokus Layar Lepas
     window.addEventListener("blur", () => {
         if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
-            prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi / Snipping Tool)");
+            prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi)");
         }
     });
 
@@ -254,7 +261,7 @@ function initSecurityListeners() {
         }
     });
 
-    // 4. Deteksi Kombinasi Shortcut Terlarang, PrintScreen, dan Win+Shift+S
+    // 4. Deteksi Kombinasi Shortcut Terlarang
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
@@ -287,7 +294,9 @@ function initSecurityListeners() {
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
             if (navigator.clipboard) {
-                navigator.clipboard.writeText("[Sistem Keamanan CBT] Tangkapan layar dilarang.");
+                // [PERBAIKAN MINOR] Tambahkan catch agar tidak crash jika browser nolak izin clipboard
+                navigator.clipboard.writeText("[Sistem Keamanan CBT] Tangkapan layar dilarang.")
+                    .catch(err => console.warn("Clipboard access denied", err));
             }
             document.body.style.display = "none";
             setTimeout(() => { document.body.style.display = "block"; }, 1000);
