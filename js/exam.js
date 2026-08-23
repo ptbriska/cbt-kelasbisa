@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.0)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.1)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -23,25 +23,45 @@ function mulaiUjianPenuh() {
         return;
     }
 
-    // Pindah Tampilan ke Page 3 (CBT Engine)
+    // 1. Set Profil Peserta di Header Kanan Atas (Page 3)
+    updateHeaderUserProfile();
+
+    // 2. Pindah Tampilan ke Page 3 (CBT Engine)
     document.getElementById("page-info").classList.add("hidden");
     document.getElementById("page-cbt").classList.remove("hidden");
     window.scrollTo(0, 0);
 
-    // Tandai State Ujian Dimulai
-    App.isExamStarted = true;
-    App.isExamSubmitted = false;
+    // 3. Tandai State Ujian Dimulai
+    if (window.App) {
+        App.isExamStarted = true;
+        App.isExamSubmitted = false;
+    }
 
-    // Aktifkan Fullscreen jika didukung
+    // 4. Aktifkan Fullscreen jika didukung
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
     }
 
-    // Inisialisasi CBT
+    // 5. Inisialisasi CBT
     initCBT();
 }
 
+/**
+ * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian
+ */
+function updateHeaderUserProfile() {
+    const elNama = document.getElementById("disp-user-name");
+    const elInstansi = document.getElementById("disp-user-school");
+
+    if (window.App && App.verifiedPesertaData) {
+        if (elNama) elNama.textContent = App.verifiedPesertaData["Nama Lengkap"] || "-";
+        if (elInstansi) elInstansi.textContent = App.verifiedPesertaData["Asal Instansi"] || "-";
+    }
+}
+
 function initCBT() {
+    if (!window.App) return;
+
     // Reset Jawaban dan Navigasi
     App.userAnswers = {};
     App.currentIndex = 0;
@@ -52,48 +72,66 @@ function initCBT() {
     // Load Soal Pertama
     loadQuestion(App.currentIndex);
 
-    // Jalankan Timer Ujian
-    startTimer(App.timerDurationMinutes * 60);
+    // Ambil durasi dari JSON Soal (default: 10 menit jika undfined)
+    const durasiMenit = App.timerDurationMinutes || (App.soalData && App.soalData.timer_menit) || 10;
+    
+    // Jalankan Timer Ujian (Konversi ke Detik)
+    startTimer(durasiMenit * 60);
 }
 
 function startTimer(durationInSeconds) {
-    let timer = durationInSeconds;
+    let timer = parseInt(durationInSeconds, 10);
+    if (isNaN(timer) || timer <= 0) timer = 600; // Fallback ke 10 menit jika invalid
+
     const timerDisplay = document.getElementById("timer-display");
 
-    if (App.timerInterval) clearInterval(App.timerInterval);
+    if (window.App && App.timerInterval) {
+        clearInterval(App.timerInterval);
+    }
 
-    App.timerInterval = setInterval(() => {
-        const minutes = Math.floor(timer / 60);
+    const intervalFunc = () => {
+        const hours = Math.floor(timer / 3600);
+        const minutes = Math.floor((timer % 3600) / 60);
         const seconds = timer % 60;
 
-        const mStr = minutes < 10 ? "0" + minutes : minutes;
-        const sStr = seconds < 10 ? "0" + seconds : seconds;
+        const hStr = String(hours).padStart(2, '0');
+        const mStr = String(minutes).padStart(2, '0');
+        const sStr = String(seconds).padStart(2, '0');
 
         if (timerDisplay) {
-            timerDisplay.textContent = `${mStr}:${sStr}`;
+            timerDisplay.textContent = `${hStr}:${mStr}:${sStr}`;
             
-            // Peringatan jika waktu sisa kurang dari 5 menit
+            // Peringatan jika waktu sisa kurang dari 5 menit (300 detik)
             if (timer <= 300) {
                 timerDisplay.style.color = "#dc3545";
                 timerDisplay.style.fontWeight = "bold";
+            } else {
+                timerDisplay.style.color = "";
+                timerDisplay.style.fontWeight = "";
             }
         }
 
         if (--timer < 0) {
-            clearInterval(App.timerInterval);
-            alert("Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
+            if (window.App && App.timerInterval) clearInterval(App.timerInterval);
+            alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
             // Panggil Fungsi Submit Jawaban di scoring.js
             if (typeof submitJawaban === "function") {
                 submitJawaban();
             }
         }
-    }, 1000);
+    };
+
+    // Jalankan langsung render awal, lalu set interval
+    intervalFunc();
+    if (window.App) {
+        App.timerInterval = setInterval(intervalFunc, 1000);
+    }
 }
 
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
-    if (!grid) return;
+    if (!grid || !window.App || !App.questionsData) return;
     grid.innerHTML = "";
 
     App.questionsData.forEach((_, idx) => {
@@ -110,40 +148,48 @@ function renderNumberGrid() {
 }
 
 function loadQuestion(index) {
+    if (!window.App || !App.questionsData) return;
     const q = App.questionsData[index];
     if (!q) return;
 
     const displayNo = index + 1; 
-    document.getElementById("q-num").textContent = displayNo;
-    document.getElementById("q-text").innerHTML = q.Soal || "";
+    const elNo = document.getElementById("q-num");
+    const elText = document.getElementById("q-text");
+    
+    if (elNo) elNo.textContent = displayNo;
+    if (elText) elText.innerHTML = q.Soal || "";
 
     // Render Gambar Soal jika Ada
     const imgContainer = document.getElementById("q-image-container");
-    const gambarVal = (q.Gambar && typeof q.Gambar === "string") ? q.Gambar.trim() : "";
-    imgContainer.innerHTML = (gambarVal && gambarVal !== "-" && gambarVal.toLowerCase() !== "none") 
-        ? `<img src="${gambarVal}" class="img-soal" alt="Gambar Soal">` 
-        : "";
+    if (imgContainer) {
+        const gambarVal = (q.Gambar && typeof q.Gambar === "string") ? q.Gambar.trim() : "";
+        imgContainer.innerHTML = (gambarVal && gambarVal !== "-" && gambarVal.toLowerCase() !== "none") 
+            ? `<img src="${gambarVal}" class="img-soal" alt="Gambar Soal">` 
+            : "";
+    }
 
     // Render Pilihan Jawaban
     const optionsBox = document.getElementById("options-box");
-    optionsBox.innerHTML = "";
+    if (optionsBox) {
+        optionsBox.innerHTML = "";
 
-    ["A", "B", "C", "D", "E"].forEach(key => {
-        if (q[key] && String(q[key]).trim() !== "") {
-            const isSelected = App.userAnswers[displayNo] === key;
-            const optionRow = document.createElement("div"); 
-            optionRow.className = `option-row ${isSelected ? 'selected' : ''}`;
-            
-            optionRow.innerHTML = `
-                <input type="radio" name="option_${displayNo}" value="${key}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
-                <span class="opt-key">${key}.</span>
-                <span class="opt-val">${q[key]}</span>
-            `;
-            
-            optionRow.onclick = () => pilihJawaban(displayNo, key);
-            optionsBox.appendChild(optionRow);
-        }
-    });
+        ["A", "B", "C", "D", "E"].forEach(key => {
+            if (q[key] && String(q[key]).trim() !== "") {
+                const isSelected = App.userAnswers[displayNo] === key;
+                const optionRow = document.createElement("div"); 
+                optionRow.className = `option-row ${isSelected ? 'selected' : ''}`;
+                
+                optionRow.innerHTML = `
+                    <input type="radio" name="option_${displayNo}" value="${key}" ${isSelected ? 'checked' : ''} style="pointer-events: none;">
+                    <span class="opt-key">${key}.</span>
+                    <span class="opt-val">${q[key]}</span>
+                `;
+                
+                optionRow.onclick = () => pilihJawaban(displayNo, key);
+                optionsBox.appendChild(optionRow);
+            }
+        });
+    }
 
     // Render MathJax jika ada Formula Matematika/Fisika
     if (window.MathJax && window.MathJax.typesetPromise) {
@@ -161,12 +207,13 @@ function loadQuestion(index) {
 }
 
 function pilihJawaban(questionNum, selectedOption) {
-    // Jika mengeklik jawaban yang sama, tidak perlu merender ulang
+    if (!window.App) return;
     App.userAnswers[questionNum] = selectedOption;
     loadQuestion(App.currentIndex);
 }
 
 function updateGridStatus() {
+    if (!window.App || !App.questionsData) return;
     App.questionsData.forEach((_, idx) => {
         const circle = document.getElementById(`circle-num-${idx}`);
         if (!circle) return;
@@ -185,6 +232,7 @@ function updateGridStatus() {
 }
 
 function navigasi(direction) {
+    if (!window.App || !App.questionsData) return;
     const newIndex = App.currentIndex + direction;
     if (newIndex >= 0 && newIndex < App.questionsData.length) {
         App.currentIndex = newIndex;
