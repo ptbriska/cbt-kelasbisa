@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.5.0 - FIXED PREMATURE LOCK)
+// main.js - Entry Point & Window Bridge Handler (v1.5.3 - FULL JSON MATCH)
 // ==========================================================
 
 // Inisialisasi Objek Global State App
@@ -10,21 +10,34 @@ window.App = window.App || {
     questionsData: [],
     userAnswers: {},
     currentIndex: 0,
-    modePenilaian: "1A",
-    skorConfig: null,
+    
+    // Konfigurasi Penilaian & Soal (Sesuai JSON)
+    modePenilaian: "1A", 
+    skorConfig: {
+        skor_benar: 1,
+        skor_salah: 0,
+        skor_kosong: 0,
+        bobot_level: { EASY: 1, MEDIUM: 2, HARD: 3 },
+        use_scaling_100: false
+    },
+    
     currentKodeUjian: "",
-    modeUjian: "UTAMA",
+    modeUjian: "LATIHAN", // Default disesuaikan dengan JSON ("SIMULASI" / "LATIHAN")
     timerDurationMinutes: 10,
+    WEBHOOK_URL: "",
+    
+    // Flag Alur Ujian
     isExamStarted: false,
     isExamSubmitted: false,
     isSubmitting: false, // Bypass sensor keamanan saat proses submit/modal
-    
+
     // State Pengawasan Keamanan & Proctoring
     warningCount: 0,
     MAX_WARNINGS: 3,
     warningLogs: [],
     isWebcamActive: false,
-    webcamStream: null
+    webcamStream: null,
+    timerInterval: null
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -66,7 +79,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof initWebcamProctoring === "function") window.initWebcamProctoring = initWebcamProctoring;
     if (typeof prosesPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
 
-    // Engine Penilaian & Modal UI
+    // Engine Penilaian & Modal UI (Menyesuaikan scoring.js)
+    if (typeof submitJawabanScoring === "function") window.submitJawabanScoring = submitJawabanScoring;
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
     if (typeof tampilkanPanelKonfirmasi === "function") window.tampilkanPanelKonfirmasi = tampilkanPanelKonfirmasi;
 
@@ -75,10 +89,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ==========================================================
     
     /**
-     * Mengunci LocalStorage HANYA jika dipanggil setelah konfirmasi YA
+     * Mengunci LocalStorage jika dipanggil pada mode SIMULASI atau LATIHAN
      */
     window.simpanLockSubmitted = function() {
-        if (window.App && App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
+        const mode = (App.modeUjian || "").toUpperCase();
+        if (window.App && (mode === "SIMULASI" || mode === "LATIHAN") && App.currentKodeUjian) {
             const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
             const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
             const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
@@ -86,13 +101,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
+    /**
+     * Eksekusi Pengumpulkan Ujian
+     */
     window.konfirmasiSubmit = function() {
-        // Panggil submitJawaban (tanpa mengunci localStorage dulu)
-        if (typeof submitJawaban === "function") {
-            submitJawaban(false, false);
+        if (window.App) App.isSubmitting = true;
+        
+        // Memanggil engine scoring resmi dari scoring.js
+        if (typeof submitJawabanScoring === "function") {
+            submitJawabanScoring();
+        } else if (typeof submitJawaban === "function") {
+            submitJawaban();
         }
     };
 
+    /**
+     * Dialog Keluar dari Ujian
+     */
     window.konfirmasiKeluar = function() {
         // Matikan sensor keamanan sementara agar konfirmasi keluar tidak dianggap kecurangan
         if (window.App) App.isSubmitting = true; 
@@ -103,7 +128,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             if (window.App && App.webcamStream) {
-                App.webcamStream.getTracks().forEach(track => track.stop());
+                try {
+                    App.webcamStream.getTracks().forEach(track => track.stop());
+                } catch (e) {
+                    console.warn("Gagal menghentikan stream webcam:", e);
+                }
             }
 
             localStorage.removeItem("cbt_violation_logs");
