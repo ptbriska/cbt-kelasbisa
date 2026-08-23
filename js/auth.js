@@ -1,5 +1,5 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.1)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.2)
 // ==========================================================
 
 /**
@@ -126,7 +126,7 @@ async function cekVerifikasiPeserta() {
             // TAMPILKAN NOTIFIKASI GAGAL + TOMBOL WHATSAPP
             if (elMsg) {
                 elMsg.className = "error-msg alert alert-danger";
-                elMsg.style.display = "block"; // Memaksa container dimunculkan
+                elMsg.style.display = "block";
                 elMsg.innerHTML = `
                     <div style="margin-bottom: 8px;">⚠️ <strong>VERIFIKASI GAGAL:</strong> Kombinasi Nama <strong>'${inputNama}'</strong> dan Kode <strong>'${kodeInput}'</strong> tidak ditemukan dalam sistem!</div>
                     <div style="margin-bottom: 8px; font-size: 13px;">Silakan hubungi Admin untuk bantuan pendaftaran:</div>
@@ -204,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Simpan State Ke Global App
+            App.soalData = data;
             App.questionsDataConfig = data;
             App.currentKodeUjian = kodeInput;
             App.validToken = data.token || "";
@@ -241,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 mode_ujian: App.modeUjian
             };
 
-            // Update DOM Header & Info Kegiatan
+            // Update DOM Header & Logo
             if (data.header_title && document.getElementById("disp-header-title")) {
                 document.getElementById("disp-header-title").textContent = data.header_title;
             }
@@ -257,20 +258,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (document.getElementById("disp-lembaga-info")) document.getElementById("disp-lembaga-info").textContent = data.lembaga;
                 if (document.getElementById("disp-lembaga-cbt")) document.getElementById("disp-lembaga-cbt").textContent = data.lembaga;
             }
+            
+            // Render Nama Sub-Lembaga
             if (data.sub_lembaga) {
                 if (document.getElementById("disp-sub-lembaga")) document.getElementById("disp-sub-lembaga").textContent = data.sub_lembaga;
-                if (document.getElementById("disp-sub-lembaga-info")) document.getElementById("disp-sub-lembaga-info").textContent = data.sub_lembaga;
                 if (document.getElementById("disp-sub-lembaga-cbt")) document.getElementById("disp-sub-lembaga-cbt").textContent = data.sub_lembaga;
             }
 
+            // PERBAIKAN: Render Nama Kegiatan Ujian dari field `nama_kegiatan`
+            const namaKegiatanVal = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
+            if (document.getElementById("disp-sub-lembaga-info")) {
+                document.getElementById("disp-sub-lembaga-info").textContent = namaKegiatanVal;
+            }
+            if (document.getElementById("disp-nama-kegiatan")) {
+                document.getElementById("disp-nama-kegiatan").textContent = namaKegiatanVal;
+            }
+
+            // Render Detail Box Informasi Ujian CBT (Page 2)
             if (document.getElementById("disp-kode-ujian")) {
                 document.getElementById("disp-kode-ujian").textContent = `${App.currentKodeUjian} (${App.modeUjian})`;
             }
             if (document.getElementById("disp-durasi")) {
-                document.getElementById("disp-durasi").textContent = App.timerDurationMinutes;
+                document.getElementById("disp-durasi").textContent = `${App.timerDurationMinutes} Menit`;
             }
             if (document.getElementById("disp-jumlah-soal")) {
-                document.getElementById("disp-jumlah-soal").textContent = App.questionsData.length;
+                document.getElementById("disp-jumlah-soal").textContent = `${App.questionsData.length} Soal`;
             }
 
             // Pindah Tampilan ke Halaman 2 (Informasi Ujian)
