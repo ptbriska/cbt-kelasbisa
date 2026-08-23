@@ -1,0 +1,78 @@
+{
+  "kode_ujian": "GEODATIS-SEP26",
+  "sistem_ujian": "CBT",
+  "mode_ujian": "LATIHAN",
+  "mode_penilaian": "1C",
+  "skor_config": {
+    "skor_benar": 1.0,
+    "skor_salah": -0.5,
+    "skor_kosong": 0.0
+  },
+  "token": "TESTING001",
+  "timer_menit": 10,
+  "lembaga": "BRISKA CORPORATION",
+  "sub_lembaga": "Pilar Juara - Kelas Bisa",
+  "logo": "https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz",
+  "questions": [
+    {
+      "No": 1,
+      "Soal": "A research vessel in the High Arctic records a sudden drop in surface temperature, leading to the formation of a widespread, featureless, and uniform layer of cloud near the ground (nebulosus cloud sheet). Consider the following mechanisms regarding this cloud formation:<br>1. Rapid radiative cooling of the near-surface air mass.<br>2. Strong atmospheric convection driving vertical moisture transport.<br>3. Continuous wind-driven turbulent mixing within a shallow boundary layer.<br>4. Sudden warm air advection moving over a significantly colder surface.<br>Which combination of processes best explains the development of this homogeneous nebulosus cloud cover?",
+      "A": "1 and 2 only",
+      "B": "1, 3, and 4 only",
+      "C": "2, 3, and 4 only",
+      "D": "1 and 4 only",
+      "E": "2 and 3 only",
+      "Gambar": "",
+      "Kunci": "B",
+      "Level": "E"
+    },
+    {
+      "No": 2,
+      "Soal": "According to the Bergeron-Findeisen process of precipitation initiation in mixed-phase clouds, how does the coexistence of supercooled water droplets and ice crystals lead to ice crystal growth?",
+      "A": "Ice crystals grow as water vapor molecules diffuse toward them due to the lower saturation vapor pressure over ice compared to water.",
+      "B": "Supercooled water droplets directly collide with and freeze onto ice crystals, causing them to break apart into smaller nuclei.",
+      "C": "Water droplets evaporate completely because ice crystals absorb all surrounding sensible heat from the cloud environment.",
+      "D": "Ice crystals melt upon contact with supercooled water droplets, creating a denser liquid phase that rapidly freezes into hail.",
+      "E": "Supercooled water droplets freeze spontaneously when exposed to solar radiation, releasing latent heat that melts nearby ice crystals.",
+      "Gambar": "",
+      "Kunci": "A",
+      "Level": "E"
+    },
+    {
+      "No": 3,
+      "Soal": "A meteorological research team deploys a Doppler Weather Radar to observe a developing mesocyclone. Match each specific radar mechanism/signal attribute (Column X) with its correct meteorological measurement principles (Column Y):<br>Column X (Signal Attribute):<br>P. Frequency shift of the backscattered wave<br>Q. Time delay of the emitted radar pulse<br>R. Intensity of the returned signal power<br>Column Y (Measurement Principle):<br>1. Target distance and spatial position<br>2. Precipitating target size and concentration<br>3. Radial velocity of the hydrometeors",
+      "A": "P–2, Q–1, R–3",
+      "B": "P–3, Q–1, R–2",
+      "C": "P–1, Q–3, R–2",
+      "D": "P–3, Q–2, R–1",
+      "E": "P–1, Q–2, R–3",
+      "Gambar": "",
+      "Kunci": "B",
+      "Level": "E"
+    },
+    {
+      "No": 4,
+      "Soal": "During an oceanic-atmospheric diagnostic study in the equatorial Pacific, a climate researcher observes a distinct warming signal centered in the central Pacific flanked by anomalous cooling in both the eastern and western ocean basins (an ENSO Modoki pattern). Consider the following dynamic progression steps of this phenomenon:<br>1. Convergence of surface wind anomalies in the central equatorial Pacific driving local downwelling.<br>2. Weakening of the standard eastern Pacific cold tongue warming and anomalous sea surface temperature (SST) peak in the central basin.<br>3. Anomalous two-cell Walker Circulation anomalous uplift over the central Pacific with twin subsiding branches in the east and west.<br>4. Weakening of eastern and western equatorial trade winds accompanied by anomalous easterly wind stress in the eastern basin.<br>Which sequence represents the correct physical and dynamic chain of events leading to the full maturation of an El Niño Modoki event?",
+      "A": "4 – 1 – 2 – 3",
+      "B": "1 – 4 – 3 – 2",
+      "C": "4 – 2 – 1 – 3",
+      "D": "1 – 2 – 4 – 3",
+      "E": "2 – 4 – 1 – 3",
+      "Gambar": "",
+      "Kunci": "A",
+      "Level": "M"
+    },
+    {
+      "No": 5,
+      "Soal": "Atmospheric air quality monitoring above a polluted industrial basin during clear, calm nocturnal conditions reveals a strong ground-based temperature inversion layer ($dT/dz > 0$). Consider the following claims regarding trace gas and aerosol chemical distributions within and across this inversion boundary:<br>1. Primary pollutants emitted near the surface are trapped below the inversion lid, causing a steep decline in concentration directly above the boundary.<br>2. Secondary photochemical oxidants, such as ozone ($O_3$), formed during the previous afternoon are isolated in the residual layer above the inversion and preserved due to lack of surface nitric oxide ($NO$) titration.<br>3. Vertical turbulent diffusion coefficients ($K_z$) inside the inversion layer reach maximum values, enhancing rapid cross-boundary chemical transport.<br>4. Nighttime nitrate radical ($NO_3$) and dinitrogen pentoxide ($N_2O_5$) chemistry proceeds efficiently in the warm, moist trapped layer beneath the inversion.<br>Which combination of statements accurately evaluates the chemical distribution dynamics across the thermal inversion structure?",
+      "A": "1 and 2 only",
+      "B": "1, 2, and 4 only",
+      "C": "2, 3, and 4 only",
+      "D": "1 and 3 only",
+      "E": "3 and 4 only",
+      "Gambar": "",
+      "Kunci": "B",
+      "Level": "M"
+    }
+  ]
+}
