@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.2)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.3.4)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -23,10 +23,10 @@ function mulaiUjianPenuh() {
         return;
     }
 
-    // 1. Set Profil Peserta di Header Kanan Atas (Page 3)
+    // 1. Set Profil Peserta di Header Kanan Atas
     updateHeaderUserProfile();
 
-    // 2. Pindah Tampilan ke Page 3 (CBT Engine)
+    // 2. Pindah Tampilan ke Page CBT Engine
     document.getElementById("page-info")?.classList.add("hidden");
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
@@ -47,7 +47,7 @@ function mulaiUjianPenuh() {
 }
 
 /**
- * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian Sesuai peserta.json
+ * Update Nama & Instansi Peserta pada Header Kanan Atas Ujian Sesuai data peserta
  */
 function updateHeaderUserProfile() {
     const elNama = document.getElementById("disp-user-name");
@@ -60,8 +60,39 @@ function updateHeaderUserProfile() {
     }
 }
 
+/**
+ * Sinkronisasi Metadata dari JSON Soal ke App Global
+ */
+function syncExamMetadataFromJSON(dataJSON) {
+    if (!window.App || !dataJSON) return;
+
+    // Simpan data soal utama
+    App.soalData = dataJSON;
+    App.questionsData = dataJSON.questions || [];
+
+    // SINKRONISASI KONFIGURASI SKOR & MODE PENILAIAN DARI JSON
+    App.modePenilaian = dataJSON.mode_penilaian || "1A";
+    App.skorConfig = dataJSON.skor_config || {
+        skor_benar: 1.0,
+        skor_salah: 0.0,
+        skor_kosong: 0.0,
+        use_scaling_100: false,
+        bobot_level: { E: 1.0, M: 3.0, H: 5.0 }
+    };
+
+    // Simpan metadata umum lainnya
+    App.currentKodeUjian = dataJSON.kode_ujian || App.currentKodeUjian;
+    App.modeUjian = dataJSON.mode_ujian || App.modeUjian;
+    App.timerDurationMinutes = dataJSON.timer_menit || 10;
+}
+
 function initCBT() {
     if (!window.App) return;
+
+    // Pastikan Metadata Ter-sinkron jika App.soalData sudah dimuat dari Fetch JSON sebelumnya
+    if (App.soalData) {
+        syncExamMetadataFromJSON(App.soalData);
+    }
 
     // Reset Jawaban dan Navigasi
     App.userAnswers = {};
@@ -79,7 +110,7 @@ function initCBT() {
     if (App.timerDurationMinutes) {
         durasiMenit = App.timerDurationMinutes;
     } else if (App.soalData) {
-        durasiMenit = App.soalData.timer_menit || App.soalData.durasi_menit || App.soalData.waktu_menit || App.soalData.durasi || 10;
+        durasiMenit = App.soalData.timer_menit || App.soalData.durasi_menit || App.soalData.waktu_menit || 10;
     } else if (App.examConfig) {
         durasiMenit = App.examConfig.durasi_menit || App.examConfig.waktu || 10;
     }
@@ -92,10 +123,8 @@ function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
     if (isNaN(timer) || timer <= 0) timer = 600; // Fallback ke 10 menit jika invalid
 
-    // Cari elemen display timer (Mendukung ID #timer-display atau #timer)
     const timerDisplay = document.getElementById("timer-display") || document.getElementById("timer");
 
-    // Hentikan timer sebelumnya jika ada
     if (window.App && App.timerInterval) {
         clearInterval(App.timerInterval);
     }
@@ -112,7 +141,6 @@ function startTimer(durationInSeconds) {
         if (timerDisplay) {
             timerDisplay.textContent = `${hStr}:${mStr}:${sStr}`;
             
-            // Peringatan jika waktu sisa kurang dari 5 menit (300 detik)
             if (timer <= 300) {
                 timerDisplay.style.color = "#dc3545";
                 timerDisplay.style.fontWeight = "bold";
@@ -126,17 +154,14 @@ function startTimer(durationInSeconds) {
             if (window.App && App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             
-            // Panggil Fungsi Submit Jawaban di scoring.js
             if (typeof submitJawaban === "function") {
                 submitJawaban();
             }
         }
     };
 
-    // Jalankan render detik pertama secara mendadak
     intervalFunc();
     
-    // Set Interval dan simpan ke App global state
     if (window.App) {
         App.timerInterval = setInterval(intervalFunc, 1000);
     }
@@ -168,9 +193,11 @@ function loadQuestion(index) {
     const displayNo = index + 1; 
     const elNo = document.getElementById("q-num");
     const elText = document.getElementById("q-text");
+    const elLevel = document.getElementById("q-level"); // Opsional: Indikator Level Difficulty
     
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
+    if (elLevel) elLevel.textContent = q.Level ? `[Level: ${q.Level}]` : "";
 
     // Render Gambar Soal jika Ada
     const imgContainer = document.getElementById("q-image-container");
