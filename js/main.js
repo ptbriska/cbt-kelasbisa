@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.5.3 - FULL JSON MATCH)
+// main.js - Entry Point & Window Bridge Handler (v1.5.4)
 // ==========================================================
 
 // Inisialisasi Objek Global State App
@@ -40,6 +40,26 @@ window.App = window.App || {
     timerInterval: null
 };
 
+/**
+ * Handler Toggle Checkbox & Tombol Mulai Ujian
+ */
+function toggleMulaiButton() {
+    const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
+    const btnMulai = document.getElementById("btn-mulai-ujian") || document.getElementById("btn-start-exam");
+
+    if (!checkbox || !btnMulai) return;
+
+    if (checkbox.checked) {
+        btnMulai.disabled = false;
+        btnMulai.classList.add("active");
+        btnMulai.style.cursor = "pointer";
+    } else {
+        btnMulai.disabled = true;
+        btnMulai.classList.remove("active");
+        btnMulai.style.cursor = "not-allowed";
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Muat Database Peserta saat aplikasi pertama kali dibuka
     if (typeof loadDaftarPeserta === "function") {
@@ -53,6 +73,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             e.preventDefault();
             cekVerifikasiPeserta();
         });
+    }
+
+    // 3. Attach Event Listener Checkbox Persetujuan Ujian (FIX TOMBOL ABU-ABU)
+    const checkbox = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
+    if (checkbox) {
+        checkbox.addEventListener("change", toggleMulaiButton);
+        // Set kondisi awal saat halaman pertama kali dimuat
+        toggleMulaiButton();
     }
 
     // ==========================================================
@@ -70,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof toggleNavigator === "function") window.toggleNavigator = toggleNavigator;
 
     // Alur Persetujuan & Pindah Halaman
-    if (typeof toggleMulaiButton === "function") window.toggleMulaiButton = toggleMulaiButton;
+    window.toggleMulaiButton = toggleMulaiButton;
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
 
@@ -102,7 +130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     /**
-     * Eksekusi Pengumpulkan Ujian
+     * Eksekusi Pengumpulan Ujian
      */
     window.konfirmasiSubmit = function() {
         if (window.App) App.isSubmitting = true;
