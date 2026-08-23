@@ -1,6 +1,6 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.13)
-// Synchronized | Fast-Fetch | Non-Camera Proctoring Compatible
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.5.0)
+// Synchronized | Dynamic Multi-Type Rules Loader | Fast-Fetch
 // ==========================================================
 
 // Pastikan Objek App Selalu Ada
@@ -244,13 +244,18 @@ document.addEventListener("DOMContentLoaded", () => {
             window.App.timerDurationMinutes = data.timer_menit || 60;
             window.App.questionsData = data.questions || [];
             window.App.modeUjian = (data.mode_ujian || "LATIHAN").toUpperCase();
-            window.App.modePenilaian = (data.mode_penilaian || "1A").toUpperCase();
-            window.App.skorConfig = data.skor_config || {};
+            
+            // Injeksi Scoring Rules Dinamis v1.5.0 dari JSON
+            if (data.scoring_rules) {
+                window.App.scoringRules = data.scoring_rules;
+            } else if (data.skor_config) {
+                window.App.scoringRules = data.skor_config;
+            }
 
             // Inisialisasi Tempat Simpan Hasil Keamanan
             window.App.warningCount = 0;
             window.App.warningLogs = [];
-            window.App.cheatingSnapshots = []; // Kosongkan snapshot kamera
+            window.App.cheatingSnapshots = [];
 
             // Proteksi Sekali Submit jika Mode SIMULASI
             if (window.App.modeUjian === "SIMULASI") {
