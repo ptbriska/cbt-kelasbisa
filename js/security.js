@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.5.3)
+// security.js - Engine Keamanan & Photo Proctoring (v1.5.4 - FIXED)
 // Terintegrasi dengan Dynamic Scoring, Webhook GAS, & State App
 // ==========================================================
 
@@ -164,31 +164,19 @@ async function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         isWarningActive = false;
         App.isSubmitting = true; 
 
-        // Panggil fungsi submit yang ada di scoring.js / main.js
-        if (typeof window.submitJawaban === "function") {
-            window.submitJawaban();
-        } else if (typeof window.selesaiUjian === "function") {
-            window.selesaiUjian();
-        } else {
-            const buttons = document.querySelectorAll('button');
-            let buttonDiklik = false;
-            
-            for (let btn of buttons) {
-                const txt = (btn.innerText || "").toUpperCase();
-                if (txt.includes("SELESAI") || txt.includes("KUMPUL") || txt.includes("SUBMIT")) {
-                    btn.click();
-                    buttonDiklik = true;
-                    break;
-                }
-            }
-            if (!buttonDiklik) {
-                console.error("Gagal auto-submit: Tombol SELESAI tidak ditemukan.");
-            }
-        }
+        alert(`⚠️ BATAS MAKSIMAL KECURANGAN TERCAPAI (${App.warningCount}/${App.MAX_WARNINGS})!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan jawaban Anda langsung dikirim tanpa konfirmasi.`);
 
-        setTimeout(() => {
-            alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan jawaban langsung dikirim.`);
-        }, 100);
+        // ==========================================================
+        // EKSEKUSI SISWA NAKAL: KIRIM PARAMETER (true, true)
+        // (isAuto = true, isConfirmed = true) UNTUK BYPASS MODAL KONFIRMASI
+        // ==========================================================
+        if (typeof window.submitJawaban === "function") {
+            window.submitJawaban(true, true);
+        } else if (typeof window.submitJawabanScoring === "function") {
+            window.submitJawabanScoring();
+        } else {
+            console.error("Gagal auto-submit: Engine submit tidak ditemukan.");
+        }
 
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
