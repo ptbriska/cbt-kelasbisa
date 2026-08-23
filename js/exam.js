@@ -55,8 +55,8 @@ function updateHeaderUserProfile() {
 
     if (window.App) {
         const p = App.verifiedPesertaData || App.userIdentitas || {};
-        if (elNama) elNama.textContent = p["Nama Lengkap"] || p.nama || "-";[cite: 1]
-        if (elInstansi) elInstansi.textContent = p["Asal Instansi"] || p.sekolah || "-";[cite: 1]
+        if (elNama) elNama.textContent = p["Nama Lengkap"] || p.nama || "-";
+        if (elInstansi) elInstansi.textContent = p["Asal Instansi"] || p.sekolah || "-";
     }
 }
 
