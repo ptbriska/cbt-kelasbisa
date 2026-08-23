@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.3.2</title>
-  <!-- ⬇️ PASANG DI SINI (Sekitar baris 6 - 8) ⬇️ -->
+  <title>CBT Online - Kelas Bisa Exam System v1.4.0</title>
+  
   <link rel="icon" type="image/png" href="asset/Favicon.png">
+  
   <!-- File CSS Modular -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/pages.css">
@@ -31,6 +32,17 @@
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
+
+  <!-- ========================================== -->
+  <!-- OVERLAY LOADING SAAT SUBMIT JAWABAN        -->
+  <!-- ========================================== -->
+  <div id="loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+    <div style="font-size: 42px; color: #007bff; margin-bottom: 15px;">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
+    <h3 style="color: #222; margin: 0 0 8px 0; font-size: 20px;">Sedang Mengirim Jawaban...</h3>
+    <p style="color: #666; font-size: 14px; margin: 0;">Mohon tunggu, jangan tutup atau memuat ulang halaman ini.</p>
+  </div>
 
   <!-- ========================================== -->
   <!-- PAGE 1: FORM LOGIN & VERIFIKASI PESERTA    -->
@@ -201,7 +213,6 @@
       <div class="header-right">
         <div class="user-avatar">👤</div>
         <div class="user-details">
-          <!-- Disamakan ID-nya dengan exam.js (updateHeaderUserProfile) -->
           <span id="disp-user-name" class="u-name">-</span>
           <span id="disp-user-school" class="u-id">-</span>
           <a href="#" onclick="konfirmasiKeluar()" class="btn-keluar">KELUAR &gt;&gt;</a>
@@ -214,7 +225,6 @@
         <div class="sub-header">
           <h3 class="q-title">SOAL NO : <span id="q-num">1</span></h3>
           <div class="timer-display">
-            <!-- Disamakan ID-nya dengan exam.js (startTimer) -->
             ⏰ <span id="timer-display">00:00:00</span>
           </div>
         </div>
@@ -261,7 +271,7 @@
   <!-- ========================================== -->
   <!-- PAGE 4: PENGUMUMAN SKOR & HASIL UJIAN CBT  -->
   <!-- ========================================== -->
-  <div id="page-result" class="result-card-container card hidden">
+  <div id="page-selesai" class="result-card-container card hidden">
     <!-- Konten diisi secara dinamis oleh scoring.js -->
   </div>
 
