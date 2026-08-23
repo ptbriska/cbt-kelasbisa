@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.9 - SINKRON)
+// main.js - Entry Point & Window Bridge Handler (v1.4.0 - FAST SUBMIT & SINKRON)
 // ==========================================================
 
 // Inisialisasi Objek Global State App
@@ -24,7 +24,7 @@ window.App = window.App || {
     currentKodeUjian: "",
     modeUjian: "LATIHAN", // Default disesuaikan dengan JSON ("SIMULASI" / "LATIHAN")
     timerDurationMinutes: 10,
-    WEBHOOK_URL: "",
+    WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
     
     // Flag Alur Ujian
     isExamStarted: false,
@@ -35,6 +35,7 @@ window.App = window.App || {
     warningCount: 0,
     MAX_WARNINGS: 3,
     warningLogs: [],
+    cheatingSnapshots: [], // Inisialisasi wadah foto kecurangan
     isWebcamActive: false,
     webcamStream: null,
     timerInterval: null
@@ -115,7 +116,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.konfirmasiSubmit = function() {
         if (window.App) App.isSubmitting = true;
         
-        // FIX: Tambahkan parameter (false, true) agar tidak looping kembali ke modal
         if (typeof submitJawaban === "function") {
             submitJawaban(false, true);
         } else if (typeof submitJawabanScoring === "function") {
