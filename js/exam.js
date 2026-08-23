@@ -1,12 +1,11 @@
 // ==========================================================
-// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (v1.4.1 - REVISED & STABLE)
+// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED)
 // ==========================================================
 
-// Inisialisasi Objek Global Safe Guard
 window.App = window.App || {};
 
 /**
- * Toggle Status Tombol Mulai Ujian (Sesuai Checkbox Persetujuan)
+ * Toggle Status Tombol Mulai Ujian
  */
 function toggleMulaiButton() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
@@ -46,19 +45,15 @@ function mulaiUjianPenuh() {
         return;
     }
 
-    // Ping Webhook non-blocking (Fire & Forget)
     const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
     fetch(webhookUrl, { mode: 'no-cors', keepalive: true }).catch(() => {});
 
-    // 1. Set Profil Peserta di Header Kanan Atas
     updateHeaderUserProfile();
 
-    // 2. Pindah Tampilan ke Page CBT Engine
     document.getElementById("page-info")?.classList.add("hidden");
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
-    // 3. Tandai State Ujian Dimulai & Catat Waktu Mulai
     App.isExamStarted = true;
     App.isExamSubmitted = false;
     App.isSubmitting = false; 
@@ -67,21 +62,18 @@ function mulaiUjianPenuh() {
     App.cheatingSnapshots = []; 
     App.startTime = App.startTime || new Date().toISOString();
 
-    // 4. Minta Mode Fullscreen (Opsional)
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {
             console.warn("Fullscreen request bypass/denied.");
         });
     }
 
-    // 5. INISIALISASI KEAMANAN
     if (typeof window.initSecurityListeners === "function") {
         window.initSecurityListeners();
     } else if (typeof initSecurityListeners === "function") {
         initSecurityListeners();
     }
 
-    // 6. Inisialisasi CBT (Render Soal & Timer)
     initCBT();
 }
 
@@ -123,7 +115,7 @@ function syncExamMetadataFromJSON(dataJSON) {
 }
 
 /**
- * Inisialisasi CBT (Nomor Grid, Soal Pertama, & Timer)
+ * Inisialisasi CBT
  */
 function initCBT() {
     if (!window.App) return;
@@ -132,7 +124,6 @@ function initCBT() {
         syncExamMetadataFromJSON(App.soalData);
     }
 
-    // Proteksi data jawaban agar tidak tertimpa saat re-init
     App.userAnswers = App.userAnswers || {};
     App.currentIndex = App.currentIndex || 0;
 
@@ -144,7 +135,7 @@ function initCBT() {
 }
 
 /**
- * Pengatur Timer Ujian (Countdown)
+ * Pengatur Timer Ujian
  */
 function startTimer(durationInSeconds) {
     let timer = parseInt(durationInSeconds, 10);
@@ -334,10 +325,6 @@ function konfirmasiKeluar() {
     }
 }
 
-// ==========================================================
-// FAST SUBMIT ALGORITHM & PANEL KONFIRMASI
-// ==========================================================
-
 /**
  * Menampilkan Modal Dialog Konfirmasi Pengumpulan Ujian
  */
@@ -355,7 +342,6 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
 
     if (window.App) App.isSubmitting = true;
 
-    // Gunakan Modal Statis pada index.html
     const modalStatis = document.getElementById("modal-konfirmasi");
     const teksRingkasan = document.getElementById("teks-ringkasan-konfirmasi");
 
@@ -367,11 +353,10 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
             ${kosong > 0 ? '<br><span style="color: #e65100; font-size: 13px;">⚠️ Ada soal yang belum dijawab!</span>' : ''}
         `;
         modalStatis.classList.remove("hidden");
-        modalStatis.style.display = "flex";
+        modalStatis.style.setProperty("display", "flex", "important");
         return;
     }
 
-    // Dynamic Modal Fallback jika modal HTML tidak ditemukan
     const existingModal = document.getElementById("custom-confirm-modal");
     if (existingModal) existingModal.remove();
 
@@ -401,13 +386,13 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
 }
 
 /**
- * Handler Tombol "Ya, Kirim Jawaban" pada Modal Statis
+ * Handler Tombol "Ya, Kirim Jawaban"
  */
 function konfirmasiSubmit() {
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
         modalStatis.classList.add("hidden");
-        modalStatis.style.display = "none";
+        modalStatis.style.setProperty("display", "none", "important");
     }
     submitJawaban(false, true);
 }
@@ -430,6 +415,15 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
         return;
     }
+
+    // MEMATIKAN MODAL SECARA TEGAS SEBELUM PINDAH
+    const modalStatis = document.getElementById("modal-konfirmasi");
+    if (modalStatis) {
+        modalStatis.classList.add("hidden");
+        modalStatis.style.setProperty("display", "none", "important");
+    }
+    const dinamikModal = document.getElementById("custom-confirm-modal");
+    if (dinamikModal) dinamikModal.remove();
 
     App.isSubmitting = true;
     App.isExamSubmitted = true; 
