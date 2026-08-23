@@ -5,7 +5,7 @@
   "mode_ujian": "LATIHAN",
   "mode_penilaian": "1B",
   "skor_config": {
-    "skor_benar": 1.0,
+    "skor_benar": 2.0,
     "skor_salah": -0.5,
     "skor_kosong": 0.0,
     "use_scaling_100": true,
