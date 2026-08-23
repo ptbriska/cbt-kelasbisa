@@ -1,19 +1,23 @@
-// scoring.js
-import { App } from './state.js';
-import { handleVisibilityChange, handleWindowBlur } from './security.js';
+// ==========================================================
+// scoring.js - Multi-Scoring Engine & Webhook Reporter (v1.3.0)
+// ==========================================================
 
-// ==========================================================
-// SUBMIT JAWABAN & MULTI-SCORING ENGINE CBT (1A, 1B, 1C)
-// ==========================================================
-export function submitJawaban() {
+function submitJawaban() {
     if (App.isExamSubmitted) return;
     App.isExamSubmitted = true;
 
-    clearInterval(App.timerInterval);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-    window.removeEventListener("blur", handleWindowBlur);
+    // Hentikan Timer Ujian
+    if (App.timerInterval) clearInterval(App.timerInterval);
 
-    // Kunci browser jika mode SIMULASI
+    // Lepas Event Listener Keamanan
+    if (typeof handleVisibilityChange === "function") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }
+    if (typeof handleWindowBlur === "function") {
+        window.removeEventListener("blur", handleWindowBlur);
+    }
+
+    // Kunci browser jika Mode SIMULASI
     if (App.modeUjian === "SIMULASI") {
         const lockKey = `SUBMITTED_${App.currentKodeUjian}_${App.userIdentitas.nama}`;
         localStorage.setItem(lockKey, "TRUE");
@@ -24,7 +28,7 @@ export function submitJawaban() {
     let jumlahSalah = 0;
     let jumlahKosong = 0;
 
-    // MULTI-MODE SCORING ENGINE CBT
+    // MULTI-MODE SCORING ENGINE CBT (1A, 1B, 1C)
     App.questionsData.forEach((q, idx) => {
         const displayNo = idx + 1;
         const ans = App.userAnswers[displayNo];
@@ -56,7 +60,7 @@ export function submitJawaban() {
                 totalSkor += pSalah;
             }
         } else if (App.modePenilaian === "1C") {
-            // 1C: Dynamic Difficulty (Easy, Medium, Hard)
+            // 1C: Dynamic Difficulty (EASY, MEDIUM, HARD)
             const diff = q.Difficulty ? String(q.Difficulty).toUpperCase() : "MEDIUM";
             const weightMap = App.skorConfig.bobot_difficulty || { EASY: 2, MEDIUM: 3, HARD: 5 };
             const poinMax = weightMap[diff] || 3;
@@ -89,12 +93,16 @@ export function submitJawaban() {
         skor: skorAkhir
     };
 
-    document.getElementById("page-cbt").innerHTML = `
-        <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
-            <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
-            <p style="color: #666;">Mohon tunggu sebentar, jawaban Anda sedang disimpan dan diproses oleh sistem CBT.</p>
-        </div>
-    `;
+    // Tampilkan Indikator Loading
+    const pageCbt = document.getElementById("page-cbt");
+    if (pageCbt) {
+        pageCbt.innerHTML = `
+            <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
+                <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
+                <p style="color: #666;">Mohon tunggu sebentar, jawaban Anda sedang disimpan dan diproses oleh sistem CBT.</p>
+            </div>
+        `;
+    }
 
     const payload = {
         kode_soal: App.currentKodeUjian,
@@ -116,6 +124,7 @@ export function submitJawaban() {
         skor_akhir: skorAkhir
     };
 
+    // Pengiriman Data ke Google Sheets Webhook
     if (App.WEBHOOK_URL && App.WEBHOOK_URL.trim() !== "") {
         fetch(App.WEBHOOK_URL, {
             method: "POST",
@@ -135,10 +144,7 @@ export function submitJawaban() {
     }
 }
 
-// ==========================================================
-// PANEL PENGUMUMAN SKOR AKHIR (KHUSUS CBT)
-// ==========================================================
-export function tampilkanLayarSelesai(detail) {
+function tampilkanLayarSelesai(detail) {
     const htmlContent = `
         <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
             <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian CBT Selesai!</h2>
@@ -157,5 +163,8 @@ export function tampilkanLayarSelesai(detail) {
         </div>
     `;
 
-    document.getElementById("page-cbt").innerHTML = htmlContent;
+    const pageCbt = document.getElementById("page-cbt");
+    if (pageCbt) {
+        pageCbt.innerHTML = htmlContent;
+    }
 }
