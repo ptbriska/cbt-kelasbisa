@@ -57,6 +57,7 @@ function mulaiUjianPenuh() {
     App.isExamStarted = true;
     App.isExamSubmitted = false;
     App.isSubmitting = false; 
+    App.isScoringCompleted = false;
     App.warningCount = App.warningCount || 0;
     App.warningLogs = App.warningLogs || [];
     App.cheatingSnapshots = []; 
@@ -403,7 +404,6 @@ function konfirmasiSubmit() {
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
-    // Cegah submit ganda dari klik manual
     if (App.isExamSubmitted && !isAuto) return;
 
     const questions = App.questionsData || App.questions || [];
@@ -417,7 +417,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         return;
     }
 
-    // MEMATIKAN SEMUA MODAL SECARA TEGAS SEBELUM PROSES
+    // Mematikan Modal
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
         modalStatis.classList.add("hidden");
@@ -429,7 +429,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     App.isSubmitting = true;
     App.isExamSubmitted = true; 
     
-    // Backup & Ambil data kecurangan dari LocalStorage jika di memori kosong
+    // Backup & Ambil data kecurangan dari LocalStorage
     if ((!App.warningLogs || App.warningLogs.length === 0) && localStorage.getItem("cbt_violation_logs")) {
         try {
             App.warningLogs = JSON.parse(localStorage.getItem("cbt_violation_logs")) || [];
@@ -456,7 +456,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    // Eksekusi penilaian INSTAN tanpa setTimeout
+    // Eksekusi penilaian INSTAN
     if (typeof submitJawabanScoring === "function") {
         submitJawabanScoring();
     } else if (typeof window.submitJawabanScoring === "function") {
