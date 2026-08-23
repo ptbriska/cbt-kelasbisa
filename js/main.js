@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.1)
+// main.js - Entry Point & Window Bridge Handler (v1.3.2)
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
 
+    // Engine Penilaian & Webhook
+    if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
+
     // Konfirmasi & Dialog Actions
     window.konfirmasiSubmit = function() {
         if (!window.App || !App.questionsData) return;
@@ -44,8 +47,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (confirm(`Anda telah menjawab ${dijawab} dari ${total} soal.\nYakin ingin mengakhiri ujian CBT?`)) {
             // Pasang gembok submit jika dalam Mode SIMULASI
-            if (App.modeUjian === "SIMULASI" && App.currentKodeUjian && App.userIdentitas?.nama) {
-                const lockKey = `SUBMITTED_${App.currentKodeUjian}_${App.userIdentitas.nama}`;
+            if (App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
+                const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
+                const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";[cite: 1]
+                const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
                 localStorage.setItem(lockKey, "TRUE");
             }
 
@@ -57,6 +62,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.konfirmasiKeluar = function() {
         if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
+            // Hentikan timer jika ada
+            if (window.App && App.timerInterval) {
+                clearInterval(App.timerInterval);
+            }
             location.reload();
         }
     };
