@@ -1,5 +1,5 @@
 // ==========================================================
-// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.2 - FIXED)
+// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.3 - FIXED)
 // Murni membaca seluruh nilai dari file JSON secara dinamis
 // ==========================================================
 
@@ -27,7 +27,7 @@ function submitJawabanScoring() {
     const modePenilaian = String(App.modePenilaian || "1A").trim().toUpperCase();
     const cfg = App.skorConfig || {};
 
-    // Pembacaan Dinamis dari JSON (Bebas diubah dari Python/JSON tanpa edit JS)
+    // Pembacaan Dinamis dari JSON
     const valBenar = Number(cfg.skor_benar ?? 1);
     const valSalah = Number(cfg.skor_salah ?? 0);
     const valKosong = Number(cfg.skor_kosong ?? 0);
@@ -39,11 +39,11 @@ function submitJawabanScoring() {
     let totalSkorMurni = 0;
 
     // =========================================================
-    // ISOLASI LOGIKA BERSYARAT (IF - ELSE IF - ELSE)
+    // ISOLASI LOGIKA BERSYARAT (MODE 1C, 1B, 1A)
     // =========================================================
 
     if (modePenilaian === "1C") {
-        // MODE 1C: Menggunakan Bobot Level Soal dari JSON
+        // MODE 1C: Menggunakan Bobot Level Soal (TIDAK ADA MINUS)
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -54,18 +54,21 @@ function submitJawabanScoring() {
 
             if (!userAns) {
                 jumlahKosong++;
-                totalSkorMurni += (bobotSoal * valKosong);
+                // Kosong = 0 Poin
             } else if (String(userAns).trim().toUpperCase() === kunci) {
                 jumlahBenar++;
                 totalSkorMurni += (bobotSoal * valBenar);
             } else {
                 jumlahSalah++;
-                totalSkorMurni += (bobotSoal * valSalah);
+                // Salah = 0 Poin (TIDAK DIKALI PENALTI MINUS)
             }
         });
 
+        // Proteksi Skor Minimal 0
+        totalSkorMurni = Math.max(0, totalSkorMurni);
+
     } else if (modePenilaian === "1B") {
-        // MODE 1B: Skor Minus / Penalty 
+        // MODE 1B: Skor Minus / Penalty (ADA MINUS)
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -79,12 +82,14 @@ function submitJawabanScoring() {
                 totalSkorMurni += valBenar;
             } else {
                 jumlahSalah++;
-                totalSkorMurni += valSalah;
+                totalSkorMurni += valSalah; // Memakai penalti minus dari JSON
             }
         });
 
     } else {
-        // MODE 1A: Standard / Proporsional
+        // MODE 1A: Standard / Proporsional (TIDAK ADA MINUS)
+        const skorSalah1A = valSalah < 0 ? 0 : valSalah; // Kunci paksa agar 1A tidak minus
+
         questions.forEach((q, idx) => {
             const noSoal = q.No || (idx + 1);
             const userAns = userAnswers[noSoal];
@@ -98,13 +103,16 @@ function submitJawabanScoring() {
                 totalSkorMurni += valBenar;
             } else {
                 jumlahSalah++;
-                totalSkorMurni += valSalah;
+                totalSkorMurni += skorSalah1A;
             }
         });
 
         if (cfg.use_scaling_100 && totalSoal > 0) {
             totalSkorMurni = (jumlahBenar / totalSoal) * 100;
         }
+
+        // Proteksi Skor Minimal 0
+        totalSkorMurni = Math.max(0, totalSkorMurni);
     }
 
     const skorAkhir = Number(totalSkorMurni.toFixed(2));
