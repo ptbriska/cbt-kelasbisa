@@ -1,5 +1,5 @@
 // ==========================================================
-// state.js - Centralized Application State Engine (v1.5.3 - FIXED)
+// state.js - Centralized Application State Engine (v1.5.4 - FIXED)
 // ==========================================================
 
 window.App = Object.assign(window.App || {}, {
@@ -45,6 +45,7 @@ window.App = Object.assign(window.App || {}, {
     warningCount: 0,
     MAX_WARNINGS: 3,
     warningLogs: [],
+    cheatingSnapshots: [], // Ditambahkan agar wadah foto bukti kecurangan terinisialisasi
     isWebcamActive: false,
     webcamStream: null
 });
