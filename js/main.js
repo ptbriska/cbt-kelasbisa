@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.4)
+// main.js - Entry Point & Window Bridge Handler (v1.3.5)
 // ==========================================================
 
 // ⚠️ PASTI INI DILAKUKAN SEBELUM EVENT DOMContentLoaded
@@ -14,7 +14,14 @@ window.App = window.App || {
     modePenilaian: "1A",
     skorConfig: null,
     isExamStarted: false,
-    isExamSubmitted: false
+    isExamSubmitted: false,
+    
+    // State Pengawasan Keamanan & Proctoring
+    warningCount: 0,
+    MAX_WARNINGS: 3,
+    warningLogs: [],
+    isWebcamActive: false,
+    webcamStream: null
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -51,6 +58,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
 
+    // Sistem Keamanan & Proctoring
+    if (typeof initSecurityListeners === "function") window.initSecurityListeners = initSecurityListeners;
+    if (typeof initWebcamProctoring === "function") window.initWebcamProctoring = initWebcamProctoring;
+    if (typeof prosesPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
+
     // Engine Penilaian & Webhook
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
 
@@ -82,6 +94,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (window.App && App.timerInterval) {
                 clearInterval(App.timerInterval);
             }
+
+            // Hentikan stream kamera jika aktif
+            if (window.App && App.webcamStream) {
+                App.webcamStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Clean up log sementara
+            localStorage.removeItem("cbt_violation_logs");
+            
             location.reload();
         }
     };
