@@ -1,15 +1,13 @@
 // ==========================================================
-// scoring.js - Multi-Scoring Engine & Webhook Reporter (v1.3.1)
+// scoring.js - Dynamic Dynamic Scoring Engine (v1.3.6)
 // ==========================================================
 
 function submitJawaban() {
     if (App.isExamSubmitted) return;
     App.isExamSubmitted = true;
 
-    // Hentikan Timer Ujian
     if (App.timerInterval) clearInterval(App.timerInterval);
 
-    // Lepas Event Listener Keamanan
     if (typeof handleVisibilityChange === "function") {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
@@ -17,10 +15,8 @@ function submitJawaban() {
         window.removeEventListener("blur", handleWindowBlur);
     }
 
-    // Mengambil identitas resmi terverifikasi dari peserta.json (atau fallback ke userIdentitas)
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
 
-    // Kunci browser jika Mode SIMULASI
     if (App.modeUjian === "SIMULASI") {
         const namaUser = dataPesertaResmi["Nama Lengkap"] || dataPesertaResmi.nama || "USER";
         const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
@@ -32,50 +28,44 @@ function submitJawaban() {
     let jumlahSalah = 0;
     let jumlahKosong = 0;
 
-    // MULTI-MODE SCORING ENGINE CBT (1A, 1B, 1C)
+    // AMBIL KONFIGURASI SKOR DARI JSON METADATA
+    const modePenilaian = (App.modePenilaian || "1A").toUpperCase();
+    const skorConfig = App.skorConfig || {};
+
+    const pBenar = skorConfig.skor_benar !== undefined ? Number(skorConfig.skor_benar) : 1.0;
+    const pSalah = skorConfig.skor_salah !== undefined ? Number(skorConfig.skor_salah) : 0.0;
+    const pKosong = skorConfig.skor_kosong !== undefined ? Number(skorConfig.skor_kosong) : 0.0;
+    const useScaling100 = Boolean(skorConfig.use_scaling_100);
+
+    const bobotLevelMap = skorConfig.bobot_level || { E: 1.0, M: 3.0, H: 5.0 };
+
+    // PENILAIAN PER NOMOR SOAL
     App.questionsData.forEach((q, idx) => {
         const displayNo = idx + 1;
         const ans = App.userAnswers[displayNo];
-        const kunci = q.Kunci ? String(q.Kunci).trim().toUpperCase() : "";
+        const kunci = q.Kunci ? String(q.Kunci).trim().toUpperCase() : (q.kunci ? String(q.kunci).trim().toUpperCase() : "");
 
-        if (App.modePenilaian === "1A") {
-            // 1A: Standard Benar (Skala 100)
-            if (!ans) {
-                jumlahKosong++;
-            } else if (ans === kunci) {
-                jumlahBenar++;
-            } else {
-                jumlahSalah++;
-            }
-        } else if (App.modePenilaian === "1B") {
-            // 1B: Custom Skor Penalti / Kosong
-            const pBenar = App.skorConfig.benar !== undefined ? App.skorConfig.benar : 4;
-            const pSalah = App.skorConfig.salah !== undefined ? App.skorConfig.salah : -1;
-            const pKosong = App.skorConfig.kosong !== undefined ? App.skorConfig.kosong : 0;
-
-            if (!ans) {
-                jumlahKosong++;
+        if (!ans) {
+            jumlahKosong++;
+            if (modePenilaian === "1B") {
                 totalSkor += pKosong;
-            } else if (ans === kunci) {
-                jumlahBenar++;
-                totalSkor += pBenar;
-            } else {
-                jumlahSalah++;
-                totalSkor += pSalah;
             }
-        } else if (App.modePenilaian === "1C") {
-            // 1C: Dynamic Difficulty (EASY, MEDIUM, HARD)
-            const diff = q.Difficulty ? String(q.Difficulty).toUpperCase() : "MEDIUM";
-            const weightMap = App.skorConfig.bobot_difficulty || { EASY: 2, MEDIUM: 3, HARD: 5 };
-            const poinMax = weightMap[diff] || 3;
-
-            if (!ans) {
-                jumlahKosong++;
-            } else if (ans === kunci) {
-                jumlahBenar++;
-                totalSkor += poinMax;
-            } else {
-                jumlahSalah++;
+        } else if (ans === kunci) {
+            jumlahBenar++;
+            if (modePenilaian === "1A") {
+                totalSkor += pBenar;
+            } else if (modePenilaian === "1B") {
+                totalSkor += pBenar;
+            } else if (modePenilaian === "1C") {
+                const lvl = (q.Level || q.level || "E").trim().toUpperCase();
+                const bobotSoal = bobotLevelMap[lvl] !== undefined ? Number(bobotLevelMap[lvl]) : 1.0;
+                
+                totalSkor += (bobotSoal * pBenar);
+            }
+        } else {
+            jumlahSalah++;
+            if (modePenilaian === "1B" || modePenilaian === "1C") {
+                totalSkor += pSalah;
             }
         }
     });
@@ -83,8 +73,13 @@ function submitJawaban() {
     const totalSoal = App.questionsData.length;
     let skorAkhir = 0;
 
-    if (App.modePenilaian === "1A") {
-        skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
+    // PERHITUNGAN AKHIR KANONIKAL
+    if (modePenilaian === "1A") {
+        if (useScaling100) {
+            skorAkhir = totalSoal > 0 ? Number(((jumlahBenar / totalSoal) * 100).toFixed(2)) : 0;
+        } else {
+            skorAkhir = Number(totalSkor.toFixed(2));
+        }
     } else {
         skorAkhir = Number(totalSkor.toFixed(2));
     }
@@ -97,7 +92,7 @@ function submitJawaban() {
         skor: skorAkhir
     };
 
-    // Tampilkan Indikator Loading
+    // TAMPILKAN STATUS PENGIRIMAN
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -108,16 +103,13 @@ function submitJawaban() {
         `;
     }
 
-    // Structuring Payload Sesuai Format peserta.json
+    // PAYLOAD WEBHOOK
     const payload = {
         kode_soal: App.currentKodeUjian,
         sistem_ujian: "CBT",
         mode_ujian: App.modeUjian || "UTAMA",
-        mode_penilaian: App.modePenilaian,
-        
-        // Mengirimkan Objek Identitas yang berisi field asli dari peserta.json
+        mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
-        
         jawaban: App.userAnswers,
         total_dijawab: Object.keys(App.userAnswers).length,
         total_soal: totalSoal,
@@ -132,14 +124,11 @@ function submitJawaban() {
         skor_akhir: skorAkhir
     };
 
-    // Pengiriman Data ke Google Sheets Webhook
     if (App.WEBHOOK_URL && App.WEBHOOK_URL.trim() !== "") {
         fetch(App.WEBHOOK_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         })
         .then(() => tampilkanLayarSelesai(detailHasil))
