@@ -1,6 +1,21 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.3.2)
+// main.js - Entry Point & Window Bridge Handler (v1.3.4)
 // ==========================================================
+
+// ⚠️ PASTI INI DILAKUKAN SEBELUM EVENT DOMContentLoaded
+// Inisialisasi Objek Global State App
+window.App = window.App || {
+    verifiedPesertaData: null,
+    userIdentitas: null,
+    soalData: null,
+    questionsData: [],
+    userAnswers: {},
+    currentIndex: 0,
+    modePenilaian: "1A",
+    skorConfig: null,
+    isExamStarted: false,
+    isExamSubmitted: false
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Muat Database Peserta saat aplikasi pertama kali dibuka
@@ -22,6 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ==========================================================
     
     // Auth & Verifikasi
+    if (typeof loadDaftarPeserta === "function") window.loadDaftarPeserta = loadDaftarPeserta;
     if (typeof cekVerifikasiPeserta === "function") window.cekVerifikasiPeserta = cekVerifikasiPeserta;
 
     // Navigasi & Rendering Soal
