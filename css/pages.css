@@ -282,11 +282,37 @@
   justify-content: space-between;
 }
 
-.btn-start-disabled {
-  opacity: 0.5;
+/* --- STATE TOMBOL MULAI UJIAN (PAGE 2) --- */
+.btn-start-disabled,
+#btn-mulai-ujian:disabled,
+#btn-start-exam:disabled {
+  opacity: 0.55 !important;
   cursor: not-allowed !important;
   background: #94a3b8 !important;
+  color: #ffffff !important;
+  border-color: #cbd5e1 !important;
   box-shadow: none !important;
+  transition: all 0.25s ease;
+}
+
+#btn-mulai-ujian:not(:disabled),
+#btn-start-exam:not(:disabled),
+#btn-mulai-ujian.active,
+#btn-start-exam.active {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  background: #16a34a !important; /* Hijau Aktif */
+  color: #ffffff !important;
+  border-color: #15803d !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3) !important;
+  transition: all 0.25s ease;
+}
+
+#btn-mulai-ujian:not(:disabled):hover,
+#btn-start-exam:not(:disabled):hover,
+#btn-mulai-ujian.active:hover {
+  background: #15803d !important;
+  transform: translateY(-1px);
 }
 
 /* Modal Konfirmasi Submit (Perbaikan Modal UI) */
