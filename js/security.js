@@ -4,6 +4,15 @@
 
 window.App = window.App || {};
 
+// Inisialisasi State Awal pada Object App
+App.warningCount = parseInt(localStorage.getItem("cbt_warning_count"), 10) || 0;
+try {
+    const savedLogs = localStorage.getItem("cbt_violation_logs");
+    App.warningLogs = savedLogs ? JSON.parse(savedLogs) : [];
+} catch(e) {
+    App.warningLogs = [];
+}
+
 let isWarningActive = false;
 let blurDebounceTimer = null;
 let lastViolationTimestamp = 0;
@@ -32,7 +41,7 @@ function playVoiceWarning(text) {
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     const now = Date.now();
     
-    // Cooldown 1.5 detik cegah double click/trigger
+    // Cooldown 1.5 detik cegah double trigger
     if (now - lastViolationTimestamp < 1500) return;
 
     // Abaikan jika ujian belum mulai, sudah dikirim, atau sedang proses pengiriman
@@ -41,7 +50,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     isWarningActive = true;
     lastViolationTimestamp = now;
 
-    // 1. Pastikan hitungan angka valid (Number)
+    // 1. Hitung ulang & update counter
     let currentCount = parseInt(App.warningCount, 10);
     if (isNaN(currentCount)) currentCount = 0;
     
@@ -83,10 +92,10 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 
         alert(`🚨 PELANGGARAN KE-${App.warningCount} DARI ${maxLimit}!\n\nBatas toleransi telah habis (${alasan}). Ujian Anda akan diakhiri dan dikirim otomatis.`);
 
-        if (typeof window.submitJawaban === "function") {
-            window.submitJawaban(true, true);
-        } else if (typeof window.submitJawabanScoring === "function") {
+        if (typeof window.submitJawabanScoring === "function") {
             window.submitJawabanScoring();
+        } else if (typeof window.submitJawaban === "function") {
+            window.submitJawaban(true, true);
         }
     } else {
         // PELANGGARAN KE-1 DAN KE-2 -> HANYA PERINGATAN
@@ -114,24 +123,21 @@ function enforceFullscreen() {
  * Inisialisasi Security Event Listeners
  */
 function initSecurityListeners() {
-    // Mencegah pendaftaran listener berulang kali
     if (isSecurityInitialized) return;
     isSecurityInitialized = true;
 
     console.log("🛡️ Initializing Security Listeners (Limit 3x Strict Enforcement)...");
 
-    // Load state dari localStorage jika ada
+    // Re-sync State
     const savedCount = parseInt(localStorage.getItem("cbt_warning_count"), 10);
-    App.warningCount = !isNaN(savedCount) ? savedCount : 0;
+    App.warningCount = !isNaN(savedCount) ? savedCount : (App.warningCount || 0);
     
     try {
         const savedLogs = localStorage.getItem("cbt_violation_logs");
-        App.warningLogs = savedLogs ? JSON.parse(savedLogs) : [];
-    } catch(e) {
-        App.warningLogs = [];
-    }
+        if (savedLogs) App.warningLogs = JSON.parse(savedLogs);
+    } catch(e) {}
 
-    App.MAX_WARNINGS = 3; // Paksa default 3
+    App.MAX_WARNINGS = 3;
     App.isSubmitting = false; 
 
     // 1. Deteksi Pindah Tab / Minimize
@@ -169,28 +175,24 @@ function initSecurityListeners() {
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
-        // Win + Shift + S
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
             prosesPeringatanKecurangan("Shortcut Screenshot (Win + Shift + S)");
             return false;
         }
 
-        // F12
         if (e.key === "F12") {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
             return false;
         }
 
-        // Ctrl + Shift + I/J/C
         if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka Inspect Element");
             return false;
         }
 
-        // PrintScreen
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
             prosesPeringatanKecurangan("Menekan Tombol PrintScreen");
