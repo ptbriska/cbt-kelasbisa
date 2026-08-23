@@ -1,12 +1,24 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.2 - FIXED)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.3 - FIXED)
 // ==========================================================
 
+/**
+ * Toggle Status Tombol Mulai Ujian (Sesuai Checkbox Persetujuan)
+ */
 function toggleMulaiButton() {
-    const chk = document.getElementById("check-setuju");
-    const btn = document.getElementById("btn-mulai-ujian");
-    if (chk && btn) {
-        btn.disabled = !chk.checked;
+    const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
+    const btn = document.getElementById("btn-mulai-ujian") || document.getElementById("btn-start-exam");
+    
+    if (!chk || !btn) return;
+
+    if (chk.checked) {
+        btn.disabled = false;
+        btn.classList.add("active");
+        btn.style.cursor = "pointer";
+    } else {
+        btn.disabled = true;
+        btn.classList.remove("active");
+        btn.style.cursor = "not-allowed";
     }
 }
 
@@ -17,7 +29,7 @@ function kembaliKePage1() {
 }
 
 function mulaiUjianPenuh() {
-    const chk = document.getElementById("check-setuju");
+    const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
     if (!chk || !chk.checked) {
         alert("Anda wajib menyetujui syarat dan ketentuan sebelum memulai ujian!");
         return;
