@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.6.0 - ANTI-CHEAT ROBUST)
+// exam.js - core Engine Ujian CBT & Navigasi Soal (v1.3.16 - ANTI-CHEAT ROBUST)
 // ==========================================================
 
 /**
@@ -52,6 +52,7 @@ function mulaiUjianPenuh() {
     App.isSubmitting = false; 
     App.warningCount = App.warningCount || 0;
     App.warningLogs = App.warningLogs || [];
+    App.cheatingSnapshots = App.cheatingSnapshots || []; // FIX: Inisialisasi array penampung foto kecurangan
     App.startTime = App.startTime || new Date().toISOString();
 
     // 4. Minta Mode Fullscreen
@@ -84,9 +85,9 @@ function initExtraProtections() {
 
     // Disable Shortcut DevTools & Copy Cut
     document.addEventListener("keydown", (e) => {
-        if (!window.App || !App.isExamStarted || App.isExamSubmitted) return;
+        if (!window.App || !App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
-        // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+C, Ctrl+V, Alt+Tab (sebatas yang diizinkan browser)
+        // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+C, Ctrl+V
         if (
             e.key === "F12" ||
             (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
@@ -111,7 +112,8 @@ function initExtraProtections() {
  * Perekam Log Pelanggaran Khusus Siswa Nakal
  */
 function catatPelanggaran(alasan) {
-    if (!window.App) return;
+    if (!window.App || App.isSubmitting || App.isExamSubmitted) return;
+    
     App.warningCount = (App.warningCount || 0) + 1;
     const logItem = {
         waktu: new Date().toLocaleTimeString(),
@@ -123,6 +125,7 @@ function catatPelanggaran(alasan) {
     const maxWarning = App.maxWarningsAllowed || 3;
     
     if (App.warningCount >= maxWarning) {
+        App.isSubmitting = true; // Nonaktifkan sensor agar tidak ada peringatan ganda
         alert(`🚨 BATAS PELANGGARAN TERLAMPAUI (${App.warningCount}/${maxWarning})!\n\nSistem akan mengumpulkan ujian Anda secara otomatis karena terdeteksi melakukan indikasi kecurangan.`);
         submitJawaban(true, true); // Auto-submit paksa
     } else {
