@@ -1,5 +1,5 @@
 /* ==========================================================================
-   answer.js - Review Kunci Jawaban & Print PDF (CBT-KIBI v1.4.1)
+   answer.js - Review Kunci Jawaban & Print PDF (CBT-KIBI v1.4.1 Fix)
    ========================================================================== */
 
 window.App = window.App || {};
@@ -24,7 +24,7 @@ function bukaHalamanKunciJawaban() {
         document.body.appendChild(reviewModal);
     }
 
-    // Render HTML Container & Footer Cetak Kustom
+    // Render Container HTML & Footer Cetak Kustom
     reviewModal.innerHTML = `
         <div class="watermark-briska">ASET BRISKA</div>
         <div class="review-container">
@@ -65,45 +65,64 @@ function bukaHalamanKunciJawaban() {
 
     // Loop Menyusun Blok Soal, Opsi Jawaban, & Sub-Blok Kunci
     questions.forEach((q, idx) => {
-        const noSoal = q.No || (idx + 1);
-        const teksSoal = q.Soal || q.question || "Teks soal tidak tersedia";
-        const kunci = String(q.Kunci || q.key || "-").trim().toUpperCase();
-        const userAns = String(userAnswers[noSoal] || "").trim().toUpperCase();
+        const noSoal = q.No || q.no || (idx + 1);
+        const teksSoal = q.Soal || q.soal || q.question || "Teks soal tidak tersedia";
+        const kunci = String(q.Kunci || q.kunci || q.key || "-").trim().toUpperCase();
+        const userAns = String(userAnswers[noSoal] || userAnswers[idx + 1] || "").trim().toUpperCase();
 
-        // Menyusun daftar opsi A, B, C, D, E (jika ada)
-        let optionsHTML = "";
+        // -------------------------------------------------------------
+        // SMART OPTION EXTRACTOR (Mendukung Segala Format Key JSON Opsi)
+        // -------------------------------------------------------------
         const optionKeys = ['A', 'B', 'C', 'D', 'E'];
-        
-        const hasOptions = optionKeys.some(key => q[key] || q[`Option_${key}`] || q[`opt_${key}`]);
+        let optionsHTML = "";
+
+        // Ekstraksi opsi jika berupa Array (misal: q.options atau q.Opsi)
+        let arrayOptions = q.options || q.Opsi || q.opsi || null;
+
+        let hasOptions = false;
+        let renderedOptions = "";
+
+        optionKeys.forEach((key, oIdx) => {
+            let optText = "";
+
+            if (Array.isArray(arrayOptions) && arrayOptions[oIdx]) {
+                optText = arrayOptions[oIdx];
+            } else {
+                // Cek variasi nama properti object JSON
+                optText = q[key] || q[key.toLowerCase()] || 
+                          q[`Option_${key}`] || q[`option_${key}`] || 
+                          q[`Opsi_${key}`] || q[`opsi_${key}`] || 
+                          q[`Pilihan_${key}`] || q[`pilihan_${key}`] ||
+                          q[`Pilihan${key}`] || q[`pilihan${key}`] || "";
+            }
+
+            if (optText) {
+                hasOptions = true;
+                let optStyle = "background: #ffffff; border: 1px solid #e0e0e0; color: #333;";
+                let optBadge = "";
+
+                // Highlight visual untuk Opsi Jawaban
+                if (key === kunci && key === userAns) {
+                    optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
+                    optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Jawaban Anda & Kunci)</span>`;
+                } else if (key === kunci) {
+                    optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
+                    optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Kunci Jawaban)</span>`;
+                } else if (key === userAns) {
+                    optStyle = "background: #ffebee; border: 1.5px solid #c62828; font-weight: bold;";
+                    optBadge = ` <span style="color: #c62828; font-size: 11px;">(Jawaban Anda)</span>`;
+                }
+
+                renderedOptions += `
+                    <div class="review-option-item" style="padding: 8px 12px; margin-top: 5px; border-radius: 6px; font-size: 13px; ${optStyle}">
+                        <strong>${key}.</strong> ${optText} ${optBadge}
+                    </div>
+                `;
+            }
+        });
 
         if (hasOptions) {
-            optionsHTML += `<div class="review-options-list">`;
-            optionKeys.forEach(key => {
-                const optText = q[key] || q[`Option_${key}`] || q[`opt_${key}`];
-                if (optText) {
-                    let optStyle = "";
-                    let optBadge = "";
-
-                    // Highlight visual untuk Opsi
-                    if (key === kunci && key === userAns) {
-                        optStyle = "background: #e8f5e9; border-color: #2e7d32; font-weight: bold;";
-                        optBadge = ` <small style="color: #2e7d32;">(Jawaban Anda & Kunci)</small>`;
-                    } else if (key === kunci) {
-                        optStyle = "background: #e8f5e9; border-color: #2e7d32; font-weight: bold;";
-                        optBadge = ` <small style="color: #2e7d32;">(Kunci Jawaban)</small>`;
-                    } else if (key === userAns) {
-                        optStyle = "background: #ffebee; border-color: #c62828; font-weight: bold;";
-                        optBadge = ` <small style="color: #c62828;">(Jawaban Anda)</small>`;
-                    }
-
-                    optionsHTML += `
-                        <div class="review-option-item" style="${optStyle}">
-                            <strong>${key}.</strong> ${optText} ${optBadge}
-                        </div>
-                    `;
-                }
-            });
-            optionsHTML += `</div>`;
+            optionsHTML = `<div class="review-options-list" style="margin-top: 10px;">${renderedOptions}</div>`;
         }
 
         // Status Badge
@@ -140,10 +159,18 @@ function bukaHalamanKunciJawaban() {
     blockContainer.innerHTML = htmlContent;
     reviewModal.style.display = "block";
 
-    // Re-render MathJax untuk simbol/rumus matematika (LaTeX)
-    if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
-        window.MathJax.typesetPromise([reviewModal]).catch(err => console.log("MathJax error:", err));
-    }
+    // -------------------------------------------------------------
+    // RENDER FORMULA MATHJAX / LATEX
+    // -------------------------------------------------------------
+    setTimeout(() => {
+        if (window.MathJax) {
+            if (typeof window.MathJax.typesetPromise === "function") {
+                window.MathJax.typesetPromise([reviewModal]).catch(err => console.log("MathJax error:", err));
+            } else if (typeof window.MathJax.typeset === "function") {
+                window.MathJax.typeset([reviewModal]);
+            }
+        }
+    }, 100);
 }
 
 /**
