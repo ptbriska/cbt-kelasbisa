@@ -1,5 +1,5 @@
 // ==========================================================
-// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED & FAST SUBMIT)
+// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED & RESET CHEATING)
 // ==========================================================
 
 window.App = window.App || {};
@@ -54,14 +54,22 @@ function mulaiUjianPenuh() {
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
+    // FIX: Mandatory reset state kecurangan saat ujian baru dimulai
     App.isExamStarted = true;
     App.isExamSubmitted = false;
     App.isSubmitting = false; 
     App.isScoringCompleted = false;
-    App.warningCount = App.warningCount || 0;
-    App.warningLogs = App.warningLogs || [];
+    
+    App.warningCount = 0;
+    App.warningLogs = [];
     App.cheatingSnapshots = []; 
-    App.startTime = App.startTime || new Date().toISOString();
+    App.startTime = new Date().toISOString();
+
+    // Hapus sisa cache kecurangan lama di browser
+    try {
+        localStorage.removeItem("cbt_warning_count");
+        localStorage.removeItem("cbt_violation_logs");
+    } catch(e) {}
 
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {
@@ -417,7 +425,6 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         return;
     }
 
-    // Mematikan Modal
     const modalStatis = document.getElementById("modal-konfirmasi");
     if (modalStatis) {
         modalStatis.classList.add("hidden");
@@ -428,13 +435,6 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 
     App.isSubmitting = true;
     App.isExamSubmitted = true; 
-    
-    // Backup & Ambil data kecurangan dari LocalStorage
-    if ((!App.warningLogs || App.warningLogs.length === 0) && localStorage.getItem("cbt_violation_logs")) {
-        try {
-            App.warningLogs = JSON.parse(localStorage.getItem("cbt_violation_logs")) || [];
-        } catch(e) {}
-    }
 
     if (typeof window.simpanLockSubmitted === "function") {
         window.simpanLockSubmitted(); 
@@ -456,7 +456,6 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    // Eksekusi penilaian INSTAN
     if (typeof submitJawabanScoring === "function") {
         submitJawabanScoring();
     } else if (typeof window.submitJawabanScoring === "function") {
