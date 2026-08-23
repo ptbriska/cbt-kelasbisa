@@ -1,5 +1,5 @@
 // ==========================================================
-// scoring.js - Dynamic Scoring & Webhook Submission Engine (v1.3.6)
+// scoring.js - Dynamic Scoring & Webhook Submission Engine (v1.3.7)
 // ==========================================================
 
 function submitJawaban() {
@@ -106,12 +106,12 @@ function submitJawaban() {
         pageCbt.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
                 <h2 style="color: #1a237e; margin-bottom: 10px;">Mengirimkan Jawaban...</h2>
-                <p style="color: #666;">Mohon tunggu sebentar, jawaban dan log ujian Anda sedang disimpan ke server.</p>
+                <p style="color: #666;">Mohon tunggu sebentar, jawaban dan bukti kecurangan sedang dikirim ke server.</p>
             </div>
         `;
     }
 
-    // 9. BENTUK PAYLOAD WEBHOOK
+    // 9. BENTUK PAYLOAD WEBHOOK TERLENGKAP
     const payload = {
         kode_soal: App.currentKodeUjian,
         sistem_ujian: "CBT",
@@ -131,9 +131,10 @@ function submitJawaban() {
         jumlah_kosong: jumlahKosong,
         skor_akhir: skorAkhir,
         
-        // Payload Log Keamanan Ujian
+        // Payload Log Keamanan & Bukti Kecurangan (Base64 Snapshots)
         total_pelanggaran: App.warningCount || 0,
-        log_pelanggaran: App.warningLogs || []
+        log_pelanggaran: App.warningLogs || [],
+        foto_pelanggaran: App.cheatingSnapshots || []
     };
 
     // 10. KIRIM VIA WEBHOOK
