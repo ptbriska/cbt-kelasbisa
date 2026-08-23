@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.8)
+// security.js - Engine Keamanan & Photo Proctoring (v1.3.9 - FIXED BUG LOOPING)
 // Terintegrasi dengan Dynamic Scoring & Backend GAS
 // ==========================================================
 
@@ -106,6 +106,7 @@ let isWarningActive = false;
  * Penanganan Utama Peringatan & Rekam Bukti Pelanggaran
  */
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
+    // Jika ujian belum mulai, sudah submit, atau peringatan sedang aktif -> abaikan
     if (!App.isExamStarted || App.isExamSubmitted || isWarningActive) return;
 
     isWarningActive = true;
@@ -155,19 +156,28 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 
     // 5. Eksekusi Sanksi & Notifikasi
     if (App.warningCount >= App.MAX_WARNINGS) {
+        // [PERBAIKAN] Kunci ujian segera agar tidak mendeteksi pelanggaran berulang
+        App.isExamSubmitted = true; 
+        
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
-        isWarningActive = false;
-        
-        // Panggil auto-submit (terhubung ke scoring.js)
+        // Panggil auto-submit
         if (typeof submitJawaban === "function") {
             submitJawaban();
+        } else {
+            // [PERBAIKAN] Jika submitJawaban gagal dipanggil, klik tombol Selesai otomatis
+            const btnSelesai = document.querySelector('button.btn-success, .btn-selesai, button:contains("SELESAI")'); 
+            if (btnSelesai) btnSelesai.click();
         }
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
-        isWarningActive = false;
+        
+        // [PERBAIKAN] Beri jeda 2 detik agar browser tidak salah membaca klik "OK" sebagai lepas fokus
+        setTimeout(() => {
+            isWarningActive = false;
+        }, 2000); 
     }
 }
 
