@@ -1,5 +1,5 @@
 /* ==========================================================================
-   3. ARENA SOAL CBT (Page 3 Layout)
+   3. ARENA SOAL CBT (Page 3 Layout - CBT v1.5.0)
    ========================================================================== */
 
 .cbt-layout {
@@ -195,7 +195,9 @@
   word-break: break-word;
 }
 
-/* Opsi Pilihan Ganda */
+/* --------------------------------------------------------------------------
+   A. OPSI PILIHAN GANDA (Tipe 1A, 1B, 1C, 2A)
+   -------------------------------------------------------------------------- */
 .options-group {
   display: flex;
   flex-direction: column;
@@ -230,7 +232,8 @@
   box-shadow: inset 0 0 5px rgba(37, 99, 235, 0.1);
 }
 
-.option-row input[type="radio"] {
+.option-row input[type="radio"],
+.option-row input[type="checkbox"] {
   margin-right: 15px;
   margin-top: 4px;
   accent-color: var(--accent-blue);
@@ -250,6 +253,113 @@
   color: var(--text-dark);
   white-space: pre-line;
   word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   B. INPUT ISIAN SINGKAT & ESAI (Tipe 3A & 3B)
+   -------------------------------------------------------------------------- */
+.essay-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.essay-input-single {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  color: var(--text-dark);
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.essay-input-single:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.essay-input-multi {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px 16px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-dark);
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.essay-input-multi:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   C. TABEL MATRIKS BENAR / SALAH (Tipe 4A)
+   -------------------------------------------------------------------------- */
+.matrix-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+}
+
+.matrix-table th {
+  background-color: #f1f5f9;
+  color: var(--brand-primary);
+  font-weight: 700;
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 2px solid #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.matrix-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.matrix-statement {
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  line-height: 1.5;
+}
+
+.matrix-radio-cell {
+  text-align: center;
+  width: 90px;
+}
+
+.matrix-radio-cell input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
 }
 
 /* MathJax / KaTeX Styling Light Mode */
@@ -397,5 +507,21 @@
     padding: 10px 15px;
     flex-wrap: wrap;
     gap: 10px;
+  }
+
+  /* Optimasi Tabel Matriks Tipe 4A di Mobile */
+  .matrix-table th, 
+  .matrix-table td {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+
+  .matrix-radio-cell {
+    width: 65px;
+  }
+
+  .matrix-radio-cell input[type="radio"] {
+    width: 18px;
+    height: 18px;
   }
 }
