@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.3 - FIXED)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.6.0 - ANTI-CHEAT ROBUST)
 // ==========================================================
 
 /**
@@ -35,6 +35,9 @@ function mulaiUjianPenuh() {
         return;
     }
 
+    // Initialize App Global jika belum ada
+    window.App = window.App || {};
+
     // 1. Set Profil Peserta di Header Kanan Atas
     updateHeaderUserProfile();
 
@@ -44,18 +47,18 @@ function mulaiUjianPenuh() {
     window.scrollTo(0, 0);
 
     // 3. Tandai State Ujian Dimulai & Catat Waktu Mulai
-    if (window.App) {
-        App.isExamStarted = true;
-        App.isExamSubmitted = false;
-        App.isSubmitting = false; 
-        App.warningCount = 0;
-        App.warningLogs = [];
-        App.startTime = new Date().toISOString();
-    }
+    App.isExamStarted = true;
+    App.isExamSubmitted = false;
+    App.isSubmitting = false; 
+    App.warningCount = App.warningCount || 0;
+    App.warningLogs = App.warningLogs || [];
+    App.startTime = App.startTime || new Date().toISOString();
 
     // 4. Minta Mode Fullscreen
     if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
+        document.documentElement.requestFullscreen().catch(() => {
+            console.warn("Fullscreen request denied by user or browser policy.");
+        });
     }
 
     // 5. AKTIFKAN PENGAWASAN KEAMANAN & KAMERA PROCTORING
@@ -65,8 +68,66 @@ function mulaiUjianPenuh() {
         initSecurityListeners();
     }
 
+    // Proteksi Tambahan untuk Siswa Nakal: Mencegah Context Menu & Keyboard Shortcuts
+    initExtraProtections();
+
     // 6. Inisialisasi CBT (Render Soal & Timer)
     initCBT();
+}
+
+/**
+ * Proteksi ekstra khusus untuk menangkal aksi siswa nakal (Inspect Element, Copy-Paste, Tab Change)
+ */
+function initExtraProtections() {
+    // Disable Klik Kanan (Context Menu)
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    // Disable Shortcut DevTools & Copy Cut
+    document.addEventListener("keydown", (e) => {
+        if (!window.App || !App.isExamStarted || App.isExamSubmitted) return;
+
+        // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+C, Ctrl+V, Alt+Tab (sebatas yang diizinkan browser)
+        if (
+            e.key === "F12" ||
+            (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
+            (e.ctrlKey && (e.key === "u" || e.key === "U" || e.key === "c" || e.key === "C" || e.key === "v" || e.key === "V"))
+        ) {
+            e.preventDefault();
+            catatPelanggaran("Percobaan shortcut terlarang: " + e.key);
+        }
+    });
+
+    // Sensor Perpindahan Tab / Minimasi Window
+    document.addEventListener("visibilitychange", () => {
+        if (!window.App || !App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
+
+        if (document.hidden) {
+            catatPelanggaran("Meninggalkan halaman ujian / Membuka tab lain");
+        }
+    });
+}
+
+/**
+ * Perekam Log Pelanggaran Khusus Siswa Nakal
+ */
+function catatPelanggaran(alasan) {
+    if (!window.App) return;
+    App.warningCount = (App.warningCount || 0) + 1;
+    const logItem = {
+        waktu: new Date().toLocaleTimeString(),
+        alasan: alasan,
+        pelanggaranKe: App.warningCount
+    };
+    App.warningLogs.push(logItem);
+
+    const maxWarning = App.maxWarningsAllowed || 3;
+    
+    if (App.warningCount >= maxWarning) {
+        alert(`🚨 BATAS PELANGGARAN TERLAMPAUI (${App.warningCount}/${maxWarning})!\n\nSistem akan mengumpulkan ujian Anda secara otomatis karena terdeteksi melakukan indikasi kecurangan.`);
+        submitJawaban(true, true); // Auto-submit paksa
+    } else {
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${maxWarning})\n\nTerdeteksi: ${alasan}.\nJangan meninggalkan halaman ujian!`);
+    }
 }
 
 /**
@@ -89,11 +150,9 @@ function updateHeaderUserProfile() {
 function syncExamMetadataFromJSON(dataJSON) {
     if (!window.App || !dataJSON) return;
 
-    // Simpan data soal utama
     App.soalData = dataJSON;
     App.questionsData = dataJSON.questions || [];
 
-    // SINKRONISASI KONFIGURASI SKOR & MODE PENILAIAN DARI JSON
     App.modePenilaian = dataJSON.mode_penilaian || "1A";
     App.skorConfig = dataJSON.skor_config || {
         skor_benar: 1.0,
@@ -103,10 +162,9 @@ function syncExamMetadataFromJSON(dataJSON) {
         bobot_level: { E: 1.0, M: 3.0, H: 5.0 }
     };
 
-    // Simpan metadata umum lainnya
     App.currentKodeUjian = dataJSON.kode_ujian || App.currentKodeUjian;
     App.modeUjian = dataJSON.mode_ujian || App.modeUjian;
-    App.timerDurationMinutes = dataJSON.timer_menit || 10;
+    App.timerDurationMinutes = dataJSON.timer_menit || dataJSON.durasi_menit || 10;
 }
 
 function initCBT() {
@@ -116,21 +174,14 @@ function initCBT() {
         syncExamMetadataFromJSON(App.soalData);
     }
 
-    App.userAnswers = {};
-    App.currentIndex = 0;
+    // Proteksi data jawaban agar tidak tertimpa saat re-init kecuali kosong
+    App.userAnswers = App.userAnswers || {};
+    App.currentIndex = App.currentIndex || 0;
 
     renderNumberGrid();
     loadQuestion(App.currentIndex);
 
-    let durasiMenit = 10;
-    if (App.timerDurationMinutes) {
-        durasiMenit = App.timerDurationMinutes;
-    } else if (App.soalData) {
-        durasiMenit = App.soalData.timer_menit || App.soalData.durasi_menit || App.soalData.waktu_menit || 10;
-    } else if (App.examConfig) {
-        durasiMenit = App.examConfig.durasi_menit || App.examConfig.waktu || 10;
-    }
-
+    let durasiMenit = App.timerDurationMinutes || 10;
     startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
@@ -227,7 +278,7 @@ function loadQuestion(index) {
         optionsBox.innerHTML = "";
 
         ["A", "B", "C", "D", "E"].forEach(key => {
-            if (q[key] && String(q[key]).trim() !== "") {
+            if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "") {
                 const isSelected = App.userAnswers[displayNo] === key;
                 const optionRow = document.createElement("div"); 
                 optionRow.className = `option-row ${isSelected ? 'selected' : ''}`;
@@ -259,7 +310,14 @@ function loadQuestion(index) {
 
 function pilihJawaban(questionNum, selectedOption) {
     if (!window.App) return;
-    App.userAnswers[questionNum] = selectedOption;
+    
+    // Skenario Toggle/Uncheck jika mengklik opsi yang sama
+    if (App.userAnswers[questionNum] === selectedOption) {
+        delete App.userAnswers[questionNum]; 
+    } else {
+        App.userAnswers[questionNum] = selectedOption;
+    }
+    
     loadQuestion(App.currentIndex);
 }
 
@@ -305,6 +363,9 @@ function toggleNavigator() {
 async function submitJawaban(isAuto = false, isConfirmed = false) {
     if (!window.App) return;
 
+    // Cegah double submit dari aksi spam / siswa nakal
+    if (App.isExamSubmitted) return;
+
     const questions = App.questionsData || App.questions || [];
     const totalSoal = questions.length;
     const dijawab = Object.keys(App.userAnswers || {}).length;
@@ -312,13 +373,15 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 
     // 1. TAMPILKAN PANEL KONFIRMASI (Jika manual dan belum konfirmasi)
     if (!isAuto && !isConfirmed) {
-        App.isSubmitting = true; // Nonaktifkan sensor kecurangan sementara
+        App.isSubmitting = true; // Nonaktifkan sensor kecurangan sementara saat modal tampil
         tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
         return;
     }
 
     // 2. KUNCI STATUS SUBMIT & HENTIKAN TIMER
     App.isSubmitting = true;
+    App.isExamSubmitted = true; // Tandai ujian selesai total
+    
     if (typeof window.simpanLockSubmitted === "function") {
         window.simpanLockSubmitted(); 
     }
@@ -348,6 +411,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
             btnSelesai.textContent = "Selesai Ujian";
         }
         App.isSubmitting = false;
+        App.isExamSubmitted = false;
     }
 }
 
@@ -355,7 +419,6 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
  * Render Panel Modal Konfirmasi Pengumpulan
  */
 function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
-    // FIX UNDEFINED: Jika dipanggil langsung dari HTML tanpa argumen, hitung nilainya otomatis
     let totalSoal = totalSoalArg;
     let dijawab = dijawabArg;
     let kosong = kosongArg;
@@ -367,7 +430,6 @@ function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
         kosong = totalSoal - dijawab;
     }
 
-    // Amankan state agar sensor kecurangan tidak trigger saat modal terbuka
     if (window.App) App.isSubmitting = true;
 
     const existingModal = document.getElementById("custom-confirm-modal");
