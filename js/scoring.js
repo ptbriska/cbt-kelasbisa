@@ -1,5 +1,5 @@
 // ==========================================================
-// scoring.js - Multi-Scoring Engine & Webhook Reporter (v1.3.0)
+// scoring.js - Multi-Scoring Engine & Webhook Reporter (v1.3.1)
 // ==========================================================
 
 function submitJawaban() {
@@ -17,9 +17,13 @@ function submitJawaban() {
         window.removeEventListener("blur", handleWindowBlur);
     }
 
+    // Mengambil identitas resmi terverifikasi dari peserta.json (atau fallback ke userIdentitas)
+    const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
+
     // Kunci browser jika Mode SIMULASI
     if (App.modeUjian === "SIMULASI") {
-        const lockKey = `SUBMITTED_${App.currentKodeUjian}_${App.userIdentitas.nama}`;
+        const namaUser = dataPesertaResmi["Nama Lengkap"] || dataPesertaResmi.nama || "USER";
+        const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
         localStorage.setItem(lockKey, "TRUE");
     }
 
@@ -104,12 +108,16 @@ function submitJawaban() {
         `;
     }
 
+    // Structuring Payload Sesuai Format peserta.json
     const payload = {
         kode_soal: App.currentKodeUjian,
         sistem_ujian: "CBT",
-        mode_ujian: App.modeUjian,
+        mode_ujian: App.modeUjian || "UTAMA",
         mode_penilaian: App.modePenilaian,
-        identitas: App.userIdentitas,
+        
+        // Mengirimkan Objek Identitas yang berisi field asli dari peserta.json
+        identitas: dataPesertaResmi,
+        
         jawaban: App.userAnswers,
         total_dijawab: Object.keys(App.userAnswers).length,
         total_soal: totalSoal,
