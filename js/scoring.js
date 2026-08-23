@@ -1,5 +1,5 @@
 // ==========================================================
-// js/scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (FIXED)
+// js/scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (FIXED & SYNCHRONIZED)
 // ==========================================================
 
 function submitJawabanScoring() {
@@ -112,6 +112,17 @@ function submitJawabanScoring() {
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
+    // --- SINKRONISASI LOG & HITUNG JUMLAH PELANGGARAN RIL ---
+    let rawLogs = App.warningLogs || [];
+    if ((!rawLogs || rawLogs.length === 0) && localStorage.getItem("cbt_violation_logs")) {
+        try {
+            rawLogs = JSON.parse(localStorage.getItem("cbt_violation_logs")) || [];
+        } catch(e) {}
+    }
+
+    const realJmlPelanggaran = rawLogs.length; // Hitung akurat dari jumlah item array
+    const formattedLogsText = rawLogs.map(item => `[${item.waktu || ''}] ${item.alasan || ''}`).join(" | ");
+
     const payload = {
         action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
@@ -120,7 +131,9 @@ function submitJawabanScoring() {
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
-        log_pelanggaran: App.warningLogs || [],
+        jml_pelanggaran: realJmlPelanggaran, // <-- Dikirim eksplisit ke Apps Script
+        log_pelanggaran: formattedLogsText || "-", // <-- Dikirim berupa String terformat
+        log_pelanggaran_raw: rawLogs,
         foto_bukti_kecurangan: [], 
         waktu_mulai: App.startTime || "",
         waktu_selesai: new Date().toISOString(),
@@ -153,7 +166,7 @@ function tampilkanLayarSelesai(detail) {
         "loading", 
         "loading-screen", 
         "modal-loading",
-        "modal-konfirmasi",      
+        "modal-konfirmasi",       
         "custom-confirm-modal"   
     ];
     
