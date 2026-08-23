@@ -1,5 +1,5 @@
 // ==========================================================
-// js/exam.js - Core Engine Ujian CBT & Navigasi Soal (FIXED & RESET CHEATING)
+// js/exam.js - Core Engine Ujian CBT & Navigasi Soal V1.5.0
 // ==========================================================
 
 window.App = window.App || {};
@@ -54,7 +54,7 @@ function mulaiUjianPenuh() {
     document.getElementById("page-cbt")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 
-    // FIX: Mandatory reset state kecurangan saat ujian baru dimulai
+    // Mandatory reset state kecurangan saat ujian baru dimulai
     App.isExamStarted = true;
     App.isExamSubmitted = false;
     App.isSubmitting = false; 
@@ -245,7 +245,6 @@ function loadQuestion(index) {
     if (optionsBox) {
         optionsBox.innerHTML = "";
 
-        // Mengambil jawaban terdaftar untuk soal nomor ini (undefined jika tidak/batal dijawab)
         const currentAnswer = App.userAnswers ? App.userAnswers[displayNo] : undefined;
 
         ["A", "B", "C", "D", "E"].forEach(key => {
@@ -285,14 +284,12 @@ function loadQuestion(index) {
 function pilihJawaban(questionNum, selectedOption) {
     if (!window.App) return;
     
-    // PERBAIKAN: Jika opsi yang diklik sudah terpilih sebelumnya, hapus jawaban (batal dijawab)
     if (App.userAnswers[questionNum] === selectedOption) {
         delete App.userAnswers[questionNum]; 
     } else {
         App.userAnswers[questionNum] = selectedOption;
     }
     
-    // Muat ulang soal untuk me-refresh status visual radio dan grid nomor
     loadQuestion(App.currentIndex);
 }
 
