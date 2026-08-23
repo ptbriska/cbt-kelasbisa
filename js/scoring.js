@@ -1,11 +1,12 @@
-// ==========================================================
-// js/scoring.js - SCORING & ACCURATE CHEATING LOG SUBMIT
-// ==========================================================
+/* ==========================================================
+   js/scoring.js - SCORING & ACCURATE CHEATING LOG SUBMIT
+   ========================================================== */
 
 function submitJawabanScoring() {
     if (!window.App || App.isScoringCompleted) return;
     App.isScoringCompleted = true;
     App.isExamSubmitted = true;
+    App.isSubmitting = true;
 
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
@@ -105,25 +106,44 @@ function submitJawabanScoring() {
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
-    // FIX: Rekap Data Pelanggaran yang Akurat Sesuai Sesi Sekarang
+    // ==========================================================
+    // REKAP LOG PELANGGARAN TERINKRONISASI
+    // ==========================================================
     let rawLogs = Array.isArray(App.warningLogs) ? App.warningLogs : [];
-    if (rawLogs.length === 0 && localStorage.getItem("cbt_violation_logs")) {
+    
+    // Fallback sync ke LocalStorage jika memori kosong
+    if (rawLogs.length === 0) {
         try {
-            rawLogs = JSON.parse(localStorage.getItem("cbt_violation_logs")) || [];
-        } catch(e) {}
+            const localLogs = localStorage.getItem("cbt_violation_logs");
+            if (localLogs) rawLogs = JSON.parse(localLogs);
+        } catch(e) {
+            rawLogs = [];
+        }
     }
 
-    const realJmlPelanggaran = (typeof App.warningCount === 'number') ? App.warningCount : rawLogs.length;
-    
-    // Formatting Teks Log
-    let formattedLogsText = "-";
+    let realJmlPelanggaran = (typeof App.warningCount === 'number') ? App.warningCount : 0;
+    const localCount = parseInt(localStorage.getItem("cbt_warning_count"), 10);
+    if (!isNaN(localCount) && localCount > realJmlPelanggaran) {
+        realJmlPelanggaran = localCount;
+    }
+    if (realJmlPelanggaran === 0 && rawLogs.length > 0) {
+        realJmlPelanggaran = rawLogs.length;
+    }
+
+    // Formatting Teks Log Detail
+    let formattedLogsText = "Tidak Ada Pelanggaran";
     if (rawLogs.length > 0) {
-        formattedLogsText = rawLogs.map(item => `[Peringatan ${item.peringatan_ke || '?'}] ${item.waktu || ''}: ${item.alasan || ''}`).join(" | ");
+        formattedLogsText = rawLogs.map((item, idx) => {
+            const ke = item.peringatan_ke || (idx + 1);
+            const wkt = item.waktu || "-";
+            const als = item.alasan || "Pelanggaran Sistem";
+            return `[#${ke} | ${wkt}] ${als}`;
+        }).join(" ; ");
     } else if (realJmlPelanggaran > 0) {
         formattedLogsText = `${realJmlPelanggaran}x Pelanggaran Terdeteksi`;
     }
 
-    // Payload dikirim dengan multi-key alias untuk Google Apps Script
+    // Payload dikirim dengan multi-key alias
     const payload = {
         action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.soalData?.kode_ujian || "UNKNOWN",
@@ -136,7 +156,6 @@ function submitJawabanScoring() {
         jml_pelanggaran: realJmlPelanggaran,
         jumlah_pelanggaran: realJmlPelanggaran,
         total_pelanggaran: realJmlPelanggaran,
-        pelanggaran: realJmlPelanggaran,
 
         log_pelanggaran: formattedLogsText,
         log_pelanggaran_teks: formattedLogsText,
@@ -163,7 +182,7 @@ function submitJawabanScoring() {
         }).catch(err => console.warn("Webhook submit background error:", err));
     }
 
-    // Bersihkan storage setelah submit berhasil
+    // Bersihkan storage setelah submit
     try {
         localStorage.removeItem("cbt_warning_count");
         localStorage.removeItem("cbt_violation_logs");
