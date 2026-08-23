@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TEMA: MODERN BLUE & WHITE LIGHT MODE (CBT System)
+   TEMA: MODERN BLUE & WHITE LIGHT MODE (CBT System v1.3.0)
    Warna Utama: Pure White (Background), Navy & Royal Blue (Primary), Cyan/Sky (Accent)
    ========================================================================== */
 
@@ -24,7 +24,7 @@
   --color-answered: #0284c7;   /* Ocean Blue */
   --color-active: #16a34a;     /* Forest Green Active Indicator */
   
-  /* Status Hasil Ujian */
+  /* Status Hasil Ujian & Alert */
   --color-success: #16a34a;
   --color-danger: #dc2626;
   --color-warning: #d97706;
@@ -151,6 +151,34 @@ body {
   gap: 15px;
 }
 
+/* Alert Message (Bootstrap-like kompatibel dengan JS) */
+.alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.alert-danger {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: var(--color-danger);
+}
+
+.alert-success {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: var(--color-success);
+}
+
+.alert-info {
+  background-color: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: var(--color-info);
+}
+
+/* Tombol Aksi */
 .btn-primary {
   width: 100%;
   padding: 13px;
@@ -173,6 +201,11 @@ body {
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
 }
 
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-warning {
   width: 100%;
   padding: 12px;
@@ -187,7 +220,7 @@ body {
   text-transform: uppercase;
 }
 
-.btn-warning:hover {
+.btn-warning:hover:not(:disabled) {
   background: #b45309;
 }
 
@@ -229,7 +262,6 @@ body {
   color: var(--text-muted);
   font-weight: 600;
 }
-
 
 /* ==========================================
    2. PAGE 2: INFORMASI KEGIATAN & TATA TERTIB
@@ -370,7 +402,6 @@ body {
   box-shadow: none !important;
 }
 
-
 /* ==========================================
    3. PAGE 3: ARENA SOAL CBT
    ========================================== */
@@ -454,6 +485,7 @@ body {
   font-size: 0.7rem;
   font-weight: bold;
   margin-top: 2px;
+  cursor: pointer;
 }
 
 .btn-keluar:hover {
@@ -514,12 +546,14 @@ body {
   z-index: 10;
 }
 
-.img-box img {
+.img-box img,
+.img-soal {
   max-width: 100%;
   max-height: 300px;
   border-radius: 10px;
   margin-bottom: 20px;
   border: 1px solid #e2e8f0;
+  display: block;
 }
 
 /* Teks Soal & Format Baris Baru */
@@ -653,7 +687,6 @@ body {
   transform: scale(1.15);
 }
 
-
 /* ==========================================
    4. FOOTER BOTTOM BAR
    ========================================== */
@@ -681,8 +714,13 @@ body {
   letter-spacing: 0.5px;
 }
 
-.btn-footer:hover {
+.btn-footer:hover:not(:disabled) {
   background: #eff6ff;
+}
+
+.btn-footer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-selesai {
@@ -691,7 +729,7 @@ body {
   border: 1px solid #16a34a;
 }
 
-.btn-selesai:hover {
+.btn-selesai:hover:not(:disabled) {
   background: #15803d;
   color: #ffffff;
 }
@@ -700,7 +738,6 @@ body {
   display: flex;
   gap: 12px;
 }
-
 
 /* ==========================================
    5. PAGE RESULT: PENGUMUMAN SKOR MODERN
@@ -831,7 +868,6 @@ body {
   font-size: 1rem;
   color: var(--text-dark);
 }
-
 
 /* ==========================================
    RESPONSIF MOBILE
