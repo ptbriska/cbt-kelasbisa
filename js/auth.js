@@ -1,5 +1,5 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.4)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.5)
 // ==========================================================
 
 /**
@@ -57,7 +57,11 @@ function clearIdentitasForm() {
 /**
  * Verifikasi Peserta Tahap 1 (Cek Kombinasi Nama & Kode Ujian)
  */
-async function cekVerifikasiPeserta() {
+async function cekVerifikasiPeserta(e) {
+    if (e && typeof e.preventDefault === "function") {
+        e.preventDefault();
+    }
+
     const elKode = document.getElementById("kode-ujian-input");
     const elNama = document.getElementById("nama");
 
@@ -67,8 +71,8 @@ async function cekVerifikasiPeserta() {
     const inputNama = elNama.value.trim().toUpperCase();
     
     // Format tampilan input ke Capital
-    elNama.value = inputNama;
     elKode.value = kodeInput;
+    elNama.value = inputNama;
 
     const elMsg = document.getElementById("pesan-error-login");
     const btnLanjut = document.getElementById("btn-lanjut-info");
@@ -95,8 +99,8 @@ async function cekVerifikasiPeserta() {
     if (btnCek) btnCek.disabled = true;
 
     try {
-        // Ambil data jika belum ada di state
-        if (!App.daftarPesertaValid || App.daftarPesertaValid.length === 0) {
+        // Ambil data jika belum ada di state atau jika sebelumnya gagal dimuat
+        if (!App.daftarPesertaValid || !Array.isArray(App.daftarPesertaValid) || App.daftarPesertaValid.length === 0) {
             await loadDaftarPeserta();
         }
 
@@ -165,15 +169,22 @@ async function cekVerifikasiPeserta() {
 // SUBMIT FORM IDENTITAS & FETCH SOAL (PINDAH KE PAGE 2)
 // ==========================================================
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. HUBUNGKAN EVENT LISTENER KE TOMBOL CEK VERIFIKASI (MENGATASI AKSI TOMBOL TIDAK JALAN)
+    const btnCek = document.getElementById("btn-cek-verifikasi");
+    if (btnCek) {
+        btnCek.addEventListener("click", cekVerifikasiPeserta);
+    }
+
+    // 2. SUBMIT FORM HANDLER
     const formIdentitas = document.getElementById("form-identitas");
     if (!formIdentitas) return;
 
     formIdentitas.addEventListener("submit", async function(e) {
         e.preventDefault();
         
-        const kodeInput = document.getElementById("kode-ujian-input")?.value.trim().toUpperCase() || "";
-        const inputToken = document.getElementById("token-input")?.value.trim() || "";
-        const inputNama = document.getElementById("nama")?.value.trim().toUpperCase() || "";
+        const kodeInput = document.getElementById("kode-ujian-input").value.trim().toUpperCase();
+        const inputToken = document.getElementById("token-input").value.trim();
+        const inputNama = document.getElementById("nama").value.trim().toUpperCase();
         
         const errorElement = document.getElementById("pesan-error-login");
         const btnSubmit = document.getElementById("btn-lanjut-info");
@@ -192,16 +203,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (btnSubmit) {
-            btnSubmit.disabled = true;
-            btnSubmit.textContent = "Memuat Soal Ujian...";
-        }
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Memuat Soal Ujian...";
 
         // MEMBACA FILE DARI FOLDER json/
         const targetJsonFile = `json/${kodeInput}-Soal.json`;
 
         try {
-            const pesertaMatch = App.verifiedPesertaData || {};
+            const pesertaMatch = App.verifiedPesertaData;
 
             // Fetch File Soal JSON
             const res = await fetch(targetJsonFile);
@@ -271,6 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (document.getElementById("disp-lembaga-cbt")) document.getElementById("disp-lembaga-cbt").textContent = data.lembaga;
             }
             
+            // 1. sub_lembaga
             const valSubLembaga = data.sub_lembaga || data.sub_header || "-";
             if (document.getElementById("disp-sub-lembaga-info")) {
                 document.getElementById("disp-sub-lembaga-info").textContent = valSubLembaga;
@@ -282,6 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("disp-sub-lembaga-cbt").textContent = valSubLembaga;
             }
 
+            // 2. nama_kegiatan
             const valNamaKegiatan = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
             if (document.getElementById("disp-nama-kegiatan")) {
                 document.getElementById("disp-nama-kegiatan").textContent = valNamaKegiatan;
@@ -299,10 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Pindah Tampilan ke Halaman 2 (Informasi Ujian)
-            const pageLogin = document.getElementById("page-login");
-            const pageInfo = document.getElementById("page-info");
-            if (pageLogin) pageLogin.classList.add("hidden");
-            if (pageInfo) pageInfo.classList.remove("hidden");
+            document.getElementById("page-login").classList.add("hidden");
+            document.getElementById("page-info").classList.remove("hidden");
             window.scrollTo(0, 0);
 
         } catch (err) {
@@ -313,10 +322,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 errorElement.textContent = err.message;
             }
         } finally {
-            if (btnSubmit) {
-                btnSubmit.disabled = false;
-                btnSubmit.textContent = "Verifikasi & Lanjut ke Petunjuk >>";
-            }
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "Verifikasi & Lanjut ke Petunjuk >>";
         }
     });
 });
