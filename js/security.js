@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.6.0 - ROBUST)
+// security.js - Engine Keamanan & Photo Proctoring (v1.6.2 - FAST SUBMIT)
 // Terintegrasi dengan Dynamic Scoring, Webhook GAS, & State App
 // ==========================================================
 
@@ -13,7 +13,6 @@ let blurDebounceTimer = null;
  */
 async function initWebcamProctoring() {
     try {
-        // Minta akses kamera
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } 
         });
@@ -40,7 +39,7 @@ async function initWebcamProctoring() {
 
 /**
  * Mengambil Snapshot Foto Wajah (Output: Base64 JPEG)
- * Dikompresi ke 400px agar payload ringan & cepat diunggah ke GAS/Drive
+ * Dikompresi ke 400px agar payload ringan & cepat
  */
 function captureSnapshot() {
     if (!App.isWebcamActive) return null;
@@ -50,14 +49,14 @@ function captureSnapshot() {
 
     try {
         const canvas = document.createElement("canvas");
-        const scale = 400 / videoEl.videoWidth; // Downscale resolusi agar ringan
+        const scale = 400 / videoEl.videoWidth;
         canvas.width = 400;
         canvas.height = videoEl.videoHeight * scale;
         
         const ctx = canvas.getContext("2d");
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
         
-        return canvas.toDataURL("image/jpeg", 0.6); // Kualitas 60%
+        return canvas.toDataURL("image/jpeg", 0.6);
     } catch (e) {
         console.error("Gagal mengambil snapshot webcam:", e);
         return null;
@@ -65,20 +64,17 @@ function captureSnapshot() {
 }
 
 /**
- * Mengirim data kecurangan & foto secara async ke Webhook (Google Apps Script)
- * Payload diformat khusus agar siap dicatat ke Google Sheet (Jml Pelanggaran, Log, Link Drive)
+ * Mengirim data kecurangan & foto secara Non-Blocking (Background Process)
  */
-async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
-    // URL Webhook Google Apps Script
+function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
     const webhookUrl = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
-    if (!webhookUrl) return null;
+    if (!webhookUrl) return;
 
     const p = App.verifiedPesertaData || App.userIdentitas || {};
     const namaPeserta = p["Nama Lengkap"] || p.nama || "Tanpa Nama";
     const examData = App.examData || {};
     const kodeUjian = examData.kode_ujian || App.currentKodeUjian || p.kode_ujian || "NO-KODE";
 
-    // Rekap log kecurangan dalam bentuk teks ringkas untuk kolom Spreadsheet
     const ringkasanLogText = (App.warningLogs || [])
         .map(l => `[${l.waktu}] ${l.alasan}`)
         .join(" | ");
@@ -94,26 +90,23 @@ async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
         image_base64: fotoBase64 || ""
     };
 
-    // Safety Timeout 5 Detik agar jika koneksi lambat, browser tidak hang
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    try {
-        const response = await fetch(webhookUrl, {
-            method: "POST",
-            mode: "no-cors", // Digunakan untuk bypass CORS Google Apps Script
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
+    // Dijalankan secara asynchronous tanpa menyandera alur utama
+    fetch(webhookUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+    }).then(() => {
         clearTimeout(timeoutId);
-        console.log("📷 Data & Foto pelanggaran berhasil dikirim ke Webhook Google Drive.");
-        return true;
-    } catch (err) {
+        console.log("📷 Log kecurangan terkirim di background.");
+    }).catch(err => {
         clearTimeout(timeoutId);
-        console.warn("Upload foto kecurangan timeout/gagal:", err);
-        return false;
-    }
+        console.warn("Background upload kecurangan gagal/timeout:", err);
+    });
 }
 
 /**
@@ -136,8 +129,7 @@ function playVoiceWarning(text) {
 /**
  * Penanganan Utama Peringatan & Rekam Bukti Pelanggaran
  */
-async function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
-    // Abaikan jika ujian belum mulai, sudah selesai, atau sedang proses submit/warning
+function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
@@ -177,18 +169,18 @@ async function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         console.warn("Storage penuh / di-block.");
     }
 
-    // 📤 WAJIB AWAIT: Pastikan foto ter-upload DULU sebelum memicu Auto-Submit (Siswa Nakal)
-    await uploadFotoKecuranganToDrive(fotoBukti, alasan);
+    // 📤 KONTROL PENTING: Kirim data ke background TANPA AWAIT agar tidak bikin loading lambat
+    uploadFotoKecuranganToDrive(fotoBukti, alasan);
 
     if (App.warningCount >= App.MAX_WARNINGS) {
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
         
         App.isSubmitting = true; 
-        alert(`🚨 BATAS MAKSIMAL KECURANGAN TERCAPAI (${App.warningCount}/${App.MAX_WARNINGS})!\n\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti foto pelanggaran telah dikirim ke pengawas.`);
+        alert(`🚨 BATAS MAKSIMAL KECURANGAN TERCAPAI (${App.warningCount}/${App.MAX_WARNINGS})!\n\nAlasan: ${alasan}.\nUjian otomatis diakhiri.`);
 
         isWarningActive = false;
 
-        // Auto-submit paksa bypass konfirmasi modal (isAuto = true, isConfirmed = true)
+        // Auto-submit paksa
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban(true, true);
         } else if (typeof window.submitJawabanScoring === "function") {
@@ -200,7 +192,7 @@ async function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     } else {
         playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang melakukan pelanggaran!`);
         
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\n\nAlasan: ${alasan}.\nFoto & bukti pelanggaran telah direkam oleh sistem!`);
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})\n\nAlasan: ${alasan}.\nBukti pelanggaran telah direkam!`);
         
         setTimeout(() => {
             isWarningActive = false;
@@ -232,23 +224,6 @@ function initSecurityListeners() {
     // Aktifkan Kamera Proctoring
     initWebcamProctoring();
 
-    // Deteksi klik tombol Selesai/Submit agar tidak dianggap pindah fokus
-    document.addEventListener("click", (e) => {
-        const target = e.target.closest("button, a, input[type='button'], input[type='submit']");
-        if (target) {
-            const text = (target.innerText || target.value || "").toUpperCase();
-            if (text.includes("SELESAI") || text.includes("KUMPUL") || text.includes("SUBMIT") || text.includes("AKHIRI")) {
-                App.isSubmitting = true; 
-                
-                setTimeout(() => {
-                    if (!App.isExamSubmitted) {
-                        App.isSubmitting = false;
-                    }
-                }, 10000);
-            }
-        }
-    }, true);
-
     // 1. Deteksi Pindah Tab / Minimize
     document.addEventListener("visibilitychange", () => {
         if (document.hidden && App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
@@ -256,10 +231,9 @@ function initSecurityListeners() {
         }
     });
 
-    // 2. Deteksi Alt+Tab / Hilang Fokus Layar (Dengan Anti-False Alarm Debounce)
+    // 2. Deteksi Alt+Tab / Hilang Fokus Layar
     window.addEventListener("blur", () => {
         if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
-            // Berikan jeda 800ms untuk memastikan ini bukan klik alert/dialog internal
             clearTimeout(blurDebounceTimer);
             blurDebounceTimer = setTimeout(() => {
                 if (!document.hasFocus() && !App.isSubmitting) {
@@ -273,7 +247,7 @@ function initSecurityListeners() {
         clearTimeout(blurDebounceTimer);
     });
 
-    // 3. Deteksi Keluar Fullscreen
+    // 3. Deteksi Keluar Fullscreen (Auto Fullscreen Dipertahankan)
     document.addEventListener("fullscreenchange", () => {
         if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             prosesPeringatanKecurangan("Keluar dari Mode Fullscreen");
