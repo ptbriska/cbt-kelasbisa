@@ -25,6 +25,8 @@ async function loadDaftarPeserta() {
  * Mengisi otomatis field readonly identitas setelah verifikasi berhasil
  */
 function autoFillIdentitas(dataPeserta) {
+    if (!dataPeserta) return;
+
     const setInputValue = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val || "";
@@ -56,12 +58,17 @@ function clearIdentitasForm() {
  * Verifikasi Peserta Tahap 1 (Cek Kombinasi Nama & Kode Ujian)
  */
 async function cekVerifikasiPeserta() {
-    const kodeInput = document.getElementById("kode-ujian-input").value.trim().toUpperCase();
-    const inputNama = document.getElementById("nama").value.trim().toUpperCase();
+    const elKode = document.getElementById("kode-ujian-input");
+    const elNama = document.getElementById("nama");
+
+    if (!elKode || !elNama) return false;
+
+    const kodeInput = elKode.value.trim().toUpperCase();
+    const inputNama = elNama.value.trim().toUpperCase();
     
     // Format tampilan input ke Capital
-    document.getElementById("nama").value = inputNama;
-    document.getElementById("kode-ujian-input").value = kodeInput;
+    elNama.value = inputNama;
+    elKode.value = kodeInput;
 
     const elMsg = document.getElementById("pesan-error-login");
     const btnLanjut = document.getElementById("btn-lanjut-info");
@@ -82,7 +89,7 @@ async function cekVerifikasiPeserta() {
             elMsg.innerHTML = "⚠️ Harap isi <strong>Kode Ujian</strong> dan <strong>Nama Lengkap</strong> terlebih dahulu!";
         }
         if (btnLanjut) btnLanjut.style.display = "none";
-        return;
+        return false;
     }
 
     if (btnCek) btnCek.disabled = true;
@@ -115,6 +122,7 @@ async function cekVerifikasiPeserta() {
             }
 
             if (btnLanjut) btnLanjut.style.display = "block";
+            return true;
 
         } else {
             App.isVerified = false;
@@ -138,6 +146,7 @@ async function cekVerifikasiPeserta() {
                     </a>
                 `;
             }
+            return false;
         }
     } catch (err) {
         console.error(err);
@@ -146,6 +155,7 @@ async function cekVerifikasiPeserta() {
             elMsg.style.display = "block";
             elMsg.innerHTML = `⚠️ Terjadi kesalahan: ${err.message}`;
         }
+        return false;
     } finally {
         if (btnCek) btnCek.disabled = false;
     }
@@ -161,16 +171,16 @@ document.addEventListener("DOMContentLoaded", () => {
     formIdentitas.addEventListener("submit", async function(e) {
         e.preventDefault();
         
-        const kodeInput = document.getElementById("kode-ujian-input").value.trim().toUpperCase();
-        const inputToken = document.getElementById("token-input").value.trim();
-        const inputNama = document.getElementById("nama").value.trim().toUpperCase();
+        const kodeInput = document.getElementById("kode-ujian-input")?.value.trim().toUpperCase() || "";
+        const inputToken = document.getElementById("token-input")?.value.trim() || "";
+        const inputNama = document.getElementById("nama")?.value.trim().toUpperCase() || "";
         
         const errorElement = document.getElementById("pesan-error-login");
         const btnSubmit = document.getElementById("btn-lanjut-info");
 
         if (!App.isVerified || !App.verifiedPesertaData) {
-            await cekVerifikasiPeserta();
-            if (!App.isVerified) return;
+            const isOk = await cekVerifikasiPeserta();
+            if (!isOk) return;
         }
 
         if (!inputToken) {
@@ -182,14 +192,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = "Memuat Soal Ujian...";
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Memuat Soal Ujian...";
+        }
 
         // MEMBACA FILE DARI FOLDER json/
         const targetJsonFile = `json/${kodeInput}-Soal.json`;
 
         try {
-            const pesertaMatch = App.verifiedPesertaData;
+            const pesertaMatch = App.verifiedPesertaData || {};
 
             // Fetch File Soal JSON
             const res = await fetch(targetJsonFile);
@@ -259,8 +271,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (document.getElementById("disp-lembaga-cbt")) document.getElementById("disp-lembaga-cbt").textContent = data.lembaga;
             }
             
-            // 1. sub_lembaga (Contoh: "PILAR JUARA - KELAS BISA")
-            // Ditampilkan pada Header Sub-Lembaga di bawah Lembaga Utama
             const valSubLembaga = data.sub_lembaga || data.sub_header || "-";
             if (document.getElementById("disp-sub-lembaga-info")) {
                 document.getElementById("disp-sub-lembaga-info").textContent = valSubLembaga;
@@ -272,8 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("disp-sub-lembaga-cbt").textContent = valSubLembaga;
             }
 
-            // 2. nama_kegiatan (Contoh: "SIMULASI OSN")
-            // Ditampilkan pada Tabel Informasi Ujian CBT (<span id="disp-nama-kegiatan">)
             const valNamaKegiatan = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
             if (document.getElementById("disp-nama-kegiatan")) {
                 document.getElementById("disp-nama-kegiatan").textContent = valNamaKegiatan;
@@ -291,8 +299,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Pindah Tampilan ke Halaman 2 (Informasi Ujian)
-            document.getElementById("page-login").classList.add("hidden");
-            document.getElementById("page-info").classList.remove("hidden");
+            const pageLogin = document.getElementById("page-login");
+            const pageInfo = document.getElementById("page-info");
+            if (pageLogin) pageLogin.classList.add("hidden");
+            if (pageInfo) pageInfo.classList.remove("hidden");
             window.scrollTo(0, 0);
 
         } catch (err) {
@@ -303,8 +313,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 errorElement.textContent = err.message;
             }
         } finally {
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = "Verifikasi & Lanjut ke Petunjuk >>";
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = "Verifikasi & Lanjut ke Petunjuk >>";
+            }
         }
     });
 });
