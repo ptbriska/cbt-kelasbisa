@@ -1,5 +1,5 @@
 // ==========================================================
-// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.1 - BUGFIXES APPLIED)
+// exam.js - Engine Ujian CBT & Navigasi Soal (v1.5.2 - FIXED)
 // ==========================================================
 
 function toggleMulaiButton() {
@@ -38,7 +38,7 @@ function mulaiUjianPenuh() {
         App.isSubmitting = false; 
         App.warningCount = 0;
         App.warningLogs = [];
-        App.startTime = new Date().toISOString(); // [PERBAIKAN] Catat timestamp mulai
+        App.startTime = new Date().toISOString();
     }
 
     // 4. Minta Mode Fullscreen
@@ -298,83 +298,38 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     const dijawab = Object.keys(App.userAnswers || {}).length;
     const kosong = totalSoal - dijawab;
 
-    // 1. TAMPILKAN PANEL KONFIRMASI (Jika klik manual dan belum dikonfirmasi)
+    // 1. TAMPILKAN PANEL KONFIRMASI (Jika manual dan belum konfirmasi)
     if (!isAuto && !isConfirmed) {
-        App.isSubmitting = true; // [PERBAIKAN] Nonaktifkan sensor kecurangan saat modal konfirmasi buka
+        App.isSubmitting = true; // Nonaktifkan sensor kecurangan sementara
         tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal);
         return;
     }
 
-    // 2. Matikan Sensor Keamanan & Kunci LocalStorage jika diperlukan
+    // 2. KUNCI STATUS SUBMIT & HENTIKAN TIMER
     App.isSubmitting = true;
     if (typeof window.simpanLockSubmitted === "function") {
-        window.simpanLockSubmitted(); // [PERBAIKAN] Kunci status ujian di browser
+        window.simpanLockSubmitted(); 
     }
 
-    // 3. Hentikan Timer
     if (App.timerInterval) {
         clearInterval(App.timerInterval);
     }
 
-    // 4. Ubah UI (Loading State)
+    // 3. TAMPILKAN LOADING OVERLAY
     const overlayLoading = document.getElementById("loading-overlay");
     if (overlayLoading) overlayLoading.classList.remove("hidden");
     
-    // [PERBAIKAN] Menggunakan selector DOM yang valid
     const btnSelesai = document.getElementById("btn-selesai");
     if (btnSelesai) {
         btnSelesai.disabled = true;
         btnSelesai.textContent = "Mengirim...";
     }
 
-    // 5. Siapkan Payload Data Jawaban
-    const p = App.verifiedPesertaData || App.userIdentitas || {};
-    const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
-    
-    const payloadData = {
-        action: "submit_ujian",
-        kode_ujian: App.currentKodeUjian || p.kode_ujian || "NO-KODE",
-        identitas: p,
-        jawaban: App.userAnswers,
-        log_pelanggaran: App.warningLogs || [],
-        waktu_mulai: App.startTime || "",
-        waktu_selesai: new Date().toISOString()
-    };
-
-    try {
-        // 6. Kirim Data
-        await fetch(WEBHOOK_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payloadData)
-        });
-
-        // 7. Reset State Ujian
-        App.isExamSubmitted = true;
-        App.isSubmitting = false;
-
-        if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
-        }
-
-        if (overlayLoading) overlayLoading.classList.add("hidden");
-        document.getElementById("page-cbt")?.classList.add("hidden");
-        
-        const pageSelesai = document.getElementById("page-selesai");
-        if (pageSelesai) {
-            pageSelesai.classList.remove("hidden");
-        } else if (typeof submitJawabanScoring === "function") {
-            submitJawabanScoring();
-        } else {
-            alert("✅ Ujian Selesai. Jawaban Anda telah berhasil dikirim ke server.");
-            window.location.reload();
-        }
-
-    } catch (err) {
-        console.error("Gagal mengirim jawaban:", err);
-        alert("❌ Terjadi kesalahan jaringan saat mengirim jawaban! Silakan coba lagi.");
-        
+    // 4. LEMPAR DENGAN AMAN KE SCORING ENGINE (scoring.js)
+    if (typeof submitJawabanScoring === "function") {
+        submitJawabanScoring();
+    } else {
+        alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
         if (overlayLoading) overlayLoading.classList.add("hidden");
         if (btnSelesai) {
             btnSelesai.disabled = false;
@@ -427,7 +382,7 @@ function tampilkanPanelKonfirmasi(dijawab, kosong, totalSoal) {
 
     document.getElementById("btn-modal-batal").onclick = function() {
         document.getElementById("custom-confirm-modal")?.remove();
-        if (window.App) App.isSubmitting = false; // [PERBAIKAN] Aktifkan kembali sensor jika membatalkan modal
+        if (window.App) App.isSubmitting = false; // Aktifkan kembali sensor jika batal
     };
 
     document.getElementById("btn-modal-ya").onclick = function() {
