@@ -1,22 +1,22 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.5.0 - NO CAMERA & FAST SUBMIT)
+// main.js - Entry Point & Window Bridge Handler (v1.5.1 - FIXED FAST SUBMIT)
 // ==========================================================
 
 // 1. Inisialisasi Objek Global State App Safe-Guard
 window.App = window.App || {};
 
-// Assign default values jika belum didefinisikan
+// Assign default values secara langsung (Global Initialization)
 Object.assign(window.App, {
-    verifiedPesertaData: App.verifiedPesertaData || null,
-    userIdentitas: App.userIdentitas || null,
-    soalData: App.soalData || null,
-    questionsData: App.questionsData || [],
-    userAnswers: App.userAnswers || {},
-    currentIndex: App.currentIndex || 0,
+    verifiedPesertaData: window.App.verifiedPesertaData || null,
+    userIdentitas: window.App.userIdentitas || null,
+    soalData: window.App.soalData || null,
+    questionsData: window.App.questionsData || [],
+    userAnswers: window.App.userAnswers || {},
+    currentIndex: window.App.currentIndex || 0,
     
     // Konfigurasi Penilaian & Soal
-    modePenilaian: App.modePenilaian || "1A", 
-    skorConfig: App.skorConfig || {
+    modePenilaian: window.App.modePenilaian || "1A", 
+    skorConfig: window.App.skorConfig || {
         skor_benar: 1,
         skor_salah: 0,
         skor_kosong: 0,
@@ -24,39 +24,96 @@ Object.assign(window.App, {
         use_scaling_100: false
     },
     
-    currentKodeUjian: App.currentKodeUjian || "",
-    modeUjian: App.modeUjian || "LATIHAN",
-    timerDurationMinutes: App.timerDurationMinutes || 10,
-    WEBHOOK_URL: App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
+    currentKodeUjian: window.App.currentKodeUjian || "",
+    modeUjian: window.App.modeUjian || "LATIHAN",
+    timerDurationMinutes: window.App.timerDurationMinutes || 10,
+    WEBHOOK_URL: window.App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec",
     
     // Flag Alur Ujian
-    isExamStarted: App.isExamStarted || false,
-    isExamSubmitted: App.isExamSubmitted || false,
-    isSubmitting: App.isSubmitting || false,
+    isExamStarted: window.App.isExamStarted || false,
+    isExamSubmitted: window.App.isExamSubmitted || false,
+    isSubmitting: window.App.isSubmitting || false,
 
     // State Keamanan (Kamera/Webcam Dinonaktifkan)
-    warningCount: App.warningCount || 0,
-    MAX_WARNINGS: App.MAX_WARNINGS || 3,
-    warningLogs: App.warningLogs || [],
+    warningCount: window.App.warningCount || 0,
+    MAX_WARNINGS: window.App.MAX_WARNINGS || 3,
+    warningLogs: window.App.warningLogs || [],
     cheatingSnapshots: [], // Kamera dimatikan, snapshot selalu kosong
     isWebcamActive: false,
     webcamStream: null,
-    timerInterval: App.timerInterval || null
+    timerInterval: window.App.timerInterval || null
 });
 
 // ==========================================================
 // BRIDGE INTEGRASI & DUMMY KAMERA HANDLER
 // ==========================================================
 
-// Dummy function agar tidak galat jika skrip lain memanggil pengawasan kamera
+// Dummy function agar tidak crash jika skrip lain memanggil webcam
 window.initWebcamProctoring = function() {
     console.log("ℹ️ Fitur Kamera / Proctoring WebCam dinonaktifkan.");
     return Promise.resolve(true);
 };
 
-// Expose fungsi pendukung jika terdefinisi
-if (typeof processPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = processPeringatanKecurangan;
-if (typeof initSecurityListeners === "function") window.initSecurityListeners = initSecurityListeners;
+/**
+ * Mengunci LocalStorage setelah submit
+ */
+window.simpanLockSubmitted = function() {
+    const mode = (window.App.modeUjian || "").toUpperCase();
+    if (window.App && (mode === "SIMULASI" || mode === "LATIHAN") && window.App.currentKodeUjian) {
+        const dataPeserta = window.App.verifiedPesertaData || window.App.userIdentitas || {};
+        const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
+        const lockKey = `SUBMITTED_${window.App.currentKodeUjian}_${namaUser}`;
+        localStorage.setItem(lockKey, "TRUE");
+    }
+};
+
+/**
+ * Eksekusi Pengumpulan Ujian Secara Langsung & Cepat (Fast-Path Fix)
+ */
+window.konfirmasiSubmit = function() {
+    if (window.App) window.App.isSubmitting = true;
+    
+    // Matikan timer langsung jika sedang berjalan
+    if (window.App && window.App.timerInterval) {
+        clearInterval(window.App.timerInterval);
+        window.App.timerInterval = null;
+    }
+
+    // Prioritaskan eksekusi langsung Engine Scoring tanpa perantara
+    if (typeof submitJawabanScoring === "function") {
+        submitJawabanScoring();
+    } else if (typeof window.submitJawabanScoring === "function") {
+        window.submitJawabanScoring();
+    } else if (typeof submitJawaban === "function") {
+        submitJawaban(false, true);
+    } else if (typeof window.submitJawaban === "function") {
+        window.submitJawaban(false, true);
+    }
+};
+
+/**
+ * Dialog Keluar dari Ujian
+ */
+window.konfirmasiKeluar = function() {
+    if (window.App) window.App.isSubmitting = true; 
+
+    if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
+        if (window.App && window.App.timerInterval) {
+            clearInterval(window.App.timerInterval);
+        }
+
+        localStorage.removeItem("cbt_violation_logs");
+        location.reload();
+    } else {
+        setTimeout(() => { 
+            if (window.App) window.App.isSubmitting = false; 
+        }, 300);
+    }
+};
+
+// ==========================================================
+// EVENT LISTENER LOAD
+// ==========================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Muat Database Peserta saat pertama kali dibuka
@@ -90,81 +147,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (typeof window.toggleMulaiButton === "function") window.toggleMulaiButton();
     }
 
-    // ==========================================================
-    // EXPOSE FUNGSI KE GLOBAL (WINDOW)
-    // ==========================================================
-    
-    // Auth & Verifikasi
+    // 4. Synergize Global References
+    if (typeof processPeringatanKecurangan === "function") window.prosesPeringatanKecurangan = processPeringatanKecurangan;
+    if (typeof initSecurityListeners === "function") window.initSecurityListeners = initSecurityListeners;
     if (typeof loadDaftarPeserta === "function") window.loadDaftarPeserta = loadDaftarPeserta;
     if (typeof cekVerifikasiPeserta === "function") window.cekVerifikasiPeserta = cekVerifikasiPeserta;
-
-    // Navigasi & Rendering Soal
     if (typeof navigasi === "function") window.navigasi = navigasi;
     if (typeof loadQuestion === "function") window.loadQuestion = loadQuestion;
     if (typeof renderNumberGrid === "function") window.renderNumberGrid = renderNumberGrid;
     if (typeof toggleNavigator === "function") window.toggleNavigator = toggleNavigator;
-
-    // Alur Persetujuan & Pindah Halaman
     if (typeof toggleMulaiButton === "function") window.toggleMulaiButton = toggleMulaiButton;
     if (typeof kembaliKePage1 === "function") window.kembaliKePage1 = kembaliKePage1;
     if (typeof mulaiUjianPenuh === "function") window.mulaiUjianPenuh = mulaiUjianPenuh;
-
-    // Engine Penilaian & Modal UI
     if (typeof submitJawabanScoring === "function") window.submitJawabanScoring = submitJawabanScoring;
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
     if (typeof tampilkanPanelKonfirmasi === "function") window.tampilkanPanelKonfirmasi = tampilkanPanelKonfirmasi;
-
-    // ==========================================================
-    // HELPER ACTIONS & FAST SUBMIT BRIDGE
-    // ==========================================================
-    
-    /**
-     * Mengunci LocalStorage setelah submit
-     */
-    window.simpanLockSubmitted = function() {
-        const mode = (App.modeUjian || "").toUpperCase();
-        if (window.App && (mode === "SIMULASI" || mode === "LATIHAN") && App.currentKodeUjian) {
-            const dataPeserta = App.verifiedPesertaData || App.userIdentitas || {};
-            const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
-            const lockKey = `SUBMITTED_${App.currentKodeUjian}_${namaUser}`;
-            localStorage.setItem(lockKey, "TRUE");
-        }
-    };
-
-    /**
-     * Eksekusi Pengumpulan Ujian Secara Cepat
-     */
-    window.konfirmasiSubmit = function() {
-        if (window.App) App.isSubmitting = true;
-        
-        if (typeof submitJawaban === "function") {
-            submitJawaban(false, true);
-        } else if (typeof window.submitJawaban === "function") {
-            window.submitJawaban(false, true);
-        } else if (typeof submitJawabanScoring === "function") {
-            submitJawabanScoring();
-        } else if (typeof window.submitJawabanScoring === "function") {
-            window.submitJawabanScoring();
-        }
-    };
-
-    /**
-     * Dialog Keluar dari Ujian
-     */
-    window.konfirmasiKeluar = function() {
-        if (window.App) App.isSubmitting = true; 
-
-        if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian CBT? Seluruh progres ujian Anda akan terhenti.")) {
-            if (window.App && App.timerInterval) {
-                clearInterval(App.timerInterval);
-            }
-
-            localStorage.removeItem("cbt_violation_logs");
-            location.reload();
-        } else {
-            setTimeout(() => { 
-                if (window.App) App.isSubmitting = false; 
-            }, 300);
-        }
-    };
 });
