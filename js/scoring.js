@@ -1,15 +1,20 @@
 // ==========================================================
-// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE
+// scoring.js - FULLY DYNAMIC & ISOLATED SCORING ENGINE (v1.5.2 - FIXED)
 // Murni membaca seluruh nilai dari file JSON secara dinamis
 // ==========================================================
 
-function submitJawaban() {
+function submitJawabanScoring() {
     if (!window.App || App.isExamSubmitted) return;
     App.isExamSubmitted = true;
 
+    // Hentikan Timer & Stream Webcam
     if (App.timerInterval) clearInterval(App.timerInterval);
     if (App.webcamStream) {
-        App.webcamStream.getTracks().forEach(track => track.stop());
+        try {
+            App.webcamStream.getTracks().forEach(track => track.stop());
+        } catch (e) {
+            console.warn("Gagal menghentikan webcam stream:", e);
+        }
         App.webcamStream = null;
     }
 
@@ -39,8 +44,9 @@ function submitJawaban() {
 
     if (modePenilaian === "1C") {
         // MODE 1C: Menggunakan Bobot Level Soal dari JSON
-        questions.forEach((q) => {
-            const userAns = userAnswers[q.No];
+        questions.forEach((q, idx) => {
+            const noSoal = q.No || (idx + 1);
+            const userAns = userAnswers[noSoal];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
             
             const levelSoal = String(q.Level || "").trim().toUpperCase();
@@ -60,8 +66,9 @@ function submitJawaban() {
 
     } else if (modePenilaian === "1B") {
         // MODE 1B: Skor Minus / Penalty 
-        questions.forEach((q) => {
-            const userAns = userAnswers[q.No];
+        questions.forEach((q, idx) => {
+            const noSoal = q.No || (idx + 1);
+            const userAns = userAnswers[noSoal];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
 
             if (!userAns) {
@@ -78,8 +85,9 @@ function submitJawaban() {
 
     } else {
         // MODE 1A: Standard / Proporsional
-        questions.forEach((q) => {
-            const userAns = userAnswers[q.No];
+        questions.forEach((q, idx) => {
+            const noSoal = q.No || (idx + 1);
+            const userAns = userAnswers[noSoal];
             const kunci = String(q.Kunci || "").trim().toUpperCase();
 
             if (!userAns) {
@@ -114,19 +122,25 @@ function submitJawaban() {
         pageCbt.innerHTML = `
             <div style="text-align:center; padding: 60px 20px; font-family: sans-serif;">
                 <h2 style="color: #1a237e;">Mengirimkan Jawaban...</h2>
-                <p style="color: #666;">Mohon tunggu sebentar, jawaban sedang diproses.</p>
+                <p style="color: #666;">Mohon tunggu sebentar, jawaban sedang diproses ke server.</p>
             </div>
         `;
     }
 
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
+    const WEBHOOK_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
+
     const payload = {
+        action: "submit_ujian",
         kode_soal: App.currentKodeUjian || App.examData?.kode_ujian || "UNKNOWN",
         sistem_ujian: "CBT",
         mode_ujian: App.modeUjian || "UTAMA",
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
+        log_pelanggaran: App.warningLogs || [],
+        waktu_mulai: App.startTime || "",
+        waktu_selesai: new Date().toISOString(),
         total_dijawab: Object.keys(userAnswers).length,
         total_soal: totalSoal,
         skor_total: skorAkhir,
@@ -136,11 +150,11 @@ function submitJawaban() {
         kosong: jumlahKosong
     };
 
-    if (App.WEBHOOK_URL && App.WEBHOOK_URL.trim() !== "") {
-        fetch(App.WEBHOOK_URL, {
+    if (WEBHOOK_URL && WEBHOOK_URL.trim() !== "") {
+        fetch(WEBHOOK_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(payload)
         })
         .then(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800))
