@@ -1,11 +1,12 @@
 /* ==========================================================================
-   security.js - Engine Keamanan & Monitoring (v1.8.3 - FIXED & SYNCHRONIZED)
+   security.js - Engine Keamanan & Monitoring (v1.8.4 - FIXED & SYNCHRONIZED)
    ========================================================================== */
 
 window.App = window.App || {};
 
 let isWarningActive = false;
 let blurDebounceTimer = null;
+let lastViolationTimestamp = 0; // Cooldown timer pencegah hitungan ganda
 
 /**
  * Dummy WebCam Handler
@@ -42,9 +43,15 @@ function playVoiceWarning(text) {
  * Penanganan Utama Peringatan Pelanggaran Ujian
  */
 function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
+    const now = Date.now();
+    // Cooldown 1.5 Detik untuk mencegah pemicu ganda dari event bersamaan
+    if (now - lastViolationTimestamp < 1500) return;
+
     if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting || isWarningActive) return;
 
     isWarningActive = true;
+    lastViolationTimestamp = now;
+
     App.warningCount = (parseInt(App.warningCount, 10) || 0) + 1;
     App.MAX_WARNINGS = App.MAX_WARNINGS || 3; 
 
@@ -63,7 +70,7 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     };
     App.warningLogs.push(logData);
     
-    // Backup konsisten ke LocalStorage
+    // Backup ke LocalStorage
     try {
         localStorage.setItem("cbt_warning_count", App.warningCount.toString());
         localStorage.setItem("cbt_violation_logs", JSON.stringify(App.warningLogs));
@@ -77,7 +84,6 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 
         playVoiceWarning("Batas toleransi habis! Ujian Anda otomatis diakhiri.");
 
-        // Panggil Engine Submit Tanpa Mengunci State Terlebih Dahulu
         if (typeof window.submitJawaban === "function") {
             window.submitJawaban(true, true);
         } else if (typeof submitJawaban === "function") {
@@ -120,7 +126,6 @@ function enforceFullscreen() {
 function initSecurityListeners() {
     console.log("🛡️ Initializing Security Listeners (Fixed Auto-Submit & Sync Count)...");
     
-    // Restore state jika sempat ter-refresh
     const savedCount = parseInt(localStorage.getItem("cbt_warning_count"), 10);
     App.warningCount = !isNaN(savedCount) ? savedCount : 0;
     
@@ -146,7 +151,8 @@ function initSecurityListeners() {
         if (App.isExamStarted && !App.isExamSubmitted && !App.isSubmitting) {
             clearTimeout(blurDebounceTimer);
             blurDebounceTimer = setTimeout(() => {
-                if (!document.hasFocus() && !App.isSubmitting && !App.isExamSubmitted) {
+                // Jangan pemicu blur jika dokumen sudah terdeteksi hidden oleh visibilitychange
+                if (!document.hasFocus() && !document.hidden && !App.isSubmitting && !App.isExamSubmitted) {
                     prosesPeringatanKecurangan("Fokus Layar Terlepas (Alt+Tab / Pindah Aplikasi)");
                 }
             }, 800);
@@ -169,7 +175,7 @@ function initSecurityListeners() {
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted || App.isSubmitting) return;
 
-        // Screenshot Shortcut (Win + Shift + S)
+        // Shortcut Screenshot (Win + Shift + S)
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
             document.body.style.display = "none";
