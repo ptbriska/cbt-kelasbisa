@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.4.1</title>
+  <title>CBT Online - Kelas Bisa Exam System v1.5.3</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
@@ -36,7 +36,6 @@
   <!-- ========================================== -->
   <!-- OVERLAY LOADING SAAT SUBMIT JAWABAN        -->
   <!-- ========================================== -->
-  <!-- [PERBAIKAN] Menghapus inline display:flex agar class .hidden bekerja presisi -->
   <div id="loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
     <div style="font-size: 42px; color: #007bff; margin-bottom: 15px;">
       <i class="fas fa-spinner fa-spin"></i>
@@ -226,7 +225,6 @@
         <div class="sub-header">
           <h3 class="q-title">
             SOAL NO : <span id="q-num">1</span>
-            <!-- [PERBAIKAN] Menambahkan elemen tempat rincian level soal -->
             <span id="q-level" class="badge-level" style="font-size: 13px; color: #666; margin-left: 8px;"></span>
           </h3>
           <div class="timer-display">
@@ -248,8 +246,8 @@
 
     <footer class="bottom-bar">
       <div class="bottom-left">
-        <!-- [PERBAIKAN] Perbaikan ID ke 'btn-selesai' dan onclick ke 'submitJawaban()' -->
-        <button id="btn-selesai" class="btn-footer btn-selesai" onclick="submitJawaban()">🏁 SELESAI</button>
+        <!-- [REVISI] Panggil tampilkanPanelKonfirmasi() sebelum submit -->
+        <button id="btn-selesai" class="btn-footer btn-selesai" onclick="tampilkanPanelKonfirmasi()">🏁 SELESAI</button>
       </div>
       <div class="bottom-center">
         <button id="btn-prev" class="btn-footer" onclick="navigasi(-1)">◀ Soal Sebelumnya</button>
@@ -268,11 +266,25 @@
       </div>
       <div class="drawer-body">
         <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Klik nomor soal untuk berpindah dengan cepat:</p>
-        <!-- [PERBAIKAN] Kontainer pengganti grid navigasi versi mobile -->
         <div id="number-grid-mobile" class="circle-grid"></div>
       </div>
     </div>
 
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL DIALOG KONFIRMASI SUBMIT             -->
+  <!-- ========================================== -->
+  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; display: flex; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 480px; width: 90%; background: #fff; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+      <h3 style="margin-top: 0; color: #333;">Konfirmasi Selesai Ujian</h3>
+      <p id="teks-ringkasan-konfirmasi" style="color: #555; font-size: 15px; margin: 15px 0; line-height: 1.5;"></p>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('modal-konfirmasi').classList.add('hidden')">Batal / Periksa Lagi</button>
+        <button type="button" class="btn-primary" onclick="konfirmasiSubmit()">Ya, Kirim Jawaban</button>
+      </div>
+    </div>
   </div>
 
 
