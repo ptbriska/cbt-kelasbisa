@@ -1,6 +1,6 @@
 // ==========================================================
 // scoring.js - Dynamic Scoring & Webhook Submission Engine
-// 100% Automate dari JSON Soal (skor_config & questions)
+// 100% Automate dari JSON Soal (FIXED VARIABEL GLOBAL)
 // ==========================================================
 
 function submitJawaban() {
@@ -20,13 +20,13 @@ function submitJawaban() {
         window.removeEventListener("blur", handleWindowBlur);
     }
 
-    // 3. Matikan Stream Kamera Proctoring jika Aktif
+    // 3. Matikan Stream Kamera Proctoring
     if (App.webcamStream) {
         App.webcamStream.getTracks().forEach(track => track.stop());
         App.webcamStream = null;
     }
 
-    // 4. Set Gembok Submit jika dalam Mode SIMULASI
+    // 4. Set Gembok Submit (Mode SIMULASI)
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
     if (App.modeUjian === "SIMULASI" && App.currentKodeUjian) {
         const namaUser = dataPesertaResmi["Nama Lengkap"] || dataPesertaResmi.nama || "USER";
@@ -34,12 +34,12 @@ function submitJawaban() {
         localStorage.setItem(lockKey, "TRUE");
     }
 
-    // 5. AMBIL KONFIGURASI DENGAN DEFENSIVE PROGRAMMING (FALLBACK AMAN)
-    const examData = App.examData || {};
-    const modePenilaian = String(examData.mode_penilaian || "1A").trim().toUpperCase();
+    // =========================================================
+    // PERBAIKAN KRITIKAL: MEMBACA LANGSUNG DARI App STATE GLOBAL
+    // =========================================================
+    const modePenilaian = String(App.modePenilaian || "1A").trim().toUpperCase();
     
-    // Pastikan cfg tidak undefined agar tidak error saat dipanggil
-    const cfg = examData.skor_config || { 
+    const cfg = App.skorConfig || { 
         skor_benar: 1, 
         skor_salah: 0, 
         skor_kosong: 0, 
@@ -47,16 +47,16 @@ function submitJawaban() {
         use_scaling_100: false 
     };
 
+    const questions = App.questionsData || []; // Array Soal Sebenarnya
+    const totalSoal = questions.length;
+    const userAnswers = App.userAnswers || {}; 
+
     let totalSkor = 0;
     let jumlahBenar = 0;
     let jumlahSalah = 0;
     let jumlahKosong = 0;
 
-    // 6. PENILAIAN PER NOMOR SOAL
-    const questions = examData.questions || []; // Amankan dengan array kosong
-    const totalSoal = questions.length;
-    const userAnswers = App.userAnswers || {}; // Amankan object jawaban
-
+    // 5. PENILAIAN PER NOMOR SOAL
     questions.forEach((q) => {
         const userAns = userAnswers[q.No];
         const kunci = String(q.Kunci || "").trim().toUpperCase();
@@ -69,7 +69,6 @@ function submitJawaban() {
             // BENAR
             jumlahBenar++;
             if (modePenilaian === "1C") {
-                // Amankan pembobotan level
                 const bobot = Number(cfg.bobot_level[q.Level] || 1);
                 totalSkor += ((cfg.skor_benar || 1) * bobot);
             } else {
@@ -82,7 +81,7 @@ function submitJawaban() {
         }
     });
 
-    // 7. PERHITUNGAN AKHIR KANONIKAL & PROTEKSI SKOR MINUS
+    // 6. PERHITUNGAN AKHIR KANONIKAL
     let skorAkhir = 0;
 
     if (modePenilaian === "1A") {
@@ -106,7 +105,7 @@ function submitJawaban() {
         skor: skorAkhir
     };
 
-    // 8. TAMPILKAN STATUS PENGIRIMAN DI UI
+    // 7. TAMPILKAN STATUS PENGIRIMAN
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
@@ -117,11 +116,11 @@ function submitJawaban() {
         `;
     }
 
-    // 9. BENTUK PAYLOAD WEBHOOK
+    // 8. BENTUK PAYLOAD WEBHOOK
     const payload = {
-        kode_soal: examData.kode_ujian || App.currentKodeUjian || "UNKNOWN",
+        kode_soal: App.currentKodeUjian || "UNKNOWN",
         sistem_ujian: "CBT",
-        mode_ujian: examData.mode_ujian || App.modeUjian || "UTAMA",
+        mode_ujian: App.modeUjian || "UTAMA",
         mode_penilaian: modePenilaian,
         identitas: dataPesertaResmi,
         jawaban: userAnswers,
@@ -142,7 +141,7 @@ function submitJawaban() {
         foto_pelanggaran: App.cheatingSnapshots || []
     };
 
-    // 10. KIRIM VIA WEBHOOK
+    // 9. KIRIM VIA WEBHOOK
     if (App.WEBHOOK_URL && App.WEBHOOK_URL.trim() !== "") {
         fetch(App.WEBHOOK_URL, {
             method: "POST",
@@ -150,10 +149,7 @@ function submitJawaban() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         })
-        .then(() => {
-            // Tambahkan sedikit delay agar text "Mengirimkan Jawaban..." terasa UX-nya
-            setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
-        })
+        .then(() => setTimeout(() => tampilkanLayarSelesai(detailHasil), 800))
         .catch(err => {
             console.error("Error Webhook:", err);
             setTimeout(() => tampilkanLayarSelesai(detailHasil), 800);
