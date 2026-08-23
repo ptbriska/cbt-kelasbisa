@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.3.0</title>
+  <title>CBT Online - Kelas Bisa Exam System v1.3.2</title>
   
   <!-- File CSS Modular -->
   <link rel="stylesheet" href="css/base.css">
@@ -124,7 +124,6 @@
     <div class="header-welcome">
       <img id="logo-lembaga-info" src="" alt="Logo" class="logo-img">
       <h2 id="disp-lembaga-info">NAMA LEMBAGA</h2>
-      <!-- Diisi dengan data sub_lembaga (Contoh: "SIMULASI OSN") -->
       <h3 id="disp-sub-lembaga-info">SUB KETERANGAN</h3>
     </div>
 
@@ -137,7 +136,6 @@
         </tr>
         <tr>
           <td>Nama Kegiatan Ujian</td>
-          <!-- Diisi dengan data nama_kegiatan (Contoh: "PILAR JUARA - KELAS BISA") -->
           <td>: <span id="disp-nama-kegiatan">-</span></td>
         </tr>
         <tr>
@@ -202,8 +200,9 @@
       <div class="header-right">
         <div class="user-avatar">👤</div>
         <div class="user-details">
-          <span id="disp-nama" class="u-name">-</span>
-          <span id="disp-nisn" class="u-id">-</span>
+          <!-- Disamakan ID-nya dengan exam.js (updateHeaderUserProfile) -->
+          <span id="disp-user-name" class="u-name">-</span>
+          <span id="disp-user-school" class="u-id">-</span>
           <a href="#" onclick="konfirmasiKeluar()" class="btn-keluar">KELUAR &gt;&gt;</a>
         </div>
       </div>
@@ -214,7 +213,8 @@
         <div class="sub-header">
           <h3 class="q-title">SOAL NO : <span id="q-num">1</span></h3>
           <div class="timer-display">
-            ⏰ <span id="timer">00:00:00</span>
+            <!-- Disamakan ID-nya dengan exam.js (startTimer) -->
+            ⏰ <span id="timer-display">00:00:00</span>
           </div>
         </div>
 
@@ -242,6 +242,17 @@
         <button class="btn-footer" onclick="toggleNavigator()">🔭 Navigator</button>
       </div>
     </footer>
+
+    <!-- DRAWER NAVIGATOR UNTUK RESPONSIVE TAMPILAN HP -->
+    <div id="nav-drawer" class="nav-drawer">
+      <div class="drawer-header">
+        <h4>Navigasi Soal Ujian</h4>
+        <button type="button" onclick="toggleNavigator()" class="btn-close-drawer">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Klik nomor soal untuk berpindah dengan cepat:</p>
+      </div>
+    </div>
 
   </div>
 
