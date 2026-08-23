@@ -1,11 +1,13 @@
 // ==========================================================
-// security.js - Engine Keamanan & Photo Proctoring (v1.3.7)
+// security.js - Engine Keamanan & Photo Proctoring (v1.3.8)
+// Terintegrasi dengan Dynamic Scoring & Backend GAS
 // ==========================================================
-
-const GOOGLE_DRIVE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
 // Pastikan App Global Selalu Ada
 window.App = window.App || {};
+
+// Gunakan URL Webhook dari App global jika ada, fallback ke URL hardcode
+const GOOGLE_DRIVE_WEB_APP_URL = App.WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwrFDLCJOZzbpFtGxrguEWb9ZuXLWh9N6e9g2jQVuWpYqvWNavBRnkgLUkVymgLNPzMLw/exec";
 
 /**
  * Inisialisasi Akses Kamera WebCam di awal ujian
@@ -53,19 +55,23 @@ function captureSnapshot() {
 }
 
 /**
- * Mengirim foto kecurangan secara async ke Google Drive
+ * Mengirim foto kecurangan secara async ke Google Drive (Webhook)
  */
 async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
     if (!fotoBase64 || !GOOGLE_DRIVE_WEB_APP_URL) return;
 
     const p = App.verifiedPesertaData || App.userIdentitas || {};
     const namaPeserta = p["Nama Lengkap"] || p.nama || "Tanpa Nama";
-    const kodeUjian = App.currentKodeUjian || p.kode_ujian || "NO-KODE";
+    
+    // Sinkronisasi dengan sumber JSON jika ada
+    const examData = App.examData || {};
+    const kodeUjian = examData.kode_ujian || App.currentKodeUjian || p.kode_ujian || "NO-KODE";
 
     const payload = {
         kode_ujian: kodeUjian,
         nama_peserta: namaPeserta,
         alasan: alasanPelanggaran,
+        identitas: p, // Kirim identitas penuh agar terbaca utuh di Code.gs
         image: fotoBase64
     };
 
@@ -76,7 +82,7 @@ async function uploadFotoKecuranganToDrive(fotoBase64, alasanPelanggaran) {
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(payload)
         });
-        console.log("📷 Foto pelanggaran dikirim ke Google Drive.");
+        console.log("📷 Foto pelanggaran berhasil dikirim ke Google Drive.");
     } catch (err) {
         console.error("Gagal mengunggah foto kecurangan:", err);
     }
@@ -113,11 +119,14 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     if (!App.warningLogs) App.warningLogs = [];
     if (!App.cheatingSnapshots) App.cheatingSnapshots = [];
 
+    const timeString = new Date().toLocaleTimeString('id-ID');
+    const timestampISO = new Date().toISOString();
+
     if (fotoBukti) {
         App.cheatingSnapshots.push({
             peringatan_ke: App.warningCount,
             alasan: alasan,
-            timestamp: new Date().toISOString(),
+            timestamp: timestampISO,
             image_base64: fotoBukti
         });
     }
@@ -125,8 +134,8 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
     // 3. Simpan Log Detail ke State Global & LocalStorage
     const logData = {
         peringatan_ke: App.warningCount,
-        waktu: new Date().toLocaleTimeString('id-ID'),
-        timestamp: new Date().toISOString(),
+        waktu: timeString,
+        timestamp: timestampISO,
         alasan: alasan,
         foto_captured: Boolean(fotoBukti),
         foto_data: fotoBukti || null
@@ -150,6 +159,8 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
         alert(`⚠️ BATAS MAKSIMAL KECURANGAN!\nAlasan: ${alasan}.\nUjian otomatis diakhiri dan bukti pelanggaran telah disimpan.`);
         
         isWarningActive = false;
+        
+        // Panggil auto-submit (terhubung ke scoring.js)
         if (typeof submitJawaban === "function") {
             submitJawaban();
         }
@@ -163,10 +174,12 @@ function prosesPeringatanKecurangan(alasan = "Pindah Tab / Minimize") {
 /**
  * Paksa Kembalikan Tampilan ke Fullscreen
  */
-function mintaMintaFullscreen() {
+function enforceFullscreen() {
     if (!App.isExamStarted || App.isExamSubmitted) return;
     if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
+        document.documentElement.requestFullscreen().catch(() => {
+            console.log("Pengguna menolak mode fullscreen.");
+        });
     }
 }
 
@@ -200,7 +213,7 @@ function initSecurityListeners() {
     document.addEventListener("fullscreenchange", () => {
         if (!document.fullscreenElement && App.isExamStarted && !App.isExamSubmitted) {
             prosesPeringatanKecurangan("Keluar dari Mode Fullscreen");
-            setTimeout(mintaMintaFullscreen, 1000);
+            setTimeout(enforceFullscreen, 1000);
         }
     });
 
@@ -208,6 +221,7 @@ function initSecurityListeners() {
     document.addEventListener("keydown", (e) => {
         if (!App.isExamStarted || App.isExamSubmitted) return;
 
+        // Shortcut Screenshot Windows (Win + Shift + S)
         if (e.metaKey && e.shiftKey && (e.key === "S" || e.key === "s")) {
             e.preventDefault();
             document.body.style.display = "none";
@@ -216,24 +230,28 @@ function initSecurityListeners() {
             return false;
         }
 
+        // F12 (DevTools)
         if (e.key === "F12") {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka DevTools (F12)");
             return false;
         }
 
+        // Inspect Element / Console (Ctrl+Shift+I/J/C)
         if (e.ctrlKey && e.shiftKey && ["I", "i", "J", "j", "C", "c"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan("Mencoba Membuka Inspect Element (Ctrl+Shift+I/J/C)");
             return false;
         }
 
+        // Save, Print, Copy, View Source
         if (e.ctrlKey && ["u", "U", "s", "S", "p", "P", "c", "C"].includes(e.key)) {
             e.preventDefault();
             prosesPeringatanKecurangan(`Shortcut Terlarang (Ctrl+${e.key.toUpperCase()})`);
             return false;
         }
 
+        // PrintScreen
         if (e.key === "PrintScreen" || e.keyCode === 44) {
             e.preventDefault();
             if (navigator.clipboard) {
@@ -252,7 +270,9 @@ function initSecurityListeners() {
 window.initSecurityListeners = initSecurityListeners;
 window.initWebcamProctoring = initWebcamProctoring;
 window.prosesPeringatanKecurangan = prosesPeringatanKecurangan;
+window.enforceFullscreen = enforceFullscreen; // expose agar bisa diakses manual bila perlu
 
+// Blokir Klik Kanan
 document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", (e) => e.preventDefault());
 });
