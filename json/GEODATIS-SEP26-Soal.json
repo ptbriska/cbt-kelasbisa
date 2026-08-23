@@ -3,7 +3,7 @@
   "nama_kegiatan": "SIMULASI OSN",
   "sistem_ujian": "CBT",
   "mode_ujian": "LATIHAN",
-  "mode_penilaian": "1C",
+  "mode_penilaian": "1A",
   "skor_config": {
     "skor_benar": 1.0,
     "skor_salah": -0.5,
