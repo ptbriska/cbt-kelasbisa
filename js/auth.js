@@ -1,5 +1,6 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.12)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.3.13)
+// Synchronized | Fast-Fetch | Non-Camera Proctoring Compatible
 // ==========================================================
 
 // Pastikan Objek App Selalu Ada
@@ -39,7 +40,7 @@ function autoFillIdentitas(dataPeserta) {
     setInputValue("kelas", dataPeserta.kelas || dataPeserta.jurusan || dataPeserta["Pekerjaan / Jurusan"] || dataPeserta["Bidang Kerja"]);
     setInputValue("nisn", dataPeserta.nisn || dataPeserta.nik || dataPeserta["NIK / NISN / NIM"]);
     
-    const daerah = dataPeserta.daerah || `${dataPeserta["Asal Kabupaten"] || ''}, ${dataPeserta["Asal Provinsi"] || ''}`.replace(/^,\s*|,\s*$/g, '');
+    const daerah = dataPeserta.daerah || `${dataPeserta["Asal Kabupaten"] || dataPeserta.kabupaten || ''}, ${dataPeserta["Asal Provinsi"] || dataPeserta.provinsi || ''}`.replace(/^,\s*|,\s*$/g, '');
     setInputValue("daerah", daerah);
     
     setInputValue("email", dataPeserta.email || dataPeserta["Email (Terverifikasi)"]);
@@ -235,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error("Token Ujian salah atau tidak berlaku!");
             }
 
-            // Simpan State Ke Global App
+            // Simpan State Utama Ke Global App
             window.App.soalData = data;
             window.App.questionsDataConfig = data;
             window.App.currentKodeUjian = kodeInput;
@@ -245,6 +246,11 @@ document.addEventListener("DOMContentLoaded", () => {
             window.App.modeUjian = (data.mode_ujian || "LATIHAN").toUpperCase();
             window.App.modePenilaian = (data.mode_penilaian || "1A").toUpperCase();
             window.App.skorConfig = data.skor_config || {};
+
+            // Inisialisasi Tempat Simpan Hasil Keamanan
+            window.App.warningCount = 0;
+            window.App.warningLogs = [];
+            window.App.cheatingSnapshots = []; // Kosongkan snapshot kamera
 
             // Proteksi Sekali Submit jika Mode SIMULASI
             if (window.App.modeUjian === "SIMULASI") {
@@ -316,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("disp-jumlah-soal").textContent = `${window.App.questionsData.length} Soal`;
             }
 
-            // Pindah Tampilan ke Halaman 2
+            // Pindah Tampilan ke Halaman 2 (Petunjuk & Tata Tertib)
             const pLogin = document.getElementById("page-login");
             const pInfo = document.getElementById("page-info");
             if (pLogin) pLogin.classList.add("hidden");
