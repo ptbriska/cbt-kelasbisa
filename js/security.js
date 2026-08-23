@@ -1,5 +1,5 @@
 // ==========================================================
-// security.js - Engine Keamanan & Proteksi Anti-Kecurangan (v1.3.0)
+// security.js - Engine Keamanan & Proteksi Anti-Kecurangan (v1.3.1)
 // ==========================================================
 
 function playVoiceWarning(text) {
@@ -19,6 +19,7 @@ function handleVisibilityChange() {
 
 function handleWindowBlur() {
     if (App.isExamStarted && !App.isExamSubmitted) {
+        // Blur otomatis mendeteksi penggunaan Snipping Tool (Win+Shift+S) / Mac Screenshot
         prosesPeringatanKecurangan();
     }
 }
@@ -34,8 +35,8 @@ function prosesPeringatanKecurangan() {
             submitJawaban();
         }
     } else {
-        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang membuka tab lain!`);
-        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})!\nDilarang berpindah tab atau meninggalkan halaman ujian.`);
+        playVoiceWarning(`Peringatan ke ${App.warningCount}. Dilarang membuka aplikasi lain atau mengambil tangkapan layar!`);
+        alert(`⚠️ PERINGATAN KECURANGAN (${App.warningCount}/${App.MAX_WARNINGS})!\nDilarang berpindah tab, membuka aplikasi lain, atau mengambil tangkapan layar.`);
     }
 }
 
@@ -49,14 +50,32 @@ function initSecurityListeners() {
 
     // Mencegah Klik Kanan & Shortcut Inspeksi
     document.addEventListener("contextmenu", (e) => e.preventDefault());
+    
     document.addEventListener("keydown", (e) => {
         // Blokir F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
         if (
             e.key === "F12" ||
             (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
-            (e.ctrlKey && e.key === "u")
+            (e.ctrlKey && e.key === "u") ||
+            (e.ctrlKey && e.key === "U")
         ) {
             e.preventDefault();
+        }
+    });
+
+    // Deteksi khusus untuk tombol Print Screen (Screenshot)
+    // Menggunakan keyup karena PrintScreen sering kali ditangkap OS setelah tombol dilepas
+    document.addEventListener("keyup", (e) => {
+        if (e.key === "PrintScreen") {
+            // Trik: Timpa isi clipboard dengan teks kosong/peringatan agar gambar tidak bisa di-paste
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText("[Sistem Keamanan CBT] Tindakan tangkapan layar dilarang pada sesi ujian ini.");
+            }
+            
+            // Panggil peringatan
+            if (App.isExamStarted && !App.isExamSubmitted) {
+                prosesPeringatanKecurangan();
+            }
         }
     });
 }
