@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- 1. Perubahan Versi pada Title -->
   <title>CBT Online - Kelas Bisa Exam System v1.6.6</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
-  <!-- File CSS Modular -->
+  <!-- File CSS Modular (report.css dipindah ke pembahasan.html) -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/cbt.css">
   <link rel="stylesheet" href="css/answer.css">
-  <link rel="stylesheet" href="css/report.css">
   
   <!-- FontAwesome untuk Icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -53,12 +51,11 @@
   <div id="page-login" class="card">
     <div class="header-welcome">
       <img id="logo-lembaga" src="https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz" alt="Logo" class="logo-img">
-      <h2 id="disp-header-title">Selamat Datang di Sistem Tes Berbasis Komputer CBT & CAT Briska</h2>
+      <h2 id="disp-header-title">Selamat Datang di Sistem Tes Berbasis Komputer CBT &amp; CAT Briska</h2>
       <h3 id="disp-header-sub">Developed by Briska TechnoTeam</h3>
     </div>
 
     <form id="form-identitas">
-      <!-- INPUT UTAMA UNTUK VERIFIKASI -->
       <div class="form-row-2col">
         <div class="form-group">
           <label for="kode-ujian-input">Kode Ujian / Kegiatan <small class="hint-label">(Sesuai Pendaftaran)</small></label>
@@ -70,17 +67,14 @@
         </div>
       </div>
 
-      <!-- TAHAP 1: TOMBOL CEK VERIFIKASI -->
       <div class="form-group text-center">
         <button type="button" id="btn-cek-verifikasi" class="btn-warning">
           🔍 Cek Verifikasi Peserta
         </button>
       </div>
 
-      <!-- ELEMENT NOTIFIKASI / STATUS VERIFIKASI -->
       <div id="pesan-error-login" class="error-msg" style="display: none;"></div>
 
-      <!-- FIELD TERISI OTOMATIS BERDASARKAN DATA PESERTA (READONLY) -->
       <div class="form-group">
         <label for="sekolah">Asal Instansi / Sekolah / Kampus</label>
         <input type="text" id="sekolah" placeholder="Terisi otomatis setelah verifikasi..." readonly>
@@ -113,13 +107,11 @@
         </div>
       </div>
 
-      <!-- INPUT TOKEN UJIAN -->
       <div class="form-group">
         <label for="token-input">Token Ujian</label>
         <input type="text" id="token-input" placeholder="Masukkan Token Ujian dari Panitia">
       </div>
 
-      <!-- TAHAP 2: TOMBOL LANJUT -->
       <div class="form-group">
         <button type="submit" id="btn-lanjut-info" class="btn-primary" style="display: none;">
           Verifikasi &amp; Lanjut ke Petunjuk &gt;&gt;
@@ -197,7 +189,6 @@
       </label>
     </div>
 
-    <!-- TOMBOL PANDUAN PENILAIAN -->
     <div style="text-align: center; margin: 15px 0;">
       <a href="panduan-penilaian.html" target="_blank" class="btn-info-link" style="display: inline-flex; align-items: center; gap: 6px; color: #0284c7; text-decoration: none; font-weight: 600; font-size: 0.95rem;">
         <i class="fas fa-book-open"></i> Lihat Panduan Penilaian &amp; Tipe Soal
@@ -245,26 +236,22 @@
           </div>
         </div>
 
-        <!-- 2. Elemen tempat Metadata Badges & Font-size Switcher dirender JS v1.6.6 -->
         <div id="q-level" style="margin-bottom: 10px;"></div>
 
         <div class="question-content">
           <div id="q-image-container" class="img-box"></div>
           <div id="q-text" class="q-text">Memuat soal...</div>
-          <!-- Container pilihan jawaban dinamis (V1.6.6) -->
           <div id="options-box" class="options-group"></div>
         </div>
       </main>
 
       <aside class="sidebar-nav">
-        <!-- Tombol Selesai Ujian akan dipindahkan otomatis ke atas sini oleh JS v1.6.6 -->
         <div id="number-grid" class="circle-grid"></div>
       </aside>
     </div>
 
     <footer class="bottom-bar">
       <div class="bottom-left">
-        <!-- 3. Tombol Selesai (Diambil & dipindahkan oleh JS v1.6.6 ke Sidebar Grid Soal) -->
         <button id="btn-selesai" class="btn-footer btn-selesai" onclick="tampilkanPanelKonfirmasi()">🏁 SELESAI</button>
       </div>
       <div class="bottom-center">
@@ -277,13 +264,11 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- PAGE 4: WADAH HALAMAN PEMBAHASAN & RAPOR   -->
+  <!-- PAGE 4: PREVIEW JAWABAN & TOKEN PEMBAHASAN -->
   <!-- ========================================== -->
   <div id="pembahasan-container" class="hidden" style="display: none;"></div>
 
-  <!-- ========================================== -->
-  <!-- MODAL DIALOG KONFIRMASI SUBMIT             -->
-  <!-- ========================================== -->
+  <!-- MODAL DIALOG KONFIRMASI SUBMIT -->
   <div id="modal-konfirmasi" class="hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center;">
     <div style="max-width: 480px; width: 90%; background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto;">
       <h3 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">Konfirmasi Selesai Ujian</h3>
@@ -295,14 +280,7 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- MODAL LAPORAN / HASIL UJIAN                -->
-  <!-- ========================================== -->
   <div id="report-modal" style="display: none;"></div>
-
-  <!-- ========================================== -->
-  <!-- MODAL REVIEW KUNCI JAWABAN                 -->
-  <!-- ========================================== -->
   <div id="review-modal" style="display: none;"></div>
 
   <!-- ========================================== -->
@@ -314,7 +292,7 @@
   <script src="js/security.js" defer></script>
   <script src="js/exam.js" defer></script>
   <script src="js/answer.js" defer></script>
-  <script src="js/report.js" defer></script>
+  <!-- report.js dipindahkan ke pembahasan.html -->
   <script src="js/main.js" defer></script>
 
 </body>
