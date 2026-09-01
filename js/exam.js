@@ -5,7 +5,7 @@
    1. Tombol Clear Answer (Kosongkan Jawaban) per Soal
    2. Optimized Font-Size Switcher via Dynamic CSS Variables
    3. Auto-position Tombol Selesai di Atas Grid Soal
-   4. Clean & Standardized Metadata Badges (Strip Container Yellow Background)
+   4. Explicit Metadata Labels (SECTION, SUBTEST, LEVEL KESULTAN SOAL, TIPE SOAL)
    5. Tombol Ragu-Ragu (Visual Marker State)
    6. Data Sanitization & Input Normalization (Trim & Safe Array)
    ========================================================== */
@@ -304,7 +304,7 @@ function loadQuestion(index) {
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || q.pertanyaan || "";
 
-    // BADGE METADATA (CLEAN STYLE & CUSTOM DESIRED FORMAT)
+    // BADGE METADATA (DENGAN LABEL TEKS EKSPLISIT)
     if (elLevel) {
         // Hapus paksa background/border kuning bawaan elemen container #q-level
         elLevel.style.setProperty("background", "transparent", "important");
@@ -323,15 +323,15 @@ function loadQuestion(index) {
         
         // 1. Badge Section / Mapel
         if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
-            badgeHTML += `<span class="badge-tag badge-section">📘 ${String(sectionVal).trim().toUpperCase()}</span>`;
+            badgeHTML += `<span class="badge-tag badge-section">📘 SECTION : ${String(sectionVal).trim().toUpperCase()}</span>`;
         }
 
         // 2. Badge Subtest / Materi
         if (subtestVal && String(subtestVal).trim() !== "" && String(subtestVal) !== "-") {
-            badgeHTML += `<span class="badge-tag badge-subtest">📌 ${String(subtestVal).trim().toUpperCase()}</span>`;
+            badgeHTML += `<span class="badge-tag badge-subtest">📌 SUBTEST : ${String(subtestVal).trim().toUpperCase()}</span>`;
         }
 
-        // 3. Badge Level (Format: 🔥 LEVEL: <VAL>)
+        // 3. Badge Level (Format: 🔥 LEVEL KESULTAN SOAL : <VAL>)
         if (levelVal && String(levelVal).trim() !== "" && String(levelVal) !== "-") {
             let lvlUpper = String(levelVal).trim().toUpperCase();
             let lvlClass = "medium";
@@ -344,18 +344,18 @@ function loadQuestion(index) {
                 lvlClass = "medium";
             }
 
-            badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 LEVEL: ${lvlUpper}</span>`;
+            badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 LEVEL KESULTAN SOAL : ${lvlUpper}</span>`;
         }
 
-        // 4. Badge Tipe Soal (Format: 📝 TIPE: <VAL>)
-        badgeHTML += `<span class="badge-tag badge-tipe">📝 TIPE: ${String(tipeVal).trim().toUpperCase()}</span>`;
+        // 4. Badge Tipe Soal (Format: 📝 TIPE SOAL : <VAL>)
+        badgeHTML += `<span class="badge-tag badge-tipe">📝 TIPE SOAL : ${String(tipeVal).trim().toUpperCase()}</span>`;
         
         badgeHTML += `</div>`;
         
         // KONTROL UKURAN FONT DI BAWAH METADATA
         badgeHTML += `
             <div class="font-size-toolbar" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; margin-bottom: 12px; padding: 4px 8px; border-radius: 6px; background: #f9fafb; border: 1px solid #e5e7eb;">
-                <span style="font-size: 12px; font-weight: 600; color: #4b5563; margin-right: 4px;">Ukuran Teks:</span>
+                <span style="font-size: 12px; font-weight: 600; color: #4b5563; margin-right: 4px;">UKURAN TEKS:</span>
                 <button type="button" class="btn-font-size" data-size="small" onclick="setFontSize('small')" title="Teks Kecil" style="padding: 2px 8px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A-</button>
                 <button type="button" class="btn-font-size" data-size="medium" onclick="setFontSize('medium')" title="Teks Sedang (Default)" style="padding: 2px 8px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A</button>
                 <button type="button" class="btn-font-size" data-size="large" onclick="setFontSize('large')" title="Teks Besar" style="padding: 2px 8px; font-size: 15px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A+</button>
