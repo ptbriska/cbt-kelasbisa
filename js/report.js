@@ -302,21 +302,20 @@ function renderFullStudentReport() {
     let html = `
     <div class="premium-report-wrapper">
         
-        <!-- FITUR: KOP SURAT CBT -->
-        <div class="report-header-card">
-            <div class="header-flex">
-                <div class="brand-info">
-                    ${dataJSON.logo ? `<img src="${dataJSON.logo}" class="brand-logo" alt="Logo Lembaga">` : ''}
-                    <div>
-                        <h1 class="cbt-title">${dataJSON.nama_sistem_cbt || 'CBT SYSTEM'}</h1>
-                        <h2 class="lembaga-title">${dataJSON.lembaga || 'LAPORAN HASIL TES PESERTA'}</h2>
-                        <p class="alamat-text">${dataJSON.alamat_lembaga || '-'}</p>
-                    </div>
-                </div>
-                <button onclick="window.print()" class="btn-print">
-                    🖨️ Cetak / Print PDF
-                </button>
+        <!-- FITUR: KOP SURAT CBT (LOKASI LOGO KIRI, TEKS RATA TENGAH) -->
+        <div class="report-header-card" style="position: relative; display: flex; align-items: center; justify-content: center; min-height: 90px; padding: 20px; text-align: center;">
+            ${dataJSON.logo ? `<img src="${dataJSON.logo}" class="brand-logo" style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); max-height: 65px; width: auto;" alt="Logo Lembaga">` : ''}
+            
+            <div class="brand-text-center" style="text-align: center; margin: 0 auto; padding: 0 80px;">
+                <h1 class="cbt-title" style="margin: 0; font-size: 20px; font-weight: 800; text-align: center;">${dataJSON.nama_sistem_cbt || 'CBT SYSTEM'}</h1>
+                <h2 class="lembaga-title" style="margin: 4px 0; font-size: 16px; font-weight: 700; text-align: center;">${dataJSON.lembaga || 'LAPORAN HASIL TES PESERTA'}</h2>
+                <p class="alamat-text" style="margin: 0; font-size: 13px; color: #64748b; text-align: center;">${dataJSON.alamat_lembaga || '-'}</p>
             </div>
+
+            <button onclick="window.print()" class="btn-print" style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%);">
+                🖨️ Cetak / Print PDF
+            </button>
+        </div>
         </div>
 
         <!-- FITUR: TABEL IDENTITAS PESERTA -->
