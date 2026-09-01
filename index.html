@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.6.0</title>
+  <!-- 1. Perubahan Versi pada Title -->
+  <title>CBT Online - Kelas Bisa Exam System v1.6.6</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
@@ -238,28 +239,32 @@
         <div class="sub-header">
           <h3 class="q-title">
             SOAL NO : <span id="q-num">1</span>
-            <span id="q-level" class="badge-level" style="font-size: 13px; color: #666; margin-left: 8px;"></span>
           </h3>
           <div class="timer-display">
             ⏰ <span id="timer-display">00:00:00</span>
           </div>
         </div>
 
+        <!-- 2. Elemen tempat Metadata Badges & Font-size Switcher dirender JS v1.6.6 -->
+        <div id="q-level" style="margin-bottom: 10px;"></div>
+
         <div class="question-content">
           <div id="q-image-container" class="img-box"></div>
           <div id="q-text" class="q-text">Memuat soal...</div>
-          <!-- Container pilihan jawaban yang dinamis mendukung 6 tipe soal v1.6.0 (Termasuk 5A) -->
+          <!-- Container pilihan jawaban dinamis (V1.6.6) -->
           <div id="options-box" class="options-group"></div>
         </div>
       </main>
 
       <aside class="sidebar-nav">
+        <!-- Tombol Selesai Ujian akan dipindahkan otomatis ke atas sini oleh JS v1.6.6 -->
         <div id="number-grid" class="circle-grid"></div>
       </aside>
     </div>
 
     <footer class="bottom-bar">
       <div class="bottom-left">
+        <!-- 3. Tombol Selesai (Diambil & dipindahkan oleh JS v1.6.6 ke Sidebar Grid Soal) -->
         <button id="btn-selesai" class="btn-footer btn-selesai" onclick="tampilkanPanelKonfirmasi()">🏁 SELESAI</button>
       </div>
       <div class="bottom-center">
