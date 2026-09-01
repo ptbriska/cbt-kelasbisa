@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.5.1 - FIXED FAST SUBMIT)
+// main.js - Entry Point & Window Bridge Handler (v1.6.0)
 // ==========================================================
 
 // 1. Inisialisasi Objek Global State App Safe-Guard
@@ -92,6 +92,24 @@ window.konfirmasiSubmit = function() {
 };
 
 /**
+ * Bridge Navigasi ke Halaman Pembahasan Jawaban & Rapor Peserta (Answer.js / Report.js)
+ */
+window.bukaHalamanKunciJawaban = function() {
+    if (typeof renderHalamanPembahasan === "function") {
+        renderHalamanPembahasan();
+    } else if (typeof window.renderHalamanPembahasan === "function") {
+        window.renderHalamanPembahasan();
+    } else if (typeof renderAnswerPage === "function") {
+        renderAnswerPage();
+    } else if (typeof window.renderAnswerPage === "function") {
+        window.renderAnswerPage();
+    } else {
+        console.warn("⚠️ Fungsi render pembahasan belum terdeteksi di answer.js!");
+        alert("Membuka Halaman Pembahasan Jawaban dan Rapor Peserta...");
+    }
+};
+
+/**
  * Dialog Keluar dari Ujian
  */
 window.konfirmasiKeluar = function() {
@@ -163,4 +181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof submitJawabanScoring === "function") window.submitJawabanScoring = submitJawabanScoring;
     if (typeof submitJawaban === "function") window.submitJawaban = submitJawaban;
     if (typeof tampilkanPanelKonfirmasi === "function") window.tampilkanPanelKonfirmasi = tampilkanPanelKonfirmasi;
+    
+    // Bridge Pembahasan & Rapor (Jawaban)
+    if (typeof bukaHalamanKunciJawaban === "function") window.bukaHalamanKunciJawaban = bukaHalamanKunciJawaban;
 });
