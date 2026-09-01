@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBT Online - Kelas Bisa Exam System v1.5</title>
+  <title>CBT Online - Kelas Bisa Exam System v1.6.0</title>
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="css/cbt.css">
   <link rel="stylesheet" href="css/answer.css">
   <link rel="stylesheet" href="css/report.css">
-  <link rel="stylesheet" href="css/panduan.css">
   
   <!-- FontAwesome untuk Icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -197,7 +196,7 @@
       </label>
     </div>
 
-    <!-- TOMBOL PANDUAN PENILAIAN DITAMBAHKAN DI SINI -->
+    <!-- TOMBOL PANDUAN PENILAIAN -->
     <div style="text-align: center; margin: 15px 0;">
       <a href="panduan-penilaian.html" target="_blank" class="btn-info-link" style="display: inline-flex; align-items: center; gap: 6px; color: #0284c7; text-decoration: none; font-weight: 600; font-size: 0.95rem;">
         <i class="fas fa-book-open"></i> Lihat Panduan Penilaian &amp; Tipe Soal
@@ -249,7 +248,7 @@
         <div class="question-content">
           <div id="q-image-container" class="img-box"></div>
           <div id="q-text" class="q-text">Memuat soal...</div>
-          <!-- Container pilihan jawaban yang dinamis mendukung 5 tipe soal v1.5 -->
+          <!-- Container pilihan jawaban yang dinamis mendukung 6 tipe soal v1.6.0 (Termasuk 5A) -->
           <div id="options-box" class="options-group"></div>
         </div>
       </main>
@@ -288,12 +287,12 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- MODAL LAPORAN / HASIL UJIAN (FITUR v1.5)   -->
+  <!-- MODAL LAPORAN / HASIL UJIAN                -->
   <!-- ========================================== -->
   <div id="report-modal" style="display: none;"></div>
 
   <!-- ========================================== -->
-  <!-- MODAL REVIEW KUNCI JAWABAN (FITUR v1.5)     -->
+  <!-- MODAL REVIEW KUNCI JAWABAN                 -->
   <!-- ========================================== -->
   <div id="review-modal" style="display: none;"></div>
 
