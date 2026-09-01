@@ -1,295 +1,170 @@
-/* ==========================================================================
-   js/answer.js - Review Kunci Jawaban & Print PDF Multi-Type (CBT V2.0.0)
-   Sesuai Pedoman Tipe Soal 1A-1C, 2A, 3A-3B, 4A
-   ========================================================================== */
+/* ==========================================================
+   CBT KIBI V1.6 - Answer & Teaser Preview Logic
+   ========================================================== */
 
-window.App = window.App || {};
+// Helper untuk memformat tampilan Kunci Jawaban berdasarkan tipe soal
+function formatKunciJawabanPreview(soalItem) {
+    const tipe = soalItem.Tipe;
+    const kunci = soalItem.Kunci;
 
-/**
- * Membuka Modal Review Soal dan Kunci Jawaban
- */
-function bukaHalamanKunciJawaban() {
-    const questions = App.questionsData || App.questions || [];
-    const userAnswers = App.userAnswers || {};
-    const identitas = App.verifiedPesertaData || App.userIdentitas || {};
+    // Tipe 2A (Multiple Response) & Tipe 4A (Checklist Array)
+    if (Array.isArray(kunci)) {
+        return kunci.join(", ");
+    }
+    
+    // Tipe 5A (Weighted Options Object)
+    if (typeof kunci === "object" && kunci !== null) {
+        return Object.entries(kunci)
+            .map(([opsi, poin]) => `${opsi}=${poin}`)
+            .join(" | ");
+    }
+    
+    // Tipe 1A, 1B, 1C, 3A, 3B (String)
+    return String(kunci || "-");
+}
 
-    if (!questions || questions.length === 0) {
-        alert("Data soal tidak ditemukan untuk ditinjau.");
-        return;
+// Helper untuk memformat tampilan Jawaban Peserta
+function formatJawabanPesertaPreview(soalItem, userAns) {
+    if (!userAns || userAns === "" || userAns === "-") {
+        return "<span style='color: #dc3545; font-weight: bold;'>Tidak Dijawab</span>";
     }
 
-    let reviewModal = document.getElementById("review-modal");
-    if (!reviewModal) {
-        reviewModal = document.createElement("div");
-        reviewModal.id = "review-modal";
-        document.body.appendChild(reviewModal);
+    if (Array.isArray(userAns)) {
+        return userAns.join(", ");
     }
 
-    reviewModal.innerHTML = `
-        <div class="watermark-briska">ASET BRISKA</div>
-        <div class="review-container">
+    if (typeof userAns === "object") {
+        return Object.entries(userAns)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(" | ");
+    }
+
+    return String(userAns);
+}
+
+// Fungsi utama render halaman Preview Kunci Jawaban (Teaser 3 Soal)
+function initHalamanPembahasanPreview() {
+    const container = document.getElementById("pembahasan-container");
+    if (!container) return;
+
+    // 1. Ambil Data Global dari App
+    const dataJSON = App.soalData || {};
+    const questions = dataJSON.questions || [];
+    const totalSoal = questions.length;
+    
+    // Mengambil metadata Kop Surat
+    const lembaga = dataJSON.lembaga || "KIBI EDUCATION CENTER";
+    const namaSistem = dataJSON.nama_sistem_cbt || "CBT SYSTEM";
+    const alamat = dataJSON.alamat_lembaga || "";
+    const logoUrl = dataJSON.logo || "";
+
+    // Potong HANYA 3 Soal Pertama untuk Teaser
+    const previewQuestions = questions.slice(0, 3);
+
+    // 2. Susun HTML Kop Surat & Header
+    let html = `
+        <div class="preview-container">
+            <div class="kop-surat">
+                ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="kop-logo" onerror="this.style.display='none'">` : ''}
+                <div class="kop-info">
+                    <h2>${lembaga}</h2>
+                    <h4>${namaSistem} - ${dataJSON.nama_kegiatan || 'SIMULASI UJIAN'}</h4>
+                    <p>${alamat}</p>
+                </div>
+            </div>
+
+            <div class="preview-action-bar">
+                <span class="badge-preview">🔒 Preview 3 Soal Pertama (Total: ${totalSoal} Soal)</span>
+                <button onclick="window.print()" class="btn-print-preview">
+                    🖨️ Cetak PDF Preview
+                </button>
+            </div>
             
-            <div class="review-actions">
-                <button class="btn-print" onclick="cetakKunciPDF()">🖨️ Cetak / Simpan PDF</button>
-                <button class="btn-close-review" onclick="tutupHalamanKunci()">❌ Tutup Review</button>
-            </div>
-
-            <div class="print-kop-header">
-                <h2>LEMBAR EVALUASI & KUNCI JAWABAN RESMI</h2>
-                <p>SISTEM UJIAN CBT-KIBI | KODE UJIAN: ${App.currentKodeUjian || 'CBT-ONLINE'}</p>
-                <p>Dokumen Rahasia - Hak Cipta & Pengawasan Aset BRISKA</p>
-            </div>
-
-            <div class="student-summary-card">
-                <div><strong>Nama Peserta:</strong> ${identitas["Nama Lengkap"] || identitas.nama || '-'}</div>
-                <div><strong>Instansi/Sekolah:</strong> ${identitas["Asal Instansi"] || identitas.sekolah || '-'}</div>
-                <div><strong>Kode Ujian:</strong> ${App.currentKodeUjian || '-'}</div>
-                <div><strong>Total Skor:</strong> ${App.lastSkorAkhir !== undefined ? App.lastSkorAkhir : 'Selesai'}</div>
-            </div>
-
-            <div id="review-blocks-list"></div>
-
-            <div class="print-footer-custom">
-                www.briska.co.id - www.kelasbisa.com - www.barugahub.com
-            </div>
-        </div>
+            <div class="preview-soal-list">
     `;
 
-    const blockContainer = document.getElementById("review-blocks-list");
-    let htmlContent = "";
+    // 3. Render 3 Soal Pembahasan Pertama
+    previewQuestions.forEach((item, index) => {
+        const noSoal = item.No || (index + 1);
+        const userAns = App.userAnswers ? App.userAnswers[noSoal] : null;
+        
+        const textKunci = formatKunciJawabanPreview(item);
+        const textJawabanUser = formatJawabanPesertaPreview(item, userAns);
 
-    questions.forEach((q, idx) => {
-        const noSoal = q.No || q.no || (idx + 1);
-        const teksSoal = q.Soal || q.soal || q.question || "Teks soal tidak tersedia";
-        const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
-        const userAns = userAnswers[noSoal] !== undefined ? userAnswers[noSoal] : userAnswers[idx + 1];
-        const rawKunci = q.Kunci !== undefined ? q.Kunci : q.kunci;
-
-        let optionsHTML = "";
-        let formattedUserAns = "-";
-        let formattedKunci = "-";
-        let statusBadge = "";
-
-        // HELPER SINKRONISASI EVALUASI TIPE SOAL
-        // ------------------------------------------------------------------
-        // TIPE 1A, 1B, 1C (Single Choice)
-        if (["1A", "1B", "1C"].includes(tipeSoal)) {
-            const kunciStr = String(rawKunci || "").trim().toUpperCase();
-            const ansStr = String(userAns || "").trim().toUpperCase();
-
-            formattedKunci = kunciStr || "-";
-            formattedUserAns = ansStr || "-";
-
-            if (!ansStr) {
-                statusBadge = `<span class="status-badge badge-kosong">⚪ Tidak Dijawab</span>`;
-            } else if (ansStr === kunciStr) {
-                statusBadge = `<span class="status-badge badge-benar">✔️ BENAR</span>`;
-            } else {
-                statusBadge = `<span class="status-badge badge-salah">❌ SALAH</span>`;
-            }
-
-            // Opsi A-E
-            let renderedOptions = "";
-            ['A', 'B', 'C', 'D', 'E'].forEach(key => {
-                if (q[key] && String(q[key]).trim() !== "" && q[key] !== "-") {
-                    let optStyle = "background: #ffffff; border: 1px solid #e0e0e0; color: #333;";
-                    let optBadge = "";
-
-                    if (key === kunciStr && key === ansStr) {
-                        optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
-                        optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Jawaban Anda & Kunci)</span>`;
-                    } else if (key === kunciStr) {
-                        optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
-                        optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Kunci Jawaban)</span>`;
-                    } else if (key === ansStr) {
-                        optStyle = "background: #ffebee; border: 1.5px solid #c62828; font-weight: bold;";
-                        optBadge = ` <span style="color: #c62828; font-size: 11px;">(Jawaban Anda)</span>`;
-                    }
-
-                    renderedOptions += `
-                        <div class="review-option-item" style="padding: 8px 12px; margin-top: 5px; border-radius: 6px; font-size: 13px; ${optStyle}">
-                            <strong>${key}.</strong> ${q[key]} ${optBadge}
-                        </div>
-                    `;
-                }
-            });
-            optionsHTML = `<div class="review-options-list" style="margin-top: 10px;">${renderedOptions}</div>`;
-        }
-
-        // ------------------------------------------------------------------
-        // TIPE 2A (Multiple Response)
-        else if (tipeSoal === "2A") {
-            let kunciArr = Array.isArray(rawKunci) ? rawKunci.map(k => String(k).trim().toUpperCase()) : [];
-            if (!Array.isArray(rawKunci) && typeof rawKunci === "string") {
-                kunciArr = rawKunci.split(",").map(k => k.trim().toUpperCase());
-            }
-
-            let ansArr = Array.isArray(userAns) ? userAns.map(a => String(a).trim().toUpperCase()) : [];
-
-            formattedKunci = kunciArr.join(", ") || "-";
-            formattedUserAns = ansArr.length > 0 ? ansArr.join(", ") : "-";
-
-            const isMatchExact = kunciArr.length === ansArr.length && kunciArr.every(val => ansArr.includes(val));
-
-            if (ansArr.length === 0) {
-                statusBadge = `<span class="status-badge badge-kosong">⚪ Tidak Dijawab</span>`;
-            } else if (isMatchExact) {
-                statusBadge = `<span class="status-badge badge-benar">✔️ BENAR SEPERTI KUNCI</span>`;
-            } else {
-                statusBadge = `<span class="status-badge badge-salah">❌ TIDAK SEPENUHNYA TEPAT</span>`;
-            }
-
-            let renderedOptions = "";
-            ['A', 'B', 'C', 'D', 'E'].forEach(key => {
-                if (q[key] && String(q[key]).trim() !== "" && q[key] !== "-") {
-                    const isKeyInKunci = kunciArr.includes(key);
-                    const isKeyInUser = ansArr.includes(key);
-
-                    let optStyle = "background: #ffffff; border: 1px solid #e0e0e0; color: #333;";
-                    let optBadge = "";
-
-                    if (isKeyInKunci && isKeyInUser) {
-                        optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
-                        optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Diisi & Kunci)</span>`;
-                    } else if (isKeyInKunci) {
-                        optStyle = "background: #e8f5e9; border: 1.5px solid #2e7d32; font-weight: bold;";
-                        optBadge = ` <span style="color: #2e7d32; font-size: 11px;">(Harusnya Dipilih)</span>`;
-                    } else if (isKeyInUser) {
-                        optStyle = "background: #ffebee; border: 1.5px solid #c62828; font-weight: bold;";
-                        optBadge = ` <span style="color: #c62828; font-size: 11px;">(Pilihan Anda)</span>`;
-                    }
-
-                    renderedOptions += `
-                        <div class="review-option-item" style="padding: 8px 12px; margin-top: 5px; border-radius: 6px; font-size: 13px; ${optStyle}">
-                            <strong>[${isKeyInUser ? '✓' : ' '}] ${key}.</strong> ${q[key]} ${optBadge}
-                        </div>
-                    `;
-                }
-            });
-            optionsHTML = `<div class="review-options-list" style="margin-top: 10px;">${renderedOptions}</div>`;
-        }
-
-        // ------------------------------------------------------------------
-        // TIPE 3A & 3B (Short Answer)
-        else if (tipeSoal === "3A" || tipeSoal === "3B") {
-            const strUser = String(userAns || "").trim();
-            const strKunci = String(rawKunci || "").trim();
-
-            formattedKunci = strKunci || "-";
-            formattedUserAns = strUser || "-";
-
-            const isCorrect = strUser.toLowerCase() === strKunci.toLowerCase();
-
-            if (!strUser) {
-                statusBadge = `<span class="status-badge badge-kosong">⚪ Tidak Dijawab</span>`;
-            } else if (isCorrect) {
-                statusBadge = `<span class="status-badge badge-benar">✔️ BENAR</span>`;
-            } else {
-                statusBadge = `<span class="status-badge badge-salah">❌ SALAH</span>`;
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // TIPE 4A (True/False Checklist Table)
-        else if (tipeSoal === "4A") {
-            let kunciArr = Array.isArray(rawKunci) ? rawKunci : [];
-            let ansArr = Array.isArray(userAns) ? userAns : [];
-
-            const statements = ["A", "B", "C", "D", "E"].filter(k => q[k] && String(q[k]).trim() !== "" && q[k] !== "-");
-
-            formattedKunci = kunciArr.join(", ") || "-";
-            formattedUserAns = ansArr.map(a => a || "-").join(", ");
-
-            let correctCount = 0;
-            let tableRows = "";
-
-            statements.forEach((key, sIdx) => {
-                const textStmt = q[key];
-                const kVal = (kunciArr[sIdx] || "").toUpperCase();
-                const uVal = (ansArr[sIdx] || "").toUpperCase();
-
-                if (kVal === uVal && uVal !== "") correctCount++;
-
-                let rowBg = "#ffffff";
-                if (uVal === kVal && uVal !== "") rowBg = "#e8f5e9";
-                else if (uVal !== "" && uVal !== kVal) rowBg = "#ffebee";
-
-                tableRows += `
-                    <tr style="background: ${rowBg};">
-                        <td style="padding: 8px; border: 1px solid #dee2e6;">${sIdx + 1}. ${textStmt}</td>
-                        <td style="padding: 8px; text-align: center; border: 1px solid #dee2e6; font-weight: bold; color: ${uVal === 'B' ? '#155724' : '#6c757d'};">${uVal === 'B' ? '✓ Benar' : (uVal === 'S' ? '-' : '-')}</td>
-                        <td style="padding: 8px; text-align: center; border: 1px solid #dee2e6; font-weight: bold; color: ${uVal === 'S' ? '#721c24' : '#6c757d'};">${uVal === 'S' ? '✓ Salah' : (uVal === 'B' ? '-' : '-')}</td>
-                        <td style="padding: 8px; text-align: center; border: 1px solid #dee2e6; font-weight: bold; color: #2e7d32;">${kVal}</td>
-                    </tr>
-                `;
-            });
-
-            optionsHTML = `
-                <table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
-                    <thead>
-                        <tr style="background: #f8f9fa;">
-                            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Pernyataan</th>
-                            <th style="padding: 8px; border: 1px solid #dee2e6; width: 90px;">Jawaban Anda (B)</th>
-                            <th style="padding: 8px; border: 1px solid #dee2e6; width: 90px;">Jawaban Anda (S)</th>
-                            <th style="padding: 8px; border: 1px solid #dee2e6; width: 80px;">Kunci</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRows}</tbody>
-                </table>
-            `;
-
-            if (ansArr.length === 0 || ansArr.every(a => !a)) {
-                statusBadge = `<span class="status-badge badge-kosong">⚪ Tidak Dijawab</span>`;
-            } else if (correctCount === statements.length) {
-                statusBadge = `<span class="status-badge badge-benar">✔️ BENAR SEMUA (${correctCount}/${statements.length})</span>`;
-            } else {
-                statusBadge = `<span class="status-badge badge-salah">⚠️ BENAR ${correctCount}/${statements.length} BARIS</span>`;
-            }
-        }
-
-        // RENDER DOKUMEN REVIEW PER SOAL
-        htmlContent += `
-            <div class="question-block" style="margin-bottom: 20px; border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; background: #fff;">
-                <div class="subblock-question">
-                    <div class="q-number" style="font-weight: bold; color: #1976d2; margin-bottom: 5px;">Soal Nomor #${noSoal} <span style="font-size:12px; color:#666;">[Tipe: ${tipeSoal}]</span></div>
-                    <div class="q-text">${teksSoal}</div>
-                    ${optionsHTML}
+        html += `
+            <div class="card-preview-soal">
+                <div style="margin-bottom: 8px;">
+                    <span class="badge-meta">Soal No. ${noSoal}</span>
+                    <span class="badge-meta">Tipe: ${item.Tipe || '-'}</span>
+                    <span class="badge-meta">Subtest: ${item.Subtest || '-'}</span>
+                    <span class="badge-meta">Section: ${item.Section || '-'}</span>
+                </div>
+                
+                <div class="soal-text">${item.Soal}</div>
+                
+                <div class="box-jawaban">
+                    <div><strong>Jawaban Anda:</strong> ${textJawabanUser}</div>
+                    <div><strong>Kunci Jawaban:</strong> <span style="color: #198754; font-weight: bold;">${textKunci}</span></div>
                 </div>
 
-                <div class="subblock-answer" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #ccc; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="margin-right: 15px;"><strong>Jawaban Anda:</strong> ${formattedUserAns}</span>
-                        <span><strong>Kunci Jawaban:</strong> <strong style="color:#2e7d32;">${formattedKunci}</strong></span>
-                    </div>
-                    <div>${statusBadge}</div>
+                <div class="box-pembahasan-text">
+                    <strong>💡 Pembahasan:</strong><br>
+                    ${item.Pembahasan || "Belum ada pembahasan tertulis."}
                 </div>
             </div>
         `;
     });
 
-    blockContainer.innerHTML = htmlContent;
-    reviewModal.style.display = "block";
+    html += `</div>`; // Close preview-soal-list
 
-    setTimeout(() => {
-        if (window.MathJax) {
-            if (typeof window.MathJax.typesetPromise === "function") {
-                window.MathJax.typesetPromise([reviewModal]).catch(err => console.log("MathJax error:", err));
-            } else if (typeof window.MathJax.typeset === "function") {
-                window.MathJax.typeset([reviewModal]);
-            }
+    // 4. Tempel Banner Paywall Token di bawah Soal Ke-3
+    html += `
+        <div class="paywall-banner">
+            <h3>🔒 Mau Akses Seluruh Pembahasan & Full Student Report?</h3>
+            <p>Sisa <strong>${totalSoal - 3} soal</strong> beserta Analisis Akurasi Subtest, Section, dan Timelog masih terkunci. Masukkan Token Pembahasan untuk membuka laporan lengkap.</p>
+            
+            <div class="form-token-group">
+                <input type="text" id="input-token-preview" class="input-token" placeholder="Ketik Token..." autocomplete="off">
+                <button onclick="verifikasiTokenPreview()" class="btn-unlock">Buka Akses</button>
+            </div>
+            
+            <a href="https://wa.me/6281234567890?text=Halo%20Admin,%20saya%20mau%20beli%20Token%20Pembahasan%20untuk%20ujian%20${encodeURIComponent(dataJSON.kode_ujian || '')}" 
+               target="_blank" class="link-wa-admin">
+               💬 Belum punya token? Hubungi Admin via WhatsApp
+            </a>
+        </div>
+    </div>`; // Close preview-container
+
+    container.innerHTML = html;
+}
+
+// 5. Fungsi Eksekusi Verifikasi Token
+function verifikasiTokenPreview() {
+    const inputEl = document.getElementById("input-token-preview");
+    if (!inputEl) return;
+
+    const typedToken = inputEl.value.trim().toUpperCase();
+    const targetToken = String(App.soalData?.token_pembahasan || "").trim().toUpperCase();
+
+    if (!typedToken) {
+        alert("⚠️ Silakan masukkan token pembahasan terlebih dahulu.");
+        return;
+    }
+
+    if (typedToken === targetToken) {
+        alert("🎉 Token Valid! Membuka Full Student Report...");
+        
+        // Simpan status unlock ke state global
+        App.isPembahasanUnlocked = true;
+
+        // Eksekusi pemanggilan Full Student Report yang ada di report.js
+        if (typeof renderFullStudentReport === "function") {
+            renderFullStudentReport();
+        } else {
+            console.error("Modul report.js belum dimuat!");
         }
-    }, 100);
+    } else {
+        alert("❌ Token Salah! Silakan periksa kembali token yang Anda masukkan atau hubungi admin.");
+        inputEl.focus();
+    }
 }
-
-function tutupHalamanKunci() {
-    const modal = document.getElementById("review-modal");
-    if (modal) modal.style.display = "none";
-}
-
-function cetakKunciPDF() {
-    window.print();
-}
-
-window.bukaHalamanKunciJawaban = bukaHalamanKunciJawaban;
-window.tutupHalamanKunci = tutupHalamanKunci;
-window.cetakKunciPDF = cetakKunciPDF;
