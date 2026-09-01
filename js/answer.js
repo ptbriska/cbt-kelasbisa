@@ -1,5 +1,5 @@
 /* ==========================================================
-   CBT KIBI V1.6.3 - Answer & Teaser Preview Logic (FIXED)
+   CBT KIBI V1.6.4 - Answer & Teaser Preview Logic (FIXED & SYNCED)
    ========================================================== */
 
 // Helper untuk memformat tampilan Kunci Jawaban berdasarkan tipe soal
@@ -45,14 +45,31 @@ function formatJawabanPesertaPreview(soalItem, userAns) {
 // Fungsi utama render halaman Preview Kunci Jawaban (Teaser 3 Soal)
 function initHalamanPembahasanPreview() {
     let container = document.getElementById("pembahasan-container");
+    const pageScoring = document.getElementById("page-scoring");
     const pageCbt = document.getElementById("page-cbt");
     
-    // Switch tampilan container secara otomatis
-    if (!container && pageCbt) {
-        container = pageCbt;
-    } else if (container) {
+    // Sembunyikan halaman ujian dan layar skor jika ada
+    if (pageCbt) {
+        pageCbt.classList.add("hidden");
+        pageCbt.style.display = "none";
+    }
+
+    // Switch/tentukan container utama pembahasan
+    if (!container && pageScoring) {
+        container = pageScoring;
+        container.classList.remove("hidden");
         container.style.display = "block";
-        if (pageCbt) pageCbt.style.display = "none";
+    } else if (container) {
+        container.classList.remove("hidden");
+        container.style.display = "block";
+        if (pageScoring) {
+            pageScoring.classList.add("hidden");
+            pageScoring.style.display = "none";
+        }
+    } else if (pageCbt) {
+        container = pageCbt;
+        container.classList.remove("hidden");
+        container.style.display = "block";
     } else {
         console.error("❌ Element container pembahasan tidak ditemukan!");
         return;
@@ -148,43 +165,54 @@ function initHalamanPembahasanPreview() {
     </div>`;
 
     container.innerHTML = html;
+
+    // Render MathJax (jika memuat formula matematika)
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+        window.MathJax.typesetPromise().catch(err => console.warn("MathJax error:", err));
+    }
 }
 
-// 5. Fungsi Eksekusi Verifikasi Token (Diperbarui untuk localStorage & New Window)
+// 5. Fungsi Eksekusi Verifikasi Token (Diperbarui untuk multi-token & localStorage)
 function verifikasiTokenPreview() {
     const inputEl = document.getElementById("input-token-preview");
     if (!inputEl) return;
 
     const typedToken = inputEl.value.trim().toUpperCase();
-    const targetToken = String(App.soalData?.token_pembahasan || "").trim().toUpperCase();
+    
+    // Ambil token target (support string / array)
+    const rawTarget = App.soalData?.token_pembahasan || App.tokenPembahasan || "";
+    let isTokenValid = false;
+
+    if (Array.isArray(rawTarget)) {
+        isTokenValid = rawTarget.map(t => String(t).trim().toUpperCase()).includes(typedToken);
+    } else {
+        const targetToken = String(rawTarget).trim().toUpperCase();
+        isTokenValid = typedToken === targetToken && targetToken !== "";
+    }
 
     if (!typedToken) {
         alert("⚠️ Silakan masukkan token pembahasan terlebih dahulu.");
         return;
     }
 
-    if (typedToken === targetToken) {
+    if (isTokenValid) {
         alert("🎉 Token Valid! Membuka Full Student Report...");
         
-        // Simpan status unlock ke state global App
         App.isPembahasanUnlocked = true;
 
-        // Persiapkan data lengkap untuk disimpan ke localStorage
         const reportDataPayload = {
             soalData: App.soalData || {},
             userAnswers: App.userAnswers || {},
             questionTimeLogs: App.questionTimeLogs || App.timeLogs || {},
-            userName: App.userName || "Peserta Ujian"
+            userName: App.userName || App.verifiedPesertaData?.Nama || "Peserta Ujian"
         };
 
-        // Simpan data ke localStorage agar dibaca oleh pembahasan.html
         try {
             localStorage.setItem("cbt_report_data", JSON.stringify(reportDataPayload));
         } catch (err) {
             console.error("Gagal menyimpan data ke localStorage:", err);
         }
 
-        // Buka pembahasan.html pada tab/window baru
         window.open("pembahasan.html", "_blank");
 
     } else {
@@ -193,8 +221,10 @@ function verifikasiTokenPreview() {
     }
 }
 
-// Window Global Function Attachment
+// Global Aliases agar sinkron dengan scoring.js
 window.formatKunciJawabanPreview = formatKunciJawabanPreview;
 window.formatJawabanPesertaPreview = formatJawabanPesertaPreview;
 window.initHalamanPembahasanPreview = initHalamanPembahasanPreview;
+window.bukaHalamanReviewJawaban = initHalamanPembahasanPreview;
+window.bukaHalamanKunciJawaban = initHalamanPembahasanPreview;
 window.verifikasiTokenPreview = verifikasiTokenPreview;
