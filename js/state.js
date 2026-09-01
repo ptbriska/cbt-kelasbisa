@@ -1,5 +1,5 @@
 // ==========================================================
-// state.js - Centralized Application State Engine (v1.5.0 - Dynamic Multi-Type Scoring)
+// state.js - Centralized Application State Engine (v1.6.3 - Dynamic Multi-Type Scoring)
 // ==========================================================
 
 // Inisialisasi Objek Global State App secara aman
@@ -27,9 +27,10 @@ Object.assign(window.App, {
     verifiedPesertaData: window.App.verifiedPesertaData || null,
     daftarPesertaValid: window.App.daftarPesertaValid || [],
 
-    // State Mode Ujian & Scoring Engine v1.5.0 (Dynamic Rules per Type)
+    // State Mode Ujian & Scoring Engine v1.6.3 (Dynamic Rules per Type)
     modeUjian: window.App.modeUjian || "LATIHAN", 
     modePenilaian: window.App.modePenilaian || "DYNAMIC", 
+    isScoringCompleted: window.App.isScoringCompleted || false,
     scoringRules: window.App.scoringRules || {
         "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
         "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
@@ -37,7 +38,8 @@ Object.assign(window.App, {
         "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
         "3A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
         "3B": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
-        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0, "skor_per_baris_kosong": 0.0 }
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0, "skor_per_baris_kosong": 0.0 },
+        "5A": { "skor_kosong": 0.0 }
     },
 
     // State Anti-Kecurangan & Lock Engine (Non-Camera Proctoring)
