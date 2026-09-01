@@ -1,5 +1,5 @@
 /* ==========================================================================
-   3. ARENA SOAL CBT (Page 3 Layout - CBT v1.6.0 Update)
+   3. ARENA SOAL CBT (Page 3 Layout - CBT v1.6.4 Update)
    ========================================================================== */
 
 .cbt-layout {
@@ -125,14 +125,18 @@
 }
 
 /* ==========================================================================
-   BADGE PARAMETRIK SOAL DINAMIS (v1.6.0 Update)
+   BADGE PARAMETRIK SOAL DINAMIS (v1.6.4 - Clean Container)
    ========================================================================== */
 .question-badges-wrapper {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   align-items: center;
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .badge-tag {
@@ -188,6 +192,37 @@
   border: 1px solid #bbf7d0;
 }
 
+/* ==========================================================================
+   TOOLBAR 3 UKURAN FONT (v1.6.4 Update)
+   ========================================================================== */
+.font-size-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-font-size {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-font-size:hover {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
 .timer-display {
   background: #f0fdf4;
   padding: 6px 16px;
@@ -227,10 +262,11 @@
   margin-bottom: 25px;
   white-space: pre-line;
   word-break: break-word;
+  transition: font-size 0.2s ease;
 }
 
 /* --------------------------------------------------------------------------
-   A. OPSI PILIHAN GANDA (Tipe 1A, 1B, 1C, 2A)
+   A. OPSI PILIHAN GANDA (Tipe 1A, 1B, 1C, 2A, 5A)
    -------------------------------------------------------------------------- */
 .options-group {
   display: flex;
@@ -238,6 +274,7 @@
   gap: 12px;
   position: relative;
   z-index: 10;
+  transition: font-size 0.2s ease;
 }
 
 .option-row {
@@ -396,6 +433,30 @@
   cursor: pointer;
 }
 
+/* --------------------------------------------------------------------------
+   D. FITUR RAGU-RAGU (v1.6.4 Update)
+   -------------------------------------------------------------------------- */
+.doubt-container {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.btn-doubt-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: #d97706;
+  transition: color 0.15s ease;
+}
+
+.btn-doubt-label:hover {
+  color: #b45309;
+}
+
 /* MathJax / KaTeX Styling Light Mode */
 .q-text .mjx-chtml, .opt-val .mjx-chtml,
 .q-text .MathJax, .opt-val .MathJax,
@@ -410,22 +471,30 @@
 
 /* Sidebar Navigasi Soal (Kanan) - UPDATE KOTAK MODERN */
 .sidebar-nav {
-  width: 220px;
+  width: 240px;
   background: #ffffff;
   border-left: var(--border-light);
   padding: 20px 15px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top Action Box tempat Tombol Selesai diletakkan (v1.6.4) */
+#grid-top-actions {
+  margin-bottom: 14px;
+  width: 100%;
 }
 
 .circle-grid,
 .number-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
   justify-items: center;
 }
 
-/* Diperbarui dari lingkaran (50%) menjadi Kotak Modern Modern Rounded */
+/* Diperbarui dari lingkaran (50%) menjadi Kotak Modern Rounded */
 .circle-btn,
 .grid-item,
 .btn-nav-num {
@@ -452,23 +521,33 @@
   box-shadow: 0 4px 8px rgba(0,0,0,0.12);
 }
 
+/* Status Belum Dijawab */
 .circle-btn.unanswered,
 .grid-item.unanswered {
-  background: var(--color-unanswered); 
+  background: var(--color-unanswered, #94a3b8); 
 }
 
+/* Status Sudah Dijawab */
 .circle-btn.answered,
 .grid-item.answered {
-  background: var(--color-answered); 
+  background: var(--color-answered, #16a34a); 
 }
 
+/* Status Ragu-Ragu (Kuning / Amber) */
+.circle-btn.doubt,
+.grid-item.doubt {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+/* Status Soal Sedang Aktif Dipilih */
 .circle-btn.active,
 .grid-item.active {
-  background: #ffffff;
-  border: 2px solid var(--color-active);
-  color: var(--color-active);
+  background: #ffffff !important;
+  border: 2px solid var(--color-active, #2563eb) !important;
+  color: var(--color-active, #2563eb) !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
 }
 
 /* Bottom Bar Footer CBT */
@@ -509,6 +588,7 @@
   background: #16a34a;
   color: #ffffff;
   border: 1px solid #16a34a;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
 }
 
 .btn-selesai:hover:not(:disabled) {
@@ -533,7 +613,7 @@
   
   .sidebar-nav {
     width: 100%;
-    max-height: 180px;
+    max-height: 200px;
     border-left: none;
     border-top: var(--border-light);
     padding: 15px;
