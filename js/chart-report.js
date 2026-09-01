@@ -2,18 +2,25 @@
    CBT SYSTEM - Chart Visualizer Engine (js/chart-report.js)
    ========================================================== */
 
+// Registrasi plugin ChartDataLabels secara global
+if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
 function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
     if (typeof Chart === 'undefined') {
-        console.error("Chart.js belum dimuat. Pastikan CDN Chart.js sudah terpasang di HTML.");
+        console.error("Chart.js belum dimuat.");
         return;
     }
 
-    // Registrasi plugin DataLabels secara global ke Chart.js
-    if (typeof ChartDataLabels !== 'undefined') {
+    // Peringatan jika CDN plugin belum terpasang di HTML
+    if (typeof ChartDataLabels === 'undefined') {
+        console.warn("PERHATIAN: CDN 'chartjs-plugin-datalabels' belum terpasang di HTML! Angka permanent tidak akan muncul.");
+    } else {
         Chart.register(ChartDataLabels);
     }
 
-    // Helper untuk menghancurkan instance chart lama sebelum inisialisasi baru
+    // Helper untuk reset instance chart lama
     const safeInitChart = (canvasId, config) => {
         const canvasEl = document.getElementById(canvasId);
         if (!canvasEl) return;
@@ -25,13 +32,9 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         new Chart(canvasEl.getContext('2d'), config);
     };
 
-    const hasDataLabels = typeof ChartDataLabels !== 'undefined';
-    const globalPlugins = hasDataLabels ? [ChartDataLabels] : [];
-
-    // 1. Chart Doughnut: Proporsi Jawaban (Label Angka Jumlah Soal)
+    // 1. Chart Doughnut: Proporsi Jawaban
     safeInitChart('chartScorePie', {
         type: 'doughnut',
-        plugins: globalPlugins,
         data: {
             labels: ['Benar', 'Salah', 'Kosong'],
             datasets: [{
@@ -44,13 +47,11 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false, // MATIKAN ANIMASI AGAR LANGSUNG TERCETAK DI PDF
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: {
-                        font: { family: 'Inter', size: 12 },
-                        padding: 15
-                    }
+                    labels: { font: { family: 'Inter', size: 12 }, padding: 15 }
                 },
                 datalabels: {
                     display: true,
@@ -62,10 +63,9 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         }
     });
 
-    // 2. Chart Line: Analisis Waktu per Soal (Label Angka Detik)
+    // 2. Chart Line: Analisis Waktu per Soal
     safeInitChart('chartTimeLine', {
         type: 'line',
-        plugins: globalPlugins,
         data: {
             labels: itemReviews.map(r => `No ${r.no}`),
             datasets: [{
@@ -83,18 +83,11 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-                padding: { top: 25, right: 10 }
-            },
+            animation: false, // MATIKAN ANIMASI AGAR LANGSUNG TERCETAK DI PDF
+            layout: { padding: { top: 25, right: 15 } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: 'Waktu (Detik)', font: { family: 'Inter' } },
-                    grid: { color: '#F1F5F9' }
-                },
-                x: {
-                    grid: { display: false }
-                }
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' } },
+                x: { grid: { display: false } }
             },
             plugins: {
                 legend: { display: false },
@@ -110,7 +103,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         }
     });
 
-    // 3. Chart Bar: Akurasi Subtest (Label Angka Persentase %)
+    // 3. Chart Bar: Akurasi Subtest
     const subtestLabels = Object.keys(subtestStats);
     const subtestAccuracy = subtestLabels.map(k => {
         const st = subtestStats[k];
@@ -119,7 +112,6 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
 
     safeInitChart('chartSubtestBar', {
         type: 'bar',
-        plugins: globalPlugins,
         data: {
             labels: subtestLabels,
             datasets: [{
@@ -133,19 +125,11 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-                padding: { top: 25 }
-            },
+            animation: false, // MATIKAN ANIMASI AGAR LANGSUNG TERCETAK DI PDF
+            layout: { padding: { top: 25 } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { callback: v => v + '%' },
-                    grid: { color: '#F1F5F9' }
-                },
-                x: {
-                    grid: { display: false }
-                }
+                y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#F1F5F9' } },
+                x: { grid: { display: false } }
             },
             plugins: {
                 legend: { display: false },
