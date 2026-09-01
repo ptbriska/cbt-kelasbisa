@@ -1,5 +1,5 @@
 /* ==========================================================
-   CBT KIBI V1.6 - Full Student Report Logic
+   CBT KIBI V1.6 - Full Student Report Logic (Standalone Ready)
    ========================================================== */
 
 // Helper pemformat Kunci Jawaban untuk tabel review
@@ -34,11 +34,40 @@ function renderFullStudentReport() {
     const container = document.getElementById("pembahasan-container");
     if (!container) return;
 
-    const dataJSON = App.soalData || {};
+    // AMBIL DATA: Prioritas dari App (jika single page), atau dari localStorage (jika window terpisah)
+    let dataJSON = {};
+    let userAnswers = {};
+    let timeLogs = {};
+    let userName = "Peserta Ujian";
+
+    if (typeof App !== "undefined" && App.soalData && Object.keys(App.soalData).length > 0) {
+        dataJSON = App.soalData || {};
+        userAnswers = App.userAnswers || {};
+        timeLogs = App.questionTimeLogs || {};
+        userName = App.userName || "Peserta Ujian";
+    } else {
+        // Fallback mengambil dari localStorage (pembahasan.html)
+        const storedReport = JSON.parse(localStorage.getItem("cbt_report_data") || "{}");
+        dataJSON = storedReport.soalData || {};
+        userAnswers = storedReport.userAnswers || {};
+        timeLogs = storedReport.questionTimeLogs || {};
+        userName = storedReport.userName || "Peserta Ujian";
+    }
+
+    // Jika data tidak ditemukan
+    if (!dataJSON.questions || dataJSON.questions.length === 0) {
+        container.innerHTML = `
+            <div class="report-wrapper" style="text-align:center; padding: 50px;">
+                <h3 style="color:#dc3545;">⚠️ Data Pembahasan Tidak Ditemukan</h3>
+                <p>Silakan selesaikan ujian dan masukkan Token Pembahasan pada halaman utama terlebih dahulu.</p>
+                <button onclick="window.close()" class="btn-print-full" style="margin-top:15px;">Tutup Halaman Ini</button>
+            </div>
+        `;
+        return;
+    }
+
     const questions = dataJSON.questions || [];
     const scoringRules = dataJSON.scoring_rules || {};
-    const userAnswers = App.userAnswers || {};
-    const timeLogs = App.questionTimeLogs || {}; // Format: { 1: 45, 2: 120 } (dalam detik)
 
     // Variable Akumulasi Utama
     let totalBenar = 0;
@@ -48,7 +77,7 @@ function renderFullStudentReport() {
     let totalSkorMaksimal = 0;
 
     // Data Structure Agregasi Subtest & Section
-    const subtestStats = {}; // { TWK: { total: 0, benar: 0, salah: 0, kosong: 0, skor: 0, maxSkor: 0 } }
+    const subtestStats = {};
     const sectionStats = {};
 
     // 1. ITERASI KALKULASI SKOR PER SOAL & AGREGASI STATISTIK
@@ -63,7 +92,7 @@ function renderFullStudentReport() {
 
         const rule = scoringRules[tipe] || { skor_benar: 1, skor_salah: 0, skor_kosong: 0 };
         
-        let status = "KOSONG"; // BENAR | SALAH | KOSONG | SKOR_SCALE
+        let status = "KOSONG";
         let skorDiperoleh = 0;
         let skorMaksSoal = 1;
 
@@ -83,7 +112,7 @@ function renderFullStudentReport() {
                 }
                 skorMaksSoal = (tipe === "1B") ? 4 : 1;
             } 
-            else if (tipe === "1C") { // Weighted Level
+            else if (tipe === "1C") {
                 const bobotMap = rule.bobot_level || { E: 1, M: 3, H: 5 };
                 skorMaksSoal = bobotMap[level] || 1;
                 if (String(ans).trim().toUpperCase() === String(q.Kunci).trim().toUpperCase()) {
@@ -94,7 +123,7 @@ function renderFullStudentReport() {
                     skorDiperoleh = rule.skor_salah || 0;
                 }
             } 
-            else if (tipe === "2A") { // Multiple Response Equal Credit
+            else if (tipe === "2A") {
                 const keyArr = Array.isArray(q.Kunci) ? q.Kunci : [q.Kunci];
                 const userArr = Array.isArray(ans) ? ans : [ans];
                 const isExact = keyArr.length === userArr.length && keyArr.every(val => userArr.includes(val));
@@ -108,7 +137,7 @@ function renderFullStudentReport() {
                 }
                 skorMaksSoal = rule.skor_benar_semua || 1;
             } 
-            else if (tipe === "4A") { // True/False Checklist
+            else if (tipe === "4A") {
                 const keyArr = Array.isArray(q.Kunci) ? q.Kunci : [];
                 const userArr = Array.isArray(ans) ? ans : [];
                 let correctCount = 0;
@@ -120,7 +149,7 @@ function renderFullStudentReport() {
                 skorMaksSoal = keyArr.length * (rule.skor_per_baris_benar || 1);
                 status = (correctCount === keyArr.length) ? "BENAR" : (correctCount > 0 ? "PARSIAL" : "SALAH");
             } 
-            else if (tipe === "5A") { // Weighted Options / TKP
+            else if (tipe === "5A") {
                 const keyObj = (typeof q.Kunci === "object") ? q.Kunci : {};
                 skorDiperoleh = Number(keyObj[ans]) || 0;
                 skorMaksSoal = rule.skor_maksimal || 5;
@@ -190,7 +219,7 @@ function renderFullStudentReport() {
         <!-- Identitas Peserta -->
         <div class="student-info-grid">
             <div class="info-item"><span>Kode Ujian:</span><strong>${dataJSON.kode_ujian || '-'}</strong></div>
-            <div class="info-item"><span>Nama Peserta:</span><strong>${App.userName || 'Peserta Ujian'}</strong></div>
+            <div class="info-item"><span>Nama Peserta:</span><strong>${userName}</strong></div>
             <div class="info-item"><span>Mode Ujian:</span><strong>${dataJSON.mode_ujian || 'LATIHAN'}</strong></div>
             <div class="info-item"><span>Tanggal Ujian:</span><strong>${new Date().toLocaleDateString('id-ID')}</strong></div>
         </div>
@@ -294,7 +323,7 @@ function renderFullStudentReport() {
                     <th style="width: 70px;">Tipe</th>
                     <th>Jawaban Anda</th>
                     <th>Kunci Jawaban</th>
-                    <th style="width: 100px;">Status / Skor</th>
+                    <th style="width: 110px;">Status / Skor</th>
                     <th style="width: 90px;">Waktu Log</th>
                 </tr>
             </thead>
@@ -335,4 +364,14 @@ function renderFullStudentReport() {
     </div>`;
 
     container.innerHTML = html;
+
+    // Trigger MathJax re-render jika ada rumus matematika
+    if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
+        window.MathJax.typesetPromise();
+    }
 }
+
+// OTOMATIS RUN SAAT HALAMAN PEMBAHASAN.HTML DIBUKA
+document.addEventListener("DOMContentLoaded", () => {
+    renderFullStudentReport();
+});
