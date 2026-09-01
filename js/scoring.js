@@ -1,6 +1,7 @@
 /* ==========================================================
-   js/scoring.js - MULTI-TYPE SCORING ENGINE V2.0.0
+   js/scoring.js - MULTI-TYPE SCORING ENGINE V1.6.0
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON
+   (Inc. Tipe 5A & Live Report Rincian Jawaban per Soal)
    ========================================================== */
 
 function submitJawabanScoring() {
@@ -18,7 +19,7 @@ function submitJawabanScoring() {
     const totalSoal = questions.length;
     const userAnswers = App.userAnswers || {};
     
-    // Ambil konfigurasi aturan skor dari JSON (atau default fallback)
+    // Konfigurasi aturan skor (default fallback)
     const rules = App.scoringRules || App.soalData?.scoring_rules || {
         "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
         "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
@@ -26,45 +27,58 @@ function submitJawabanScoring() {
         "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },
         "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },
         "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },
-        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 }
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 },
+        "5A": { "skor_kosong": 0.0 }
     };
 
     let totalSkorMurni = 0;
+    let totalSkorMaksimal = 0;
     let jumlahBenar = 0;
     let jumlahSalah = 0;
     let jumlahKosong = 0;
+    
+    const rincianJawaban = [];
 
     questions.forEach((q, idx) => {
         const noSoal = q.No || (idx + 1);
         const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
         const userAns = userAnswers[noSoal];
 
+        let pointSoal = 0;
+        let maxPointSoal = 0;
+        let userAnsDisplay = "-";
+        let kunciDisplay = "-";
+
         // -----------------------------------------------------------
         // 1. TIPE 1A, 1B, 1C (Single Response)
         // -----------------------------------------------------------
         if (["1A", "1B", "1C"].includes(tipeSoal)) {
             const kunci = String(q.Kunci || "").trim().toUpperCase();
+            kunciDisplay = kunci || "-";
             
+            if (tipeSoal === "1C") {
+                const levelSoal = String(q.Level || "E").trim().toUpperCase();
+                const bobotMap = rules["1C"]?.bobot_level || { "E": 1, "M": 3, "H": 5 };
+                maxPointSoal = Number(bobotMap[levelSoal] ?? 1);
+            } else {
+                const rule = rules[tipeSoal] || {};
+                maxPointSoal = Number(rule.skor_benar ?? 1);
+            }
+
             if (!userAns || String(userAns).trim() === "") {
                 jumlahKosong++;
                 const rule = rules[tipeSoal] || {};
-                totalSkorMurni += Number(rule.skor_kosong ?? 0);
+                pointSoal = Number(rule.skor_kosong ?? 0);
             } else {
-                const isCorrect = String(userAns).trim().toUpperCase() === kunci;
+                userAnsDisplay = String(userAns).trim().toUpperCase();
+                const isCorrect = userAnsDisplay === kunci;
                 if (isCorrect) {
                     jumlahBenar++;
-                    if (tipeSoal === "1C") {
-                        const levelSoal = String(q.Level || "E").trim().toUpperCase();
-                        const bobotMap = rules["1C"]?.bobot_level || { "E": 1, "M": 3, "H": 5 };
-                        totalSkorMurni += Number(bobotMap[levelSoal] ?? 1);
-                    } else {
-                        const rule = rules[tipeSoal] || {};
-                        totalSkorMurni += Number(rule.skor_benar ?? 1);
-                    }
+                    pointSoal = maxPointSoal;
                 } else {
                     jumlahSalah++;
                     const rule = rules[tipeSoal] || {};
-                    totalSkorMurni += Number(rule.skor_salah ?? 0);
+                    pointSoal = Number(rule.skor_salah ?? 0);
                 }
             }
         } 
@@ -73,15 +87,16 @@ function submitJawabanScoring() {
         // -----------------------------------------------------------
         else if (tipeSoal === "2A") {
             const rule = rules["2A"] || {};
-            // Normalisasi Kunci ke Array
+            maxPointSoal = Number(rule.skor_benar_semua ?? 1);
+
             let kunciArr = [];
             if (Array.isArray(q.Kunci)) {
                 kunciArr = q.Kunci.map(k => String(k).trim().toUpperCase());
             } else if (typeof q.Kunci === "string") {
                 kunciArr = q.Kunci.split(",").map(k => k.trim().toUpperCase()).filter(Boolean);
             }
+            kunciDisplay = kunciArr.join(", ") || "-";
 
-            // Normalisasi Jawaban User ke Array
             let userAnsArr = [];
             if (Array.isArray(userAns)) {
                 userAnsArr = userAns.map(a => String(a).trim().toUpperCase());
@@ -91,17 +106,18 @@ function submitJawabanScoring() {
 
             if (userAnsArr.length === 0) {
                 jumlahKosong++;
+                pointSoal = 0;
             } else {
-                // Pengecekan Eksak (Benar Sempurna)
+                userAnsDisplay = userAnsArr.join(", ");
                 const isExactMatch = kunciArr.length === userAnsArr.length && 
                     kunciArr.every(val => userAnsArr.includes(val));
 
                 if (isExactMatch) {
                     jumlahBenar++;
-                    totalSkorMurni += Number(rule.skor_benar_semua ?? 1);
+                    pointSoal = maxPointSoal;
                 } else {
                     jumlahSalah++;
-                    totalSkorMurni += Number(rule.skor_salah ?? 0);
+                    pointSoal = Number(rule.skor_salah ?? 0);
                 }
             }
         }
@@ -110,18 +126,21 @@ function submitJawabanScoring() {
         // -----------------------------------------------------------
         else if (tipeSoal === "3A" || tipeSoal === "3B") {
             const rule = rules[tipeSoal] || {};
-            const kunciStr = String(q.Kunci || "").trim().toLowerCase();
+            maxPointSoal = Number(rule.skor_benar ?? 1);
+            const kunciStr = String(q.Kunci || "").trim();
+            kunciDisplay = kunciStr || "-";
 
             if (!userAns || String(userAns).trim() === "") {
                 jumlahKosong++;
+                pointSoal = 0;
             } else {
-                const userAnsStr = String(userAns).trim().toLowerCase();
-                if (userAnsStr === kunciStr) {
+                userAnsDisplay = String(userAns).trim();
+                if (userAnsDisplay.toLowerCase() === kunciStr.toLowerCase()) {
                     jumlahBenar++;
-                    totalSkorMurni += Number(rule.skor_benar ?? 1);
+                    pointSoal = maxPointSoal;
                 } else {
                     jumlahSalah++;
-                    totalSkorMurni += Number(rule.skor_salah ?? 0);
+                    pointSoal = Number(rule.skor_salah ?? 0);
                 }
             }
         }
@@ -136,45 +155,101 @@ function submitJawabanScoring() {
             } else if (typeof q.Kunci === "string") {
                 kunciArr = q.Kunci.split(",").map(k => k.trim().toUpperCase()).filter(Boolean);
             }
+            kunciDisplay = kunciArr.join(", ") || "-";
+            maxPointSoal = kunciArr.length * Number(rule.skor_per_baris_benar ?? 1);
 
-            // User Answer harus berupa array/object pasangan baris [ "B", "S", "B", "S" ]
             let userAnsArr = Array.isArray(userAns) ? userAns : [];
 
             if (userAnsArr.length === 0) {
                 jumlahKosong++;
+                pointSoal = 0;
             } else {
+                userAnsDisplay = userAnsArr.map(v => v ? String(v).trim().toUpperCase() : "-").join(", ");
                 let pointPerSoal = 0;
-                let adaBenar = false;
 
                 kunciArr.forEach((kunciBaris, i) => {
                     const ansBaris = String(userAnsArr[i] || "").trim().toUpperCase();
                     if (ansBaris === kunciBaris) {
                         pointPerSoal += Number(rule.skor_per_baris_benar ?? 1);
-                        adaBenar = true;
                     } else {
                         pointPerSoal += Number(rule.skor_per_baris_salah ?? 0);
                     }
                 });
 
-                totalSkorMurni += pointPerSoal;
-                if (pointPerSoal === kunciArr.length) {
+                pointSoal = pointPerSoal;
+                if (pointPerSoal === maxPointSoal) {
                     jumlahBenar++;
                 } else {
                     jumlahSalah++;
                 }
             }
         }
+        // -----------------------------------------------------------
+        // 5. TIPE 5A (Weighted Options / Opsi Berbobot)
+        // -----------------------------------------------------------
+        else if (tipeSoal === "5A") {
+            const rule = rules["5A"] || {};
+            const bobotMap = q.Bobot || q.BobotOpsi || {};
+            
+            // Hitung poin tertinggi opsi
+            const bobotValues = Object.values(bobotMap).map(v => Number(v) || 0);
+            maxPointSoal = bobotValues.length > 0 ? Math.max(...bobotValues) : 5;
+
+            // Cari opsi terbaik untuk tampilan Kunci Jawaban
+            let bestOpt = "";
+            let maxOptVal = -Infinity;
+            Object.entries(bobotMap).forEach(([optKey, optVal]) => {
+                if (Number(optVal) > maxOptVal) {
+                    maxOptVal = Number(optVal);
+                    bestOpt = optKey;
+                }
+            });
+
+            kunciDisplay = q.Kunci ? String(q.Kunci) : `Skala Likert (Best: ${bestOpt}=${maxOptVal})`;
+
+            const userChoice = String(userAns || "").trim().toUpperCase();
+
+            if (!userChoice) {
+                jumlahKosong++;
+                pointSoal = Number(rule.skor_kosong ?? 0);
+            } else {
+                userAnsDisplay = userChoice;
+                pointSoal = Number(bobotMap[userChoice] ?? 0);
+
+                if (pointSoal > 0 && pointSoal === maxPointSoal) {
+                    jumlahBenar++;
+                } else {
+                    jumlahSalah++;
+                }
+            }
+        }
+
+        totalSkorMurni += pointSoal;
+        totalSkorMaksimal += maxPointSoal;
+
+        rincianJawaban.push({
+            no: noSoal,
+            tipe: tipeSoal,
+            jawabanUser: userAnsDisplay,
+            kunciJawaban: kunciDisplay,
+            skorDiperoleh: pointSoal,
+            skorMax: maxPointSoal
+        });
     });
 
     totalSkorMurni = Math.max(0, totalSkorMurni);
     const skorAkhir = Number(totalSkorMurni.toFixed(2));
+    const persentaseVal = totalSkorMaksimal > 0 ? Math.round((skorAkhir / totalSkorMaksimal) * 100) : 0;
 
     const detailHasil = {
         benar: jumlahBenar,
         salah: jumlahSalah,
         kosong: jumlahKosong,
         totalSoal: totalSoal,
-        skor: skorAkhir
+        skor: skorAkhir,
+        skorMaksimal: totalSkorMaksimal,
+        persentase: persentaseVal,
+        rincian: rincianJawaban
     };
 
     const dataPesertaResmi = App.verifiedPesertaData || App.userIdentitas || {};
@@ -267,27 +342,74 @@ function tampilkanLayarSelesai(detail) {
         }
     });
 
+    // Baris tabel rincian jawaban
+    const tableRows = (detail.rincian || []).map(r => `
+        <tr style="border-bottom: 1px solid #e2e8f0; text-align: left;">
+            <td style="padding: 10px 12px; font-weight: bold; color: #334155;">${r.no}</td>
+            <td style="padding: 10px 12px; color: #475569;">${r.tipe}</td>
+            <td style="padding: 10px 12px; color: #1e293b; font-weight: 500;">${r.jawabanUser}</td>
+            <td style="padding: 10px 12px; color: #475569;">${r.kunciJawaban}</td>
+            <td style="padding: 10px 12px; font-weight: bold; color: #0f172a;">${r.skorDiperoleh} / ${r.skorMax}</td>
+        </tr>
+    `).join('');
+
     const pageCbt = document.getElementById("page-cbt");
     if (pageCbt) {
         pageCbt.innerHTML = `
-            <div style="text-align:center; padding: 30px 15px; font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-                <h2 style="color: #2e7d32; margin-bottom: 5px;">✅ Ujian Selesai!</h2>
-                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Hasil Pengumuman Skor CBT [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
-                
-                <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-                    <span style="font-size: 13px; color: #555; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Total Skor Akhir</span>
-                    <div style="font-size: 54px; font-weight: bold; color: #1a237e; margin: 10px 0;">${detail.skor}</div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                        <div>✔️ Benar<br><strong style="color: #2e7d32; font-size: 18px;">${detail.benar}</strong></div>
-                        <div>❌ Salah<br><strong style="color: #c62828; font-size: 18px;">${detail.salah}</strong></div>
-                        <div>⚪ Kosong<br><strong style="color: #f57c00; font-size: 18px;">${detail.kosong}</strong></div>
-                    </div>
-
-                    <button onclick="bukaHalamanKunciJawaban()" style="margin-top: 20px; width: 100%; background: #2e7d32; color: #ffffff; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: background 0.2s;">
-                        📖 Lihat Kunci Jawaban
-                    </button>
+            <div style="padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 850px; margin: 0 auto; color: #1e293b;">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h2 style="color: #2e7d32; margin: 0 0 5px 0; font-size: 24px;">✅ Ujian Selesai!</h2>
+                    <p style="color: #64748b; font-size: 14px; margin: 0;">Hasil Live Report &amp; Auto-Scoring [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
                 </div>
+
+                <!-- CARDS RINGKASAN SKOR (FITUR SEKUNDER) -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Total Skor</span>
+                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skor}</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Skor Maksimal</span>
+                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skorMaksimal ?? '-'}</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Persentase</span>
+                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.persentase ?? 0}%</div>
+                    </div>
+                </div>
+
+                <!-- RINGKASAN JUMLAH BENAR / SALAH / KOSONG -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; font-size: 14px; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div>✔️ Benar<br><strong style="color: #16a34a; font-size: 18px;">${detail.benar}</strong></div>
+                    <div>❌ Salah<br><strong style="color: #dc2626; font-size: 18px;">${detail.salah}</strong></div>
+                    <div>⚪ Kosong<br><strong style="color: #d97706; font-size: 18px;">${detail.kosong}</strong></div>
+                </div>
+
+                <!-- TABEL RINCIAN JAWABAN PER SOAL (FITUR SEKUNDER HASIL DOKUMEN) -->
+                <div style="margin-bottom: 25px;">
+                    <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Rincian Jawaban Per Soal</h3>
+                    <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569;">
+                                    <th style="padding: 12px; font-weight: 600;">No</th>
+                                    <th style="padding: 12px; font-weight: 600;">Tipe</th>
+                                    <th style="padding: 12px; font-weight: 600;">Jawaban Anda</th>
+                                    <th style="padding: 12px; font-weight: 600;">Kunci Jawaban</th>
+                                    <th style="padding: 12px; font-weight: 600;">Skor diperoleh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TOMBOL NAVIGASI MENU UTAMA KE JAWABAN & RAPOR -->
+                <button onclick="bukaHalamanKunciJawaban()" style="width: 100%; background: #2e7d32; color: #ffffff; padding: 14px 20px; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);">
+                    📖 Buka Halaman Pembahasan Jawaban dan Rapor Peserta
+                </button>
             </div>
         `;
     }
