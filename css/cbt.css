@@ -1,5 +1,5 @@
 /* ==========================================================================
-   3. ARENA SOAL CBT (Page 3 Layout - CBT v1.5.0)
+   3. ARENA SOAL CBT (Page 3 Layout - CBT v1.6.0 Update)
    ========================================================================== */
 
 .cbt-layout {
@@ -124,16 +124,44 @@
   gap: 10px;
 }
 
-/* Badge Tingkat Kesulitan Soal (EASY / MEDIUM / HARD) */
+/* ==========================================================================
+   BADGE PARAMETRIK SOAL DINAMIS (v1.6.0 Update)
+   ========================================================================== */
+.question-badges-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.badge-tag {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.3;
+}
+
+/* Warna Soft Pastel Berdasarkan Kategori Parametrik */
+.badge-section {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.badge-subtest {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
 .badge-level {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  vertical-align: middle;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 
 .badge-level.easy {
@@ -152,6 +180,12 @@
   background-color: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fca5a5;
+}
+
+.badge-tipe {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
 }
 
 .timer-display {
@@ -374,7 +408,7 @@
   color: var(--brand-primary);
 }
 
-/* Sidebar Navigasi Bulatan (Kanan) */
+/* Sidebar Navigasi Soal (Kanan) - UPDATE KOTAK MODERN */
 .sidebar-nav {
   width: 220px;
   background: #ffffff;
@@ -383,17 +417,21 @@
   overflow-y: auto;
 }
 
-.circle-grid {
+.circle-grid,
+.number-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   justify-items: center;
 }
 
-.circle-btn {
+/* Diperbarui dari lingkaran (50%) menjadi Kotak Modern Modern Rounded */
+.circle-btn,
+.grid-item,
+.btn-nav-num {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 8px !important; /* Kotak Presisi Modern */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,29 +439,36 @@
   font-size: 0.9rem;
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
   transition: all 0.2s ease;
   user-select: none;
   border: 1px solid transparent;
 }
 
-.circle-btn:hover {
-  transform: scale(1.08);
+.circle-btn:hover,
+.grid-item:hover,
+.btn-nav-num:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
 }
 
-.circle-btn.unanswered {
+.circle-btn.unanswered,
+.grid-item.unanswered {
   background: var(--color-unanswered); 
 }
 
-.circle-btn.answered {
+.circle-btn.answered,
+.grid-item.answered {
   background: var(--color-answered); 
 }
 
-.circle-btn.active {
+.circle-btn.active,
+.grid-item.active {
   background: #ffffff;
   border: 2px solid var(--color-active);
   color: var(--color-active);
-  transform: scale(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
 }
 
 /* Bottom Bar Footer CBT */
@@ -494,7 +539,8 @@
     padding: 15px;
   }
   
-  .circle-grid {
+  .circle-grid,
+  .number-grid {
     grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
     gap: 10px;
   }
