@@ -1,5 +1,5 @@
 // ==========================================================
-// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.5.0)
+// auth.js - Sistem Autentikasi & Verifikasi Peserta (v1.5.1 Fixed)
 // Synchronized | Dynamic Multi-Type Rules Loader | Fast-Fetch
 // ==========================================================
 
@@ -257,11 +257,17 @@ document.addEventListener("DOMContentLoaded", () => {
             window.App.warningLogs = [];
             window.App.cheatingSnapshots = [];
 
-            // Proteksi Sekali Submit jika Mode SIMULASI
-            if (window.App.modeUjian === "SIMULASI") {
-                const lockKey = `SUBMITTED_${window.App.currentKodeUjian}_${inputNama}`;
+            // KUNCI PERBAIKAN: Pembatasan Submit Berdasarkan Mode Ujian
+            const lockKey = `SUBMITTED_${window.App.currentKodeUjian}_${inputNama}`;
+            const isModeLatihan = (window.App.modeUjian === "LATIHAN");
+
+            if (isModeLatihan) {
+                // Jika mode LATIHAN, hapus lock lama jika ada
+                localStorage.removeItem(lockKey);
+            } else {
+                // Semua mode non-LATIHAN (SIMULASI, UJIAN, TRYOUT, CBT, dll.) hanya boleh 1x submit
                 if (localStorage.getItem(lockKey) === "TRUE") {
-                    throw new Error("AKSES DITOLAK: Anda sudah pernah menyelesaikan ujian ini!");
+                    throw new Error("AKSES DITOLAK: Anda sudah pernah menyelesaikan ujian/simulasi ini!");
                 }
             }
 
