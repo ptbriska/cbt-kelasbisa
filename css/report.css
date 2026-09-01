@@ -418,3 +418,21 @@
         border: 1px solid #CCC !important;
     }
 }
+
+/* Loading State Styling */
+.report-loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.report-loading-state i {
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.report-loading-state p {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+}
