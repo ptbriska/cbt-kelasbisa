@@ -1,6 +1,11 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.2
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.4
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON (1A-1C, 2A, 3A-3B, 4A, 5A)
+   Fitur V1.6.4: 
+   1. Tombol Ragu-Ragu (Visual Marker)
+   2. Clean Metadata Badges (Tanpa Background Box)
+   3. Auto-position Tombol Selesai di Atas Grid Soal
+   4. Switcher 3 Ukuran Font (Kecil, Sedang, Besar)
    ========================================================== */
 
 window.App = window.App || {};
@@ -65,6 +70,40 @@ function isQuestionAnswered(displayNo) {
     return ans !== undefined && ans !== null && String(ans).trim() !== "";
 }
 
+// Toggle status Ragu-Ragu (Visual Only)
+function toggleDoubt(displayNo) {
+    if (!window.App) return;
+    App.doubtState = App.doubtState || {};
+    App.doubtState[displayNo] = !App.doubtState[displayNo];
+    
+    loadQuestion(App.currentIndex);
+}
+
+// Fitur Custom Ukuran Font (Kecil: 14px, Sedang: 16px, Besar: 19px)
+function setFontSize(size) {
+    if (!window.App) return;
+    App.fontSize = size || 'medium';
+
+    let pxSize = "16px";
+    if (App.fontSize === "small") pxSize = "14px";
+    if (App.fontSize === "large") pxSize = "19px";
+
+    const elText = document.getElementById("q-text");
+    const optionsBox = document.getElementById("options-box");
+
+    if (elText) elText.style.fontSize = pxSize;
+    if (optionsBox) optionsBox.style.fontSize = pxSize;
+
+    // Update active style tombol font
+    document.querySelectorAll(".btn-font-size").forEach(btn => {
+        const isCurrent = btn.dataset.size === App.fontSize;
+        btn.style.backgroundColor = isCurrent ? "#2563eb" : "#f3f4f6";
+        btn.style.color = isCurrent ? "#ffffff" : "#374151";
+        btn.style.borderColor = isCurrent ? "#2563eb" : "#d1d5db";
+        btn.style.fontWeight = isCurrent ? "bold" : "normal";
+    });
+}
+
 // ==========================================================
 // 2. CBT INIT & TIMING
 // ==========================================================
@@ -120,7 +159,6 @@ function syncExamMetadataFromJSON(dataJSON) {
     App.soalData = dataJSON;
     App.questionsData = dataJSON.questions || [];
 
-    // Rule Penilaian Default & Custom (Termasuk 5A)
     App.scoringRules = dataJSON.scoring_rules || {
         "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
         "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
@@ -144,6 +182,8 @@ function initCBT() {
     }
 
     App.userAnswers = App.userAnswers || {};
+    App.doubtState = App.doubtState || {};
+    App.fontSize = App.fontSize || 'medium';
     App.currentIndex = App.currentIndex || 0;
 
     renderNumberGrid();
@@ -201,7 +241,23 @@ function startTimer(durationInSeconds) {
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
     if (!window.App || !App.questionsData) return;
-    
+
+    // FITUR REVISI 3: Memindahkan / Memastikan Tombol Selesai Berada di Atas Grid Soal
+    const btnSelesai = document.getElementById("btn-selesai");
+    if (btnSelesai && grid && grid.parentElement) {
+        let topActionBox = document.getElementById("grid-top-actions");
+        if (!topActionBox) {
+            topActionBox = document.createElement("div");
+            topActionBox.id = "grid-top-actions";
+            topActionBox.style.cssText = "margin-bottom: 12px; width: 100%;";
+            grid.parentElement.insertBefore(topActionBox, grid);
+        }
+        if (btnSelesai.parentElement !== topActionBox) {
+            topActionBox.appendChild(btnSelesai);
+            btnSelesai.style.cssText = "width: 100%; padding: 10px 14px; font-weight: bold; border-radius: 8px; cursor: pointer; text-align: center;";
+        }
+    }
+
     const fragment = document.createDocumentFragment();
     App.questionsData.forEach((_, idx) => {
         const circle = document.createElement("div");
@@ -235,10 +291,11 @@ function loadQuestion(index) {
     if (elText) elText.innerHTML = q.Soal || "";
 
     // --------------------------------------------------
-    // BADGE PARAMETRIK
+    // REVISI 2: BADGE METADATA TANPA BACKGROUND KOTAK PANEL
     // --------------------------------------------------
     if (elLevel) {
-        let badgeHTML = `<div class="question-badges-wrapper">`;
+        // inline style diset transparent tanpa border/background container
+        let badgeHTML = `<div class="question-badges-wrapper" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: transparent; padding: 0; border: none; box-shadow: none;">`;
         
         const sectionVal = q.Section || q.MataPelajaran || q.Mapel || (App.soalData && App.soalData.mata_pelajaran);
         if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
@@ -274,6 +331,18 @@ function loadQuestion(index) {
         badgeHTML += `<span class="badge-tag badge-tipe">📝 Tipe: ${tipeVal}</span>`;
         badgeHTML += `</div>`;
         
+        // --------------------------------------------------
+        // REVISI 4: ADD KONTROL 3 UKURAN FONT DI BAWAH METADATA
+        // --------------------------------------------------
+        badgeHTML += `
+            <div class="font-size-toolbar" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; margin-bottom: 12px; padding: 4px 8px; border-radius: 6px; background: #f9fafb; border: 1px solid #e5e7eb;">
+                <span style="font-size: 12px; font-weight: 600; color: #4b5563; margin-right: 4px;">Ukuran Teks:</span>
+                <button type="button" class="btn-font-size" data-size="small" onclick="setFontSize('small')" title="Teks Kecil" style="padding: 2px 8px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A-</button>
+                <button type="button" class="btn-font-size" data-size="medium" onclick="setFontSize('medium')" title="Teks Sedang (Default)" style="padding: 2px 8px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A</button>
+                <button type="button" class="btn-font-size" data-size="large" onclick="setFontSize('large')" title="Teks Besar" style="padding: 2px 8px; font-size: 15px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;">A+</button>
+            </div>
+        `;
+        
         elLevel.innerHTML = badgeHTML;
     }
 
@@ -293,11 +362,7 @@ function loadQuestion(index) {
     const currentAns = App.userAnswers[displayNo];
     const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
 
-    // --------------------------------------------------
-    // RENDER BERDASARKAN TIPE
-    // --------------------------------------------------
-    
-    // TIPE 1A, 1B, 1C, 5A: Single Choice (Radio)
+    // RENDER BERDASARKAN TIPE SOAL
     if (["1A", "1B", "1C", "5A"].includes(tipeSoal)) {
         ["A", "B", "C", "D", "E"].forEach(key => {
             if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
@@ -316,9 +381,7 @@ function loadQuestion(index) {
                 optionsBox.appendChild(row);
             }
         });
-    } 
-    // TIPE 2A: Multiple Choice (Checkbox)
-    else if (tipeSoal === "2A") {
+    } else if (tipeSoal === "2A") {
         let ansArray = Array.isArray(currentAns) ? currentAns : [];
         ["A", "B", "C", "D", "E"].forEach(key => {
             if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
@@ -344,9 +407,7 @@ function loadQuestion(index) {
                 optionsBox.appendChild(row);
             }
         });
-    }
-    // TIPE 3A & 3B: Isian Singkat / Essay
-    else if (tipeSoal === "3A" || tipeSoal === "3B") {
+    } else if (tipeSoal === "3A" || tipeSoal === "3B") {
         const textVal = currentAns || "";
         const container = document.createElement("div");
         container.className = "essay-container";
@@ -371,9 +432,7 @@ function loadQuestion(index) {
                 updateGridStatus();
             };
         }
-    }
-    // TIPE 4A: Matrix / True-False Table
-    else if (tipeSoal === "4A") {
+    } else if (tipeSoal === "4A") {
         let userAnsArray = Array.isArray(currentAns) ? currentAns : [];
         const statements = ["A", "B", "C", "D", "E"].filter(k => q[k] && String(q[k]).trim() !== "" && q[k] !== "-");
         
@@ -411,6 +470,22 @@ function loadQuestion(index) {
         optionsBox.innerHTML = tableHTML;
     }
 
+    // RENDER TOMBOL RAGU-RAGU
+    const isDoubt = !!(App.doubtState && App.doubtState[displayNo]);
+    const doubtContainer = document.createElement("div");
+    doubtContainer.className = "doubt-container";
+    doubtContainer.style.cssText = "margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;";
+    doubtContainer.innerHTML = `
+        <label class="btn-doubt-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight: 600; color: #d97706;">
+            <input type="checkbox" id="chk-doubt-${displayNo}" ${isDoubt ? 'checked' : ''} onchange="toggleDoubt(${displayNo})" style="width: 18px; height: 18px; cursor: pointer;">
+            🟨 Tandai Ragu-Ragu
+        </label>
+    `;
+    optionsBox.appendChild(doubtContainer);
+
+    // TERAPKAN FONT SIZE SESUAI PILIHAN USER
+    setFontSize(App.fontSize || 'medium');
+
     if (window.MathJax && window.MathJax.typesetPromise) {
         MathJax.typesetPromise([document.getElementById("q-text"), document.getElementById("options-box")])
             .catch(err => console.error("MathJax Error:", err));
@@ -439,12 +514,20 @@ function updateGridStatus() {
         const circle = document.getElementById(`circle-num-${idx}`);
         if (!circle) return;
 
-        const isAnswered = isQuestionAnswered(idx + 1);
+        const displayNo = idx + 1;
+        const isAnswered = isQuestionAnswered(displayNo);
         const isActive = (idx === App.currentIndex);
+        const isDoubt = !!(App.doubtState && App.doubtState[displayNo]);
 
         let className = "circle-btn";
-        if (isAnswered) className += " answered";
-        else className += " unanswered";
+        
+        if (isDoubt) {
+            className += " doubt";
+        } else if (isAnswered) {
+            className += " answered";
+        } else {
+            className += " unanswered";
+        }
         
         if (isActive) className += " active";
 
