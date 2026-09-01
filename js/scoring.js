@@ -1,7 +1,7 @@
 /* ==========================================================
-   js/scoring.js - MULTI-TYPE SCORING ENGINE V1.6.0
+   js/scoring.js - MULTI-TYPE SCORING ENGINE V1.6.3 (FIXED)
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON
-   (Inc. Tipe 5A & Live Report Rincian Jawaban per Soal)
+   (Fix: Tipe 5A Object Key, Bobot Extraction & [object Object] Display)
    ========================================================== */
 
 function submitJawabanScoring() {
@@ -41,7 +41,7 @@ function submitJawabanScoring() {
 
     questions.forEach((q, idx) => {
         const noSoal = q.No || (idx + 1);
-        const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
+        const tipeSoal = String(q.Tipe || q.TipeSoal || "1A").trim().toUpperCase();
         const userAns = userAnswers[noSoal];
 
         let pointSoal = 0;
@@ -185,13 +185,22 @@ function submitJawabanScoring() {
             }
         }
         // -----------------------------------------------------------
-        // 5. TIPE 5A (Weighted Options / Opsi Berbobot)
+        // 5. TIPE 5A (Weighted Options / Opsi Berbobot / TKP) - PERBAIKAN BUG
         // -----------------------------------------------------------
         else if (tipeSoal === "5A") {
             const rule = rules["5A"] || {};
-            const bobotMap = q.Bobot || q.BobotOpsi || {};
             
-            // Hitung poin tertinggi opsi
+            // Ekstrak peta bobot dari q.Bobot, q.BobotOpsi, atau q.Kunci (jika q.Kunci berupa Objek)
+            let bobotMap = {};
+            if (typeof q.Kunci === "object" && q.Kunci !== null && !Array.isArray(q.Kunci)) {
+                bobotMap = q.Kunci;
+            } else if (typeof q.Bobot === "object" && q.Bobot !== null) {
+                bobotMap = q.Bobot;
+            } else if (typeof q.BobotOpsi === "object" && q.BobotOpsi !== null) {
+                bobotMap = q.BobotOpsi;
+            }
+            
+            // Hitung poin tertinggi dari opsi
             const bobotValues = Object.values(bobotMap).map(v => Number(v) || 0);
             maxPointSoal = bobotValues.length > 0 ? Math.max(...bobotValues) : 5;
 
@@ -205,7 +214,14 @@ function submitJawabanScoring() {
                 }
             });
 
-            kunciDisplay = q.Kunci ? String(q.Kunci) : `Skala Likert (Best: ${bestOpt}=${maxOptVal})`;
+            // Hindari pencetakan [object Object] pada tabel kunciDisplay
+            if (bestOpt) {
+                kunciDisplay = `${bestOpt} (Poin Maks: ${maxOptVal})`;
+            } else if (typeof q.Kunci === "string") {
+                kunciDisplay = q.Kunci;
+            } else {
+                kunciDisplay = "Opsi Berbobot (1-5)";
+            }
 
             const userChoice = String(userAns || "").trim().toUpperCase();
 
@@ -214,9 +230,13 @@ function submitJawabanScoring() {
                 pointSoal = Number(rule.skor_kosong ?? 0);
             } else {
                 userAnsDisplay = userChoice;
+                // Ambil poin sesuai opsi pilihan peserta
                 pointSoal = Number(bobotMap[userChoice] ?? 0);
 
-                if (pointSoal > 0 && pointSoal === maxPointSoal) {
+                if (pointSoal === maxPointSoal) {
+                    jumlahBenar++;
+                } else if (pointSoal > 0) {
+                    // Jika mendapat poin partial (>0), tetap dihitung sebagai terisi/benar
                     jumlahBenar++;
                 } else {
                     jumlahSalah++;
@@ -362,7 +382,7 @@ function tampilkanLayarSelesai(detail) {
                     <p style="color: #64748b; font-size: 14px; margin: 0;">Hasil Live Report &amp; Auto-Scoring [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
                 </div>
 
-                <!-- CARDS RINGKASAN SKOR (FITUR SEKUNDER) -->
+                <!-- CARDS RINGKASAN SKOR -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
                         <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Total Skor</span>
@@ -385,7 +405,7 @@ function tampilkanLayarSelesai(detail) {
                     <div>⚪ Kosong<br><strong style="color: #d97706; font-size: 18px;">${detail.kosong}</strong></div>
                 </div>
 
-                <!-- TABEL RINCIAN JAWABAN PER SOAL (FITUR SEKUNDER HASIL DOKUMEN) -->
+                <!-- TABEL RINCIAN JAWABAN PER SOAL -->
                 <div style="margin-bottom: 25px;">
                     <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Rincian Jawaban Per Soal</h3>
                     <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -406,7 +426,7 @@ function tampilkanLayarSelesai(detail) {
                     </div>
                 </div>
 
-                <!-- TOMBOL NAVIGASI MENU UTAMA KE JAWABAN & RAPOR -->
+                <!-- TOMBOL NAVIGASI -->
                 <button onclick="bukaHalamanKunciJawaban()" style="width: 100%; background: #2e7d32; color: #ffffff; padding: 14px 20px; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);">
                     📖 Buka Halaman Pembahasan Jawaban dan Rapor Peserta
                 </button>
