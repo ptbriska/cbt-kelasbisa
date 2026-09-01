@@ -155,7 +155,7 @@ async function cekVerifikasiPeserta(e) {
                        target="_blank" 
                        class="btn-wa-help" 
                        style="display: inline-flex; align-items: center; gap: 8px; background-color: #25D366; color: #ffffff !important; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; margin-top: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                        <i class="fa-brands fa-whatsapp" style="font-size: 18px;"></i> Hubungi Admin WhatsApp
+                         <i class="fa-brands fa-whatsapp" style="font-size: 18px;"></i> Hubungi Admin WhatsApp
                     </a>
                 `;
             }
@@ -296,20 +296,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (document.getElementById("logo-lembaga-info")) document.getElementById("logo-lembaga-info").src = data.logo;
                 if (document.getElementById("logo-lembaga-cbt")) document.getElementById("logo-lembaga-cbt").src = data.logo;
             }
-            if (data.lembaga) {
-                if (document.getElementById("disp-lembaga-info")) document.getElementById("disp-lembaga-info").textContent = data.lembaga;
-                if (document.getElementById("disp-lembaga-cbt")) document.getElementById("disp-lembaga-cbt").textContent = data.lembaga;
+
+            // Perubahan nama_sistem_cbt (Fallback ke lembaga)
+            const valNamaSistem = data.nama_sistem_cbt || data.lembaga || "-";
+            if (document.getElementById("disp-lembaga-info")) {
+                document.getElementById("disp-lembaga-info").textContent = valNamaSistem;
+            }
+            if (document.getElementById("disp-lembaga-cbt")) {
+                document.getElementById("disp-lembaga-cbt").textContent = valNamaSistem;
             }
             
-            const valSubLembaga = data.sub_lembaga || data.sub_header || "-";
+            // Perubahan penyelenggara (Fallback ke sub_lembaga / sub_header)
+            const valPenyelenggara = data.penyelenggara || data.sub_lembaga || data.sub_header || "-";
             if (document.getElementById("disp-sub-lembaga-info")) {
-                document.getElementById("disp-sub-lembaga-info").textContent = valSubLembaga;
+                document.getElementById("disp-sub-lembaga-info").textContent = valPenyelenggara;
             }
             if (document.getElementById("disp-sub-lembaga")) {
-                document.getElementById("disp-sub-lembaga").textContent = valSubLembaga;
+                document.getElementById("disp-sub-lembaga").textContent = valPenyelenggara;
             }
             if (document.getElementById("disp-sub-lembaga-cbt")) {
-                document.getElementById("disp-sub-lembaga-cbt").textContent = valSubLembaga;
+                document.getElementById("disp-sub-lembaga-cbt").textContent = valPenyelenggara;
             }
 
             const valNamaKegiatan = data.nama_kegiatan || data.nama_kegiatan_ujian || "-";
