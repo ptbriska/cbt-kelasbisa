@@ -1,70 +1,72 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4F46E5">
-  <title>Rapor & Pembahasan Hasil Ujian - CBT System</title>
-  
-  <link rel="icon" type="image/png" href="asset/Favicon.png">
-  
-  <!-- Font Modern (Inter) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- File CSS Utama -->
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/pages.css">
-  <link rel="stylesheet" href="css/report.css">
-  
-  <!-- FontAwesome Icon -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="description" content="Laporan Hasil Ujian dan Pembahasan Pembelajaran CBT System">
+    <title>Rapor & Pembahasan Hasil Ujian - CBT System</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="asset/Favicon.png">
+    
+    <!-- Font Modern (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- File CSS Utama -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/report.css">
+    
+    <!-- FontAwesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- Konfigurasi MathJax v3 -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['\\(', '\\)'], ['$', '$']],
-        displayMath: [['\\[', '\\]'], ['$$', '$$']],
-        processEscapes: true
-      },
-      options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <!-- Konfigurasi MathJax v3 (Format Persamaan Matematika) -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 
-  <!-- Container Utama Rapor & Pembahasan -->
-  <main class="premium-report-wrapper">
-    <div id="pembahasan-container" aria-live="polite" aria-busy="true">
-      
-      <!-- State Loading Modern -->
-      <div class="card-box report-loading-state">
-        <i class="fas fa-circle-notch fa-spin fa-3x"></i>
-        <h3 style="margin-top: 16px; margin-bottom: 6px; font-weight: 700;">Memuat Laporan Ujian</h3>
-        <p>Mohon tunggu sebentar, sistem sedang menyiapkan analisis dan pembahasan hasil ujian Anda...</p>
-      </div>
+    <!-- Container Utama Rapor & Pembahasan -->
+    <main class="premium-report-wrapper">
+        <div id="pembahasan-container" aria-live="polite" aria-busy="true">
+            
+            <!-- State Loading Modern (Sinkron dengan report.css) -->
+            <div class="card-box report-loading-state" style="text-align: center; padding: 48px 20px;">
+                <i class="fas fa-circle-notch fa-spin fa-3x" style="color: var(--primary);"></i>
+                <h3 style="margin-top: 20px; margin-bottom: 8px; font-weight: 700; color: var(--text-dark);">Memuat Laporan Ujian</h3>
+                <p style="color: var(--muted); margin: 0;">Mohon tunggu sebentar, sistem sedang menyiapkan analisis dan pembahasan hasil ujian Anda...</p>
+            </div>
 
-    </div>
-  </main>
+        </div>
+    </main>
 
-  <!-- Penanganan Jika JavaScript Dimatikan -->
-  <noscript>
-    <div class="premium-report-wrapper">
-      <div class="card-box empty-state">
-        <i class="fas fa-exclamation-circle empty-icon text-danger"></i>
-        <h3>JavaScript Tidak Aktif</h3>
-        <p>Aktifkan JavaScript pada peramban Anda untuk menampilkan hasil laporan ujian dan pembahasan.</p>
-      </div>
-    </div>
-  </noscript>
+    <!-- Penanganan Jika JavaScript Dimatikan -->
+    <noscript>
+        <div class="premium-report-wrapper">
+            <div class="card-box empty-state">
+                <i class="fas fa-exclamation-circle empty-icon text-danger"></i>
+                <h3>JavaScript Tidak Aktif</h3>
+                <p>Aktifkan JavaScript pada peramban Anda untuk menampilkan hasil laporan ujian dan pembahasan.</p>
+            </div>
+        </div>
+    </noscript>
 
-  <!-- Script Logika Report -->
-  <script src="js/report.js"></script>
+    <!-- Script Logika Report -->
+    <script src="js/report.js" defer></script>
 </body>
 </html>
