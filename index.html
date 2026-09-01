@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/cbt.css">
   <link rel="stylesheet" href="css/answer.css">
+  <link rel="stylesheet" href="css/report.css">
+  <link rel="stylesheet" href="css/panduan.css">
   
   <!-- FontAwesome untuk Icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -137,8 +139,8 @@
   <div id="page-info" class="card hidden">
     <div class="header-welcome">
       <img id="logo-lembaga-info" src="https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz" alt="Logo" class="logo-img">
-      <h2 id="disp-lembaga-info">NAMA LEMBAGA</h2>
-      <h3 id="disp-sub-lembaga-info">SUB KETERANGAN</h3>
+      <h2 id="disp-lembaga-info">NAMA SISTEM CBT</h2>
+      <h3 id="disp-sub-lembaga-info">PENYELENGGARA</h3>
     </div>
 
     <div class="info-kegiatan-box">
@@ -151,6 +153,10 @@
         <tr>
           <td>Nama Kegiatan Ujian</td>
           <td>: <span id="disp-nama-kegiatan">-</span></td>
+        </tr>
+        <tr>
+          <td>Penyelenggara</td>
+          <td>: <span id="disp-sub-lembaga">-</span></td>
         </tr>
         <tr>
           <td>Durasi Pengerjaan</td>
@@ -191,6 +197,13 @@
       </label>
     </div>
 
+    <!-- TOMBOL PANDUAN PENILAIAN DITAMBAHKAN DI SINI -->
+    <div style="text-align: center; margin: 15px 0;">
+      <a href="panduan-penilaian.html" target="_blank" class="btn-info-link" style="display: inline-flex; align-items: center; gap: 6px; color: #0284c7; text-decoration: none; font-weight: 600; font-size: 0.95rem;">
+        <i class="fas fa-book-open"></i> Lihat Panduan Penilaian &amp; Tipe Soal
+      </a>
+    </div>
+
     <div class="action-buttons-page2">
       <button type="button" class="btn-secondary" onclick="kembaliKePage1()">&lt;&lt; Kembali ke Identitas</button>
       <button type="button" id="btn-mulai-ujian" class="btn-primary btn-start-disabled" disabled onclick="mulaiUjianPenuh()">🚀 Mulai Pengerjaan Ujian</button>
@@ -207,8 +220,8 @@
       <div class="header-left">
         <img id="logo-lembaga-cbt" src="https://lh3.googleusercontent.com/d/1TYEl9QOZV3EU5p3peLGaaUZcjrOISSSz" alt="Logo" class="logo-img">
         <div class="title-box">
-          <h2 id="disp-lembaga-cbt">NAMA LEMBAGA</h2>
-          <small id="disp-sub-lembaga-cbt">SUB KETERANGAN</small>
+          <h2 id="disp-lembaga-cbt">NAMA SISTEM CBT</h2>
+          <small id="disp-sub-lembaga-cbt">PENYELENGGARA</small>
         </div>
       </div>
       <div class="header-right">
@@ -275,6 +288,11 @@
   </div>
 
   <!-- ========================================== -->
+  <!-- MODAL LAPORAN / HASIL UJIAN (FITUR v1.5)   -->
+  <!-- ========================================== -->
+  <div id="report-modal" style="display: none;"></div>
+
+  <!-- ========================================== -->
   <!-- MODAL REVIEW KUNCI JAWABAN (FITUR v1.5)     -->
   <!-- ========================================== -->
   <div id="review-modal" style="display: none;"></div>
@@ -288,6 +306,7 @@
   <script src="js/security.js" defer></script>
   <script src="js/exam.js" defer></script>
   <script src="js/answer.js" defer></script>
+  <script src="js/report.js" defer></script>
   <script src="js/main.js" defer></script>
 
 </body>
