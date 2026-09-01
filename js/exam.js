@@ -1,6 +1,6 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V2.0.0
-   Sesuai Dokumen Pedoman Tipe Soal & Format JSON
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.0
+   Sesuai Dokumen Pedoman Tipe Soal & Format JSON (Termasuk Tipe 5A)
    ========================================================== */
 
 window.App = window.App || {};
@@ -93,15 +93,16 @@ function syncExamMetadataFromJSON(dataJSON) {
     App.soalData = dataJSON;
     App.questionsData = dataJSON.questions || [];
 
-    // Sinkronkan aturan scoring per JSON
+    // Sinkronkan aturan scoring per JSON (ditambahkan 5A)[cite: 3]
     App.scoringRules = dataJSON.scoring_rules || {
-        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
-        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
-        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0 },
-        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },
-        "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },
-        "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },
-        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 }
+        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },[cite: 3]
+        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },[cite: 3]
+        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0 },[cite: 3]
+        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },[cite: 3]
+        "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },[cite: 3]
+        "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },[cite: 3]
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 },[cite: 3]
+        "5A": { "tipe": "weighted_options", "skor_kosong": 0.0 }[cite: 3]
     };
 
     App.currentKodeUjian = dataJSON.kode_ujian || App.currentKodeUjian;
@@ -191,7 +192,8 @@ function renderNumberGrid() {
 }
 
 /**
- * RENDER SOAL BERDASARKAN TIPE (1A-1C, 2A, 3A-3B, 4A)
+ * RENDER SOAL BERDASARKAN TIPE (1A-1C, 2A, 3A-3B, 4A, 5A)[cite: 3]
+ * & RENDER BADGE PARAMETRIK SOAL
  */
 function loadQuestion(index) {
     if (!window.App || !App.questionsData) return;
@@ -205,7 +207,53 @@ function loadQuestion(index) {
     
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
-    if (elLevel) elLevel.textContent = q.Tipe ? `[Tipe: ${q.Tipe}${q.Level ? ' | Level: ' + q.Level : ''}]` : "";
+
+    // -------------------------------------------------------------------
+    // RENDER BADGE PARAMETRIK SOAL (Mapel, Subtest, Level, Tipe)
+    // -------------------------------------------------------------------
+    if (elLevel) {
+        let badgeHTML = `<div class="question-badges-wrapper">`;
+        
+        // Badge Section / Mapel
+        const sectionVal = q.Section || q.MataPelajaran || q.Mapel || (App.soalData && App.soalData.mata_pelajaran);
+        if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
+            badgeHTML += `<span class="badge-tag badge-section">📘 ${sectionVal}</span>`;
+        }
+
+        // Badge Subtest / Topik
+        const subtestVal = q.Subtest || q.Materi || q.Topik;
+        if (subtestVal && String(subtestVal).trim() !== "" && String(subtestVal) !== "-") {
+            badgeHTML += `<span class="badge-tag badge-subtest">📌 ${subtestVal}</span>`;
+        }
+
+        // Badge Level Kesulitan (Easy, Medium, Hard / E, M, H)
+        const levelVal = q.Level || q.Kesulitan;
+        if (levelVal && String(levelVal).trim() !== "" && String(levelVal) !== "-") {
+            let lvlUpper = String(levelVal).trim().toUpperCase();
+            let lvlClass = "medium";
+            let lvlText = levelVal;
+
+            if (lvlUpper === "E" || lvlUpper === "EASY" || lvlUpper === "MUDAH") {
+                lvlClass = "easy";
+                lvlText = "Easy";
+            } else if (lvlUpper === "H" || lvlUpper === "HARD" || lvlUpper === "SULIT") {
+                lvlClass = "hard";
+                lvlText = "Hard";
+            } else if (lvlUpper === "M" || lvlUpper === "MEDIUM" || lvlUpper === "SEDANG") {
+                lvlClass = "medium";
+                lvlText = "Medium";
+            }
+
+            badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 Level: ${lvlText}</span>`;
+        }
+
+        // Badge Tipe Soal
+        const tipeVal = q.Tipe || "1A";
+        badgeHTML += `<span class="badge-tag badge-tipe">📝 Tipe: ${tipeVal}</span>`;
+
+        badgeHTML += `</div>`;
+        elLevel.innerHTML = badgeHTML;
+    }
 
     const imgContainer = document.getElementById("q-image-container");
     if (imgContainer) {
@@ -223,9 +271,9 @@ function loadQuestion(index) {
     const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
 
     // -------------------------------------------------------------------
-    // TIPE 1A, 1B, 1C: Single Choice (Radio Button)
+    // TIPE 1A, 1B, 1C & TIPE 5A: Single Choice / Weighted Options (Radio Button)[cite: 3]
     // -------------------------------------------------------------------
-    if (["1A", "1B", "1C"].includes(tipeSoal)) {
+    if (["1A", "1B", "1C", "5A"].includes(tipeSoal)) {[cite: 3]
         ["A", "B", "C", "D", "E"].forEach(key => {
             if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
                 const isSelected = (currentAns === key);
@@ -280,22 +328,35 @@ function loadQuestion(index) {
     else if (tipeSoal === "3A" || tipeSoal === "3B") {
         const textVal = currentAns || "";
         const container = document.createElement("div");
-        container.style.padding = "10px 0";
-        container.innerHTML = `
-            <label style="display:block; margin-bottom: 8px; font-weight: bold; color: #333;">Jawaban Anda:</label>
-            <input type="${tipeSoal === '3A' ? 'number' : 'text'}" 
-                   id="input-short-answer" 
-                   value="${textVal}" 
-                   placeholder="${tipeSoal === '3A' ? 'Masukkan angka...' : 'Ketikkan kata/frasa...'}" 
-                   style="width: 100%; max-width: 400px; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px;">
-        `;
+        container.className = "essay-container";
+        
+        const isMultiLine = tipeSoal === "3B" && textVal.length > 50;
+        
+        if (isMultiLine) {
+            container.innerHTML = `
+                <label style="display:block; font-weight: bold; color: var(--text-dark);">Jawaban Anda:</label>
+                <textarea id="input-short-answer" 
+                          class="essay-input-multi" 
+                          placeholder="Ketikkan jawaban Anda secara rinci...">${textVal}</textarea>
+            `;
+        } else {
+            container.innerHTML = `
+                <label style="display:block; font-weight: bold; color: var(--text-dark);">Jawaban Anda:</label>
+                <input type="${tipeSoal === '3A' ? 'number' : 'text'}" 
+                       id="input-short-answer" 
+                       class="essay-input-single" 
+                       value="${textVal}" 
+                       placeholder="${tipeSoal === '3A' ? 'Masukkan angka...' : 'Ketikkan kata/frasa...'}">
+            `;
+        }
+        
         optionsBox.appendChild(container);
 
         const inputEl = document.getElementById("input-short-answer");
         if (inputEl) {
             inputEl.oninput = (e) => {
-                const val = e.target.value.trim();
-                if (val === "") delete App.userAnswers[displayNo];
+                const val = e.target.value;
+                if (val.trim() === "") delete App.userAnswers[displayNo];
                 else App.userAnswers[displayNo] = val;
                 updateGridStatus();
             };
@@ -309,15 +370,16 @@ function loadQuestion(index) {
         const statements = ["A", "B", "C", "D", "E"].filter(k => q[k] && String(q[k]).trim() !== "" && q[k] !== "-");
         
         let tableHTML = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; font-size: 14px;">
-                <thead>
-                    <tr style="background: #f1f3f5; text-align: left; border-bottom: 2px solid #dee2e6;">
-                        <th style="padding: 10px; border: 1px solid #dee2e6;">Pernyataan</th>
-                        <th style="padding: 10px; text-align: center; width: 80px; border: 1px solid #dee2e6;">Benar (B)</th>
-                        <th style="padding: 10px; text-align: center; width: 80px; border: 1px solid #dee2e6;">Salah (S)</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="matrix-container">
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Pernyataan</th>
+                            <th class="matrix-radio-cell">Benar (B)</th>
+                            <th class="matrix-radio-cell">Salah (S)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
 
         statements.forEach((key, idx) => {
@@ -326,18 +388,18 @@ function loadQuestion(index) {
             
             tableHTML += `
                 <tr>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">${idx + 1}. ${valPernyataan}</td>
-                    <td style="padding: 10px; text-align: center; border: 1px solid #dee2e6;">
+                    <td class="matrix-statement">${idx + 1}. ${valPernyataan}</td>
+                    <td class="matrix-radio-cell">
                         <input type="radio" name="tf_${displayNo}_${idx}" value="B" ${currentChoice === 'B' ? 'checked' : ''} onchange="simpanTFKlik(${displayNo}, ${idx}, 'B', ${statements.length})">
                     </td>
-                    <td style="padding: 10px; text-align: center; border: 1px solid #dee2e6;">
+                    <td class="matrix-radio-cell">
                         <input type="radio" name="tf_${displayNo}_${idx}" value="S" ${currentChoice === 'S' ? 'checked' : ''} onchange="simpanTFKlik(${displayNo}, ${idx}, 'S', ${statements.length})">
                     </td>
                 </tr>
             `;
         });
 
-        tableHTML += `</tbody></table>`;
+        tableHTML += `</tbody></table></div>`;
         optionsBox.innerHTML = tableHTML;
     }
 
