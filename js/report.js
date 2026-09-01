@@ -321,9 +321,9 @@ function renderFullStudentReport() {
             <hr style="border: 0; border-top: 2px solid #cbd5e1; margin: 16px 0 14px 0;">
 
             <!-- Judul Utama Laporan Ujian -->
-            <div class="report-main-title">
-                <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: 0.5px; text-transform: uppercase;">
-                    ${dataJSON.judul_laporan || 'LAPORAN HASIL TES CBT/CAT & PEMBAHASAN'}
+            <div class="report-main-title" style="text-align: center; width: 100%; margin-top: 12px;">
+                <h1 style="margin: 0; font-size: 30px; font-weight: 800; color: #4f46e5; letter-spacing: 0.5px; text-transform: uppercase; text-align: center;">
+                    ${dataJSON.judul_laporan || 'LAPORAN HASIL UJIAN & PEMBAHASAN'}
                 </h1>
             </div>
         </div>
