@@ -19,19 +19,41 @@
     body {
       background: #f8fafc;
       padding: 30px 15px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .guide-container {
-      max-width: 800px;
+      max-width: 850px;
       margin: 0 auto;
       background: #ffffff;
-      padding: 30px;
+      padding: 32px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       color: #334155;
       line-height: 1.6;
     }
-    .guide-container h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
-    .guide-container h2 { color: #0284c7; margin-top: 25px; }
+    .guide-container h1 { 
+      color: #1e293b; 
+      border-bottom: 2px solid #e2e8f0; 
+      padding-bottom: 10px; 
+      font-size: 1.5rem;
+    }
+    .guide-container h2 { 
+      color: #0284c7; 
+      margin-top: 25px; 
+      font-size: 1.25rem;
+    }
+    .guide-container h3 { 
+      color: #334155; 
+      margin-top: 18px; 
+      font-size: 1.05rem;
+    }
+    .guide-container code {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
     .guide-container table {
       width: 100%;
       border-collapse: collapse;
@@ -42,7 +64,9 @@
       padding: 10px 12px;
       text-align: left;
     }
-    .guide-container th { background: #f1f5f9; }
+    .guide-container th { 
+      background: #f1f5f9; 
+    }
     .btn-close-window {
       margin-bottom: 20px;
       display: inline-flex;
@@ -59,12 +83,11 @@
       <i class="fas fa-times"></i> Tutup Halaman Ini
     </button>
     
-    <!-- Tempat isi Markdown bakal di-render -->
+    <!-- Tempat isi Markdown di-render -->
     <div id="markdown-content">Memuat panduan...</div>
   </div>
 
   <script>
-    // Data teks Markdown kamu
     const markdownText = `# PANDUAN PENILAIAN & TIPE SOAL (PESERTA UJIAN)
 
 Dokumen ini berisi informasi mengenai tipe-tipe soal dan sistem penilaian (*scoring*) yang berlaku dalam sistem Ujian Online / CBT.
@@ -86,6 +109,37 @@ Pilih **1 jawaban paling tepat** dari pilihan yang tersedia.
 
 ---
 
+### Tipe 2: Multiple Response (Pilihan Ganda >1 Jawaban)
+Pilih **semua opsi yang benar**. Jawaban benar berjumlah lebih dari satu.
+
+* **2A (Equal Credit):** Benar Sempurna (semua opsi tepat) = \`+1\` | Salah / Kurang Tepat / Kosong = \`0\`
+
+---
+
+### Tipe 3: Short Answer (Isian Singkat)
+Ketik jawaban langsung pada kolom teks yang disediakan tanpa memilih opsi.
+
+* **3A (Isian Angka):** Masukkan nilai angka presisi. Sesuai = \`+1\` | Salah / Kosong = \`0\`
+* **3B (Isian Kata):** Masukkan kata kunci utama. Sesuai = \`+1\` | Salah / Kosong = \`0\` *(Sistem mengabaikan huruf besar/kecil)*
+
+---
+
+### Tipe 4: True / False (Pernyataan Majemuk / Checklist)
+Tentukan status **Benar (B)** atau **Salah (S)** pada setiap baris pernyataan yang disediakan.
+
+* **4A (Per Statement):** Penilaian dihitung per baris pernyataan yang dijawab dengan tepat.
+  * Tiap baris tepat = \`+1\` (Maksimal skor = total baris)
+  * Tiap baris salah / tidak diisi = \`0\`
+
+---
+
+### Tipe 5: Weighted Options (Opsi Berbobot / Skala)
+Tipe soal penilaian sikap/karakteristik (misal: Tes Karakteristik Pribadi). 
+
+* **5A (Opsi Berbobot):** Tidak ada jawaban salah (skor 0) kecuali jika soal tidak diisi. Setiap opsi pilihan (A, B, C, D, E) memiliki bobot nilai tersendiri mulai dari **1 hingga 5**.
+
+---
+
 ## 2. Tabel Ringkasan Aturan Penilaian
 
 | Kode | Jenis Soal | Cara Menjawab | Skor Benar | Skor Salah | Skor Kosong |
@@ -99,7 +153,6 @@ Pilih **1 jawaban paling tepat** dari pilihan yang tersedia.
 | **4A** | Checklist (B/S) | Pilih B/S per Baris | +1 per baris | 0 | 0 |
 | **5A** | Opsi Berbobot (Skala) | Pilih 1 Jawaban | 1 s.d. 5 | 0 | 0 |`;
 
-    // Render markdown ke element HTML
     document.getElementById('markdown-content').innerHTML = marked.parse(markdownText);
   </script>
 </body>
