@@ -1,9 +1,13 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.0
-   Sesuai Dokumen Pedoman Tipe Soal & Format JSON (Termasuk Tipe 5A)
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.2
+   Sesuai Dokumen Pedoman Tipe Soal & Format JSON (1A-1C, 2A, 3A-3B, 4A, 5A)
    ========================================================== */
 
 window.App = window.App || {};
+
+// ==========================================================
+// 1. UTILS & NAVIGATION HELPERS
+// ==========================================================
 
 function toggleMulaiButton() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
@@ -11,17 +15,11 @@ function toggleMulaiButton() {
     
     if (!chk || !btn) return;
 
-    if (chk.checked) {
-        btn.disabled = false;
-        btn.classList.remove("btn-start-disabled");
-        btn.classList.add("active");
-        btn.style.cursor = "pointer";
-    } else {
-        btn.disabled = true;
-        btn.classList.add("btn-start-disabled");
-        btn.classList.remove("active");
-        btn.style.cursor = "not-allowed";
-    }
+    const isChecked = chk.checked;
+    btn.disabled = !isChecked;
+    btn.classList.toggle("btn-start-disabled", !isChecked);
+    btn.classList.toggle("active", isChecked);
+    btn.style.cursor = isChecked ? "pointer" : "not-allowed";
 }
 
 function kembaliKePage1() {
@@ -29,6 +27,47 @@ function kembaliKePage1() {
     document.getElementById("page-login")?.classList.remove("hidden");
     window.scrollTo(0, 0);
 }
+
+function updateHeaderUserProfile() {
+    const elNama = document.getElementById("disp-user-name");
+    const elInstansi = document.getElementById("disp-user-school");
+
+    if (window.App) {
+        const p = App.verifiedPesertaData || App.userIdentitas || {};
+        if (elNama) elNama.textContent = p["Nama Lengkap"] || p.nama || "-";
+        if (elInstansi) elInstansi.textContent = p["Asal Instansi"] || p.sekolah || "-";
+    }
+}
+
+function navigasi(direction) {
+    if (!window.App || !App.questionsData) return;
+    const newIndex = App.currentIndex + direction;
+    if (newIndex >= 0 && newIndex < App.questionsData.length) {
+        App.currentIndex = newIndex;
+        loadQuestion(App.currentIndex);
+    }
+}
+
+function konfirmasiKeluar() {
+    if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian? Jawaban yang belum dikirim mungkin akan hilang.")) {
+        window.location.reload();
+    }
+}
+
+// Check status apakah sebuah nomor soal sudah terisi valid
+function isQuestionAnswered(displayNo) {
+    if (!window.App || !App.userAnswers) return false;
+    const ans = App.userAnswers[displayNo];
+    
+    if (Array.isArray(ans)) {
+        return ans.some(val => val !== undefined && val !== null && String(val).trim() !== "");
+    }
+    return ans !== undefined && ans !== null && String(ans).trim() !== "";
+}
+
+// ==========================================================
+// 2. CBT INIT & TIMING
+// ==========================================================
 
 function mulaiUjianPenuh() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
@@ -59,32 +98,20 @@ function mulaiUjianPenuh() {
     try {
         localStorage.removeItem("cbt_warning_count");
         localStorage.removeItem("cbt_violation_logs");
-    } catch(e) {}
+    } catch (e) {}
 
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {
-            console.warn("Fullscreen request bypass/denied.");
+            console.warn("Fullscreen request bypassed or denied.");
         });
     }
 
-    if (typeof window.initSecurityListeners === "function") {
-        window.initSecurityListeners();
-    } else if (typeof initSecurityListeners === "function") {
-        initSecurityListeners();
+    const initSecurity = window.initSecurityListeners || initSecurityListeners;
+    if (typeof initSecurity === "function") {
+        initSecurity();
     }
 
     initCBT();
-}
-
-function updateHeaderUserProfile() {
-    const elNama = document.getElementById("disp-user-name");
-    const elInstansi = document.getElementById("disp-user-school");
-
-    if (window.App) {
-        const p = App.verifiedPesertaData || App.userIdentitas || {};
-        if (elNama) elNama.textContent = p["Nama Lengkap"] || p.nama || "-";
-        if (elInstansi) elInstansi.textContent = p["Asal Instansi"] || p.sekolah || "-";
-    }
 }
 
 function syncExamMetadataFromJSON(dataJSON) {
@@ -93,16 +120,16 @@ function syncExamMetadataFromJSON(dataJSON) {
     App.soalData = dataJSON;
     App.questionsData = dataJSON.questions || [];
 
-    // Sinkronkan aturan scoring per JSON (ditambahkan 5A)[cite: 3]
+    // Rule Penilaian Default & Custom (Termasuk 5A)
     App.scoringRules = dataJSON.scoring_rules || {
-        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },[cite: 3]
-        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },[cite: 3]
-        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0 },[cite: 3]
-        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },[cite: 3]
-        "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },[cite: 3]
-        "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },[cite: 3]
-        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 },[cite: 3]
-        "5A": { "tipe": "weighted_options", "skor_kosong": 0.0 }[cite: 3]
+        "1A": { "skor_benar": 1.0, "skor_salah": 0.0, "skor_kosong": 0.0 },
+        "1B": { "skor_benar": 4.0, "skor_salah": -1.0, "skor_kosong": 0.0 },
+        "1C": { "bobot_level": { "E": 1.0, "M": 3.0, "H": 5.0 }, "skor_salah": 0.0 },
+        "2A": { "skor_benar_semua": 1.0, "skor_salah": 0.0 },
+        "3A": { "skor_benar": 1.0, "skor_salah": 0.0 },
+        "3B": { "skor_benar": 1.0, "skor_salah": 0.0 },
+        "4A": { "skor_per_baris_benar": 1.0, "skor_per_baris_salah": 0.0 },
+        "5A": { "tipe": "weighted_options", "skor_kosong": 0.0 }
     };
 
     App.currentKodeUjian = dataJSON.kode_ujian || App.currentKodeUjian;
@@ -122,7 +149,7 @@ function initCBT() {
     renderNumberGrid();
     loadQuestion(App.currentIndex);
 
-    let durasiMenit = App.timerDurationMinutes || 10;
+    const durasiMenit = App.timerDurationMinutes || 10;
     startTimer(parseInt(durasiMenit, 10) * 60);
 }
 
@@ -132,7 +159,7 @@ function startTimer(durationInSeconds) {
 
     const timerDisplay = document.getElementById("timer-display") || document.getElementById("timer");
 
-    if (window.App && App.timerInterval) {
+    if (App.timerInterval) {
         clearInterval(App.timerInterval);
     }
 
@@ -147,7 +174,6 @@ function startTimer(durationInSeconds) {
 
         if (timerDisplay) {
             timerDisplay.textContent = `${hStr}:${mStr}:${sStr}`;
-            
             if (timer <= 300) {
                 timerDisplay.style.color = "#dc3545";
                 timerDisplay.style.fontWeight = "bold";
@@ -158,7 +184,7 @@ function startTimer(durationInSeconds) {
         }
 
         if (--timer < 0) {
-            if (window.App && App.timerInterval) clearInterval(App.timerInterval);
+            if (App.timerInterval) clearInterval(App.timerInterval);
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             submitJawaban(true, true);
         }
@@ -167,6 +193,10 @@ function startTimer(durationInSeconds) {
     intervalFunc();
     App.timerInterval = setInterval(intervalFunc, 1000);
 }
+
+// ==========================================================
+// 3. UI RENDERING (GRID & QUESTION TYPES)
+// ==========================================================
 
 function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
@@ -191,10 +221,6 @@ function renderNumberGrid() {
     }
 }
 
-/**
- * RENDER SOAL BERDASARKAN TIPE (1A-1C, 2A, 3A-3B, 4A, 5A)[cite: 3]
- * & RENDER BADGE PARAMETRIK SOAL
- */
 function loadQuestion(index) {
     if (!window.App || !App.questionsData) return;
     const q = App.questionsData[index];
@@ -208,38 +234,35 @@ function loadQuestion(index) {
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
 
-    // -------------------------------------------------------------------
-    // RENDER BADGE PARAMETRIK SOAL (Mapel, Subtest, Level, Tipe)
-    // -------------------------------------------------------------------
+    // --------------------------------------------------
+    // BADGE PARAMETRIK
+    // --------------------------------------------------
     if (elLevel) {
         let badgeHTML = `<div class="question-badges-wrapper">`;
         
-        // Badge Section / Mapel
         const sectionVal = q.Section || q.MataPelajaran || q.Mapel || (App.soalData && App.soalData.mata_pelajaran);
         if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
             badgeHTML += `<span class="badge-tag badge-section">📘 ${sectionVal}</span>`;
         }
 
-        // Badge Subtest / Topik
         const subtestVal = q.Subtest || q.Materi || q.Topik;
         if (subtestVal && String(subtestVal).trim() !== "" && String(subtestVal) !== "-") {
             badgeHTML += `<span class="badge-tag badge-subtest">📌 ${subtestVal}</span>`;
         }
 
-        // Badge Level Kesulitan (Easy, Medium, Hard / E, M, H)
         const levelVal = q.Level || q.Kesulitan;
         if (levelVal && String(levelVal).trim() !== "" && String(levelVal) !== "-") {
             let lvlUpper = String(levelVal).trim().toUpperCase();
             let lvlClass = "medium";
             let lvlText = levelVal;
 
-            if (lvlUpper === "E" || lvlUpper === "EASY" || lvlUpper === "MUDAH") {
+            if (["E", "EASY", "MUDAH"].includes(lvlUpper)) {
                 lvlClass = "easy";
                 lvlText = "Easy";
-            } else if (lvlUpper === "H" || lvlUpper === "HARD" || lvlUpper === "SULIT") {
+            } else if (["H", "HARD", "SULIT"].includes(lvlUpper)) {
                 lvlClass = "hard";
                 lvlText = "Hard";
-            } else if (lvlUpper === "M" || lvlUpper === "MEDIUM" || lvlUpper === "SEDANG") {
+            } else if (["M", "MEDIUM", "SEDANG"].includes(lvlUpper)) {
                 lvlClass = "medium";
                 lvlText = "Medium";
             }
@@ -247,14 +270,14 @@ function loadQuestion(index) {
             badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 Level: ${lvlText}</span>`;
         }
 
-        // Badge Tipe Soal
         const tipeVal = q.Tipe || "1A";
         badgeHTML += `<span class="badge-tag badge-tipe">📝 Tipe: ${tipeVal}</span>`;
-
         badgeHTML += `</div>`;
+        
         elLevel.innerHTML = badgeHTML;
     }
 
+    // GAMBAR SOAL
     const imgContainer = document.getElementById("q-image-container");
     if (imgContainer) {
         const gambarVal = (q.Gambar && typeof q.Gambar === "string") ? q.Gambar.trim() : "";
@@ -270,10 +293,12 @@ function loadQuestion(index) {
     const currentAns = App.userAnswers[displayNo];
     const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
 
-    // -------------------------------------------------------------------
-    // TIPE 1A, 1B, 1C & TIPE 5A: Single Choice / Weighted Options (Radio Button)[cite: 3]
-    // -------------------------------------------------------------------
-    if (["1A", "1B", "1C", "5A"].includes(tipeSoal)) {[cite: 3]
+    // --------------------------------------------------
+    // RENDER BERDASARKAN TIPE
+    // --------------------------------------------------
+    
+    // TIPE 1A, 1B, 1C, 5A: Single Choice (Radio)
+    if (["1A", "1B", "1C", "5A"].includes(tipeSoal)) {
         ["A", "B", "C", "D", "E"].forEach(key => {
             if (q[key] !== undefined && q[key] !== null && String(q[key]).trim() !== "" && q[key] !== "-") {
                 const isSelected = (currentAns === key);
@@ -292,9 +317,7 @@ function loadQuestion(index) {
             }
         });
     } 
-    // -------------------------------------------------------------------
-    // TIPE 2A: Multiple Response (Checkbox)
-    // -------------------------------------------------------------------
+    // TIPE 2A: Multiple Choice (Checkbox)
     else if (tipeSoal === "2A") {
         let ansArray = Array.isArray(currentAns) ? currentAns : [];
         ["A", "B", "C", "D", "E"].forEach(key => {
@@ -322,33 +345,20 @@ function loadQuestion(index) {
             }
         });
     }
-    // -------------------------------------------------------------------
-    // TIPE 3A & 3B: Short Answer (Input Text/Angka)
-    // -------------------------------------------------------------------
+    // TIPE 3A & 3B: Isian Singkat / Essay
     else if (tipeSoal === "3A" || tipeSoal === "3B") {
         const textVal = currentAns || "";
         const container = document.createElement("div");
         container.className = "essay-container";
-        
         const isMultiLine = tipeSoal === "3B" && textVal.length > 50;
         
-        if (isMultiLine) {
-            container.innerHTML = `
-                <label style="display:block; font-weight: bold; color: var(--text-dark);">Jawaban Anda:</label>
-                <textarea id="input-short-answer" 
-                          class="essay-input-multi" 
-                          placeholder="Ketikkan jawaban Anda secara rinci...">${textVal}</textarea>
-            `;
-        } else {
-            container.innerHTML = `
-                <label style="display:block; font-weight: bold; color: var(--text-dark);">Jawaban Anda:</label>
-                <input type="${tipeSoal === '3A' ? 'number' : 'text'}" 
-                       id="input-short-answer" 
-                       class="essay-input-single" 
-                       value="${textVal}" 
-                       placeholder="${tipeSoal === '3A' ? 'Masukkan angka...' : 'Ketikkan kata/frasa...'}">
-            `;
-        }
+        container.innerHTML = `
+            <label style="display:block; font-weight: bold; margin-bottom: 8px; color: var(--text-dark, #333);">Jawaban Anda:</label>
+            ${isMultiLine ? 
+                `<textarea id="input-short-answer" class="essay-input-multi" placeholder="Ketikkan jawaban Anda secara rinci...">${textVal}</textarea>` :
+                `<input type="${tipeSoal === '3A' ? 'number' : 'text'}" id="input-short-answer" class="essay-input-single" value="${textVal}" placeholder="${tipeSoal === '3A' ? 'Masukkan angka...' : 'Ketikkan kata/frasa...'}">`
+            }
+        `;
         
         optionsBox.appendChild(container);
 
@@ -362,9 +372,7 @@ function loadQuestion(index) {
             };
         }
     }
-    // -------------------------------------------------------------------
-    // TIPE 4A: True/False Checklist Table
-    // -------------------------------------------------------------------
+    // TIPE 4A: Matrix / True-False Table
     else if (tipeSoal === "4A") {
         let userAnsArray = Array.isArray(currentAns) ? currentAns : [];
         const statements = ["A", "B", "C", "D", "E"].filter(k => q[k] && String(q[k]).trim() !== "" && q[k] !== "-");
@@ -416,9 +424,6 @@ function loadQuestion(index) {
     updateGridStatus();
 }
 
-/**
- * Helper Simpan Jawaban Tipe 4A (True/False Checklist)
- */
 window.simpanTFKlik = function(displayNo, barisIdx, pilihan, totalBaris) {
     if (!window.App) return;
     let currentArr = Array.isArray(App.userAnswers[displayNo]) ? [...App.userAnswers[displayNo]] : new Array(totalBaris).fill("");
@@ -434,15 +439,7 @@ function updateGridStatus() {
         const circle = document.getElementById(`circle-num-${idx}`);
         if (!circle) return;
 
-        const ans = App.userAnswers[idx + 1];
-        let isAnswered = false;
-
-        if (Array.isArray(ans)) {
-            isAnswered = ans.some(val => val && val !== "");
-        } else if (typeof ans === "string") {
-            isAnswered = ans.trim() !== "";
-        }
-
+        const isAnswered = isQuestionAnswered(idx + 1);
         const isActive = (idx === App.currentIndex);
 
         let className = "circle-btn";
@@ -455,32 +452,29 @@ function updateGridStatus() {
     });
 }
 
-function navigasi(direction) {
-    if (!window.App || !App.questionsData) return;
-    const newIndex = App.currentIndex + direction;
-    if (newIndex >= 0 && newIndex < App.questionsData.length) {
-        App.currentIndex = newIndex;
-        loadQuestion(App.currentIndex);
-    }
-}
+// ==========================================================
+// 4. SUBMISSION & CONFIRMATION
+// ==========================================================
 
-function konfirmasiKeluar() {
-    if (confirm("Apakah Anda yakin ingin keluar dari halaman ujian? Jawaban yang belum dikirim mungkin akan hilang.")) {
-        window.location.reload();
+function hitungRingkasanJawaban() {
+    const questions = (window.App && App.questionsData) || [];
+    const totalSoal = questions.length;
+    let dijawab = 0;
+
+    for (let i = 1; i <= totalSoal; i++) {
+        if (isQuestionAnswered(i)) dijawab++;
     }
+
+    const kosong = totalSoal - dijawab;
+    return { totalSoal, dijawab, kosong };
 }
 
 function tampilkanPanelKonfirmasi(dijawabArg, kosongArg, totalSoalArg) {
-    let totalSoal = totalSoalArg;
-    let dijawab = dijawabArg;
-    let kosong = kosongArg;
+    let { totalSoal, dijawab, kosong } = hitungRingkasanJawaban();
 
-    if (totalSoal === undefined || dijawab === undefined || kosong === undefined) {
-        const questions = (window.App && (App.questionsData || App.questions)) || [];
-        totalSoal = questions.length;
-        dijawab = window.App && App.userAnswers ? Object.keys(App.userAnswers).length : 0;
-        kosong = totalSoal - dijawab;
-    }
+    if (totalSoalArg !== undefined) totalSoal = totalSoalArg;
+    if (dijawabArg !== undefined) dijawab = dijawabArg;
+    if (kosongArg !== undefined) kosong = kosongArg;
 
     if (window.App) App.isSubmitting = true;
 
@@ -541,10 +535,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
 
     if (App.isExamSubmitted && !isAuto) return;
 
-    const questions = App.questionsData || App.questions || [];
-    const totalSoal = questions.length;
-    const dijawab = Object.keys(App.userAnswers || {}).length;
-    const kosong = totalSoal - dijawab;
+    const { totalSoal, dijawab, kosong } = hitungRingkasanJawaban();
 
     if (!isAuto && !isConfirmed) {
         App.isSubmitting = true; 
@@ -583,10 +574,9 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         btnSelesai.textContent = "Mengirim...";
     }
 
-    if (typeof submitJawabanScoring === "function") {
-        submitJawabanScoring();
-    } else if (typeof window.submitJawabanScoring === "function") {
-        window.submitJawabanScoring();
+    const submitScoring = window.submitJawabanScoring || submitJawabanScoring;
+    if (typeof submitScoring === "function") {
+        submitScoring();
     } else {
         alert("❌ Error: Engine Penilaian (submitJawabanScoring) tidak ditemukan!");
         if (overlayLoading) {
