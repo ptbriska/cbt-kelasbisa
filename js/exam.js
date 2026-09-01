@@ -1,11 +1,11 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.5
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.6
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON (1A-1C, 2A, 3A-3B, 4A, 5A)
-   Fitur V1.6.5: 
+   Fitur V1.6.6: 
    1. Tombol Clear Answer (Kosongkan Jawaban) per Soal
    2. Optimized Font-Size Switcher via Dynamic CSS Variables
    3. Auto-position Tombol Selesai di Atas Grid Soal
-   4. Clean Metadata Badges (Tanpa Box Panel Background)
+   4. Clean & Standardized Metadata Badges (Strip Container Yellow Background)
    5. Tombol Ragu-Ragu (Visual Marker State)
    6. Data Sanitization & Input Normalization (Trim & Safe Array)
    ========================================================== */
@@ -302,44 +302,54 @@ function loadQuestion(index) {
     const elLevel = document.getElementById("q-level");
     
     if (elNo) elNo.textContent = displayNo;
-    if (elText) elText.innerHTML = q.Soal || "";
+    if (elText) elText.innerHTML = q.Soal || q.pertanyaan || "";
 
-    // BADGE METADATA (CLEAN STYLE)
+    // BADGE METADATA (CLEAN STYLE & CUSTOM DESIRED FORMAT)
     if (elLevel) {
-        let badgeHTML = `<div class="question-badges-wrapper" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: transparent; padding: 0; border: none; box-shadow: none;">`;
+        // Hapus paksa background/border kuning bawaan elemen container #q-level
+        elLevel.style.setProperty("background", "transparent", "important");
+        elLevel.style.setProperty("background-color", "transparent", "important");
+        elLevel.style.setProperty("border", "none", "important");
+        elLevel.style.setProperty("box-shadow", "none", "important");
+        elLevel.style.setProperty("padding", "0", "important");
+
+        // Ambil data metadata dari JSON (Kompatibel berbagai variasi properti)
+        const sectionVal = q.Section || q.section || q.MataPelajaran || q.mapel || (App.soalData && (App.soalData.nama_kegiatan || App.soalData.mata_pelajaran));
+        const subtestVal = q.Subtest || q.subtest || q.Materi || q.materi || q.Topik || q.topik;
+        const levelVal   = q.Level   || q.level   || q.Kesulitan || q.kesulitan;
+        const tipeVal    = q.Tipe    || q.tipe    || q.tipe_soal || "1A";
+
+        let badgeHTML = `<div class="question-badges-wrapper" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: transparent; padding: 0; border: none;">`;
         
-        const sectionVal = q.Section || q.MataPelajaran || q.Mapel || (App.soalData && App.soalData.mata_pelajaran);
+        // 1. Badge Section / Mapel
         if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
-            badgeHTML += `<span class="badge-tag badge-section">📘 ${sectionVal}</span>`;
+            badgeHTML += `<span class="badge-tag badge-section">📘 ${String(sectionVal).trim().toUpperCase()}</span>`;
         }
 
-        const subtestVal = q.Subtest || q.Materi || q.Topik;
+        // 2. Badge Subtest / Materi
         if (subtestVal && String(subtestVal).trim() !== "" && String(subtestVal) !== "-") {
-            badgeHTML += `<span class="badge-tag badge-subtest">📌 ${subtestVal}</span>`;
+            badgeHTML += `<span class="badge-tag badge-subtest">📌 ${String(subtestVal).trim().toUpperCase()}</span>`;
         }
 
-        const levelVal = q.Level || q.Kesulitan;
+        // 3. Badge Level (Format: 🔥 LEVEL: <VAL>)
         if (levelVal && String(levelVal).trim() !== "" && String(levelVal) !== "-") {
             let lvlUpper = String(levelVal).trim().toUpperCase();
             let lvlClass = "medium";
-            let lvlText = levelVal;
-
+            
             if (["E", "EASY", "MUDAH"].includes(lvlUpper)) {
                 lvlClass = "easy";
-                lvlText = "Easy";
             } else if (["H", "HARD", "SULIT"].includes(lvlUpper)) {
                 lvlClass = "hard";
-                lvlText = "Hard";
             } else if (["M", "MEDIUM", "SEDANG"].includes(lvlUpper)) {
                 lvlClass = "medium";
-                lvlText = "Medium";
             }
 
-            badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 Level: ${lvlText}</span>`;
+            badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 LEVEL: ${lvlUpper}</span>`;
         }
 
-        const tipeVal = q.Tipe || "1A";
-        badgeHTML += `<span class="badge-tag badge-tipe">📝 Tipe: ${tipeVal}</span>`;
+        // 4. Badge Tipe Soal (Format: 📝 TIPE: <VAL>)
+        badgeHTML += `<span class="badge-tag badge-tipe">📝 TIPE: ${String(tipeVal).trim().toUpperCase()}</span>`;
+        
         badgeHTML += `</div>`;
         
         // KONTROL UKURAN FONT DI BAWAH METADATA
@@ -369,7 +379,7 @@ function loadQuestion(index) {
     optionsBox.innerHTML = "";
 
     const currentAns = App.userAnswers[displayNo];
-    const tipeSoal = String(q.Tipe || "1A").trim().toUpperCase();
+    const tipeSoal = String(q.Tipe || q.tipe || "1A").trim().toUpperCase();
 
     // RENDER BERDASARKAN TIPE SOAL
     if (["1A", "1B", "1C", "5A"].includes(tipeSoal)) {
