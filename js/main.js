@@ -114,17 +114,24 @@ window.konfirmasiSubmit = function() {
  * Bridge Navigasi ke Halaman Pembahasan Jawaban & Rapor Peserta (Answer.js / Report.js)
  */
 window.bukaHalamanKunciJawaban = function() {
-    if (typeof renderHalamanPembahasan === "function") {
+    // 1. Cek apakah ada fungsi render full report yang sudah di-unlock
+    if (App.isPembahasanUnlocked && typeof renderFullStudentReport === "function") {
+        renderFullStudentReport();
+        return;
+    }
+
+    // 2. Jika belum, panggil Preview Pembahasan (3 Soal)
+    if (typeof initHalamanPembahasanPreview === "function") {
+        initHalamanPembahasanPreview();
+    } else if (typeof window.initHalamanPembahasanPreview === "function") {
+        window.initHalamanPembahasanPreview();
+    } else if (typeof renderHalamanPembahasan === "function") {
         renderHalamanPembahasan();
-    } else if (typeof window.renderHalamanPembahasan === "function") {
-        window.renderHalamanPembahasan();
     } else if (typeof renderAnswerPage === "function") {
         renderAnswerPage();
-    } else if (typeof window.renderAnswerPage === "function") {
-        window.renderAnswerPage();
     } else {
         console.warn("⚠️ Fungsi render pembahasan belum terdeteksi di answer.js!");
-        alert("Membuka Halaman Pembahasan Jawaban dan Rapor Peserta...");
+        alert("Modul pembahasan belum siap atau skrip answer.js belum dimuat.");
     }
 };
 
