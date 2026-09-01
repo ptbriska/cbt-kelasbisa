@@ -1,7 +1,7 @@
 /* ==========================================================
-   js/scoring.js - MULTI-TYPE SCORING ENGINE V1.6.3 (FIXED)
+   js/scoring.js - MULTI-TYPE SCORING ENGINE V1.6.4 (FIXED)
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON
-   (Fix: Tipe 5A Object Key, Bobot Extraction & [object Object] Display)
+   (Fix: Target Element `#page-scoring`, Button Handler & Type 5A Scoring)
    ========================================================== */
 
 function submitJawabanScoring() {
@@ -185,12 +185,11 @@ function submitJawabanScoring() {
             }
         }
         // -----------------------------------------------------------
-        // 5. TIPE 5A (Weighted Options / Opsi Berbobot / TKP) - PERBAIKAN BUG
+        // 5. TIPE 5A (Weighted Options / Opsi Berbobot / TKP)
         // -----------------------------------------------------------
         else if (tipeSoal === "5A") {
             const rule = rules["5A"] || {};
             
-            // Ekstrak peta bobot dari q.Bobot, q.BobotOpsi, atau q.Kunci (jika q.Kunci berupa Objek)
             let bobotMap = {};
             if (typeof q.Kunci === "object" && q.Kunci !== null && !Array.isArray(q.Kunci)) {
                 bobotMap = q.Kunci;
@@ -200,11 +199,9 @@ function submitJawabanScoring() {
                 bobotMap = q.BobotOpsi;
             }
             
-            // Hitung poin tertinggi dari opsi
             const bobotValues = Object.values(bobotMap).map(v => Number(v) || 0);
             maxPointSoal = bobotValues.length > 0 ? Math.max(...bobotValues) : 5;
 
-            // Cari opsi terbaik untuk tampilan Kunci Jawaban
             let bestOpt = "";
             let maxOptVal = -Infinity;
             Object.entries(bobotMap).forEach(([optKey, optVal]) => {
@@ -214,7 +211,6 @@ function submitJawabanScoring() {
                 }
             });
 
-            // Hindari pencetakan [object Object] pada tabel kunciDisplay
             if (bestOpt) {
                 kunciDisplay = `${bestOpt} (Poin Maks: ${maxOptVal})`;
             } else if (typeof q.Kunci === "string") {
@@ -230,13 +226,9 @@ function submitJawabanScoring() {
                 pointSoal = Number(rule.skor_kosong ?? 0);
             } else {
                 userAnsDisplay = userChoice;
-                // Ambil poin sesuai opsi pilihan peserta
                 pointSoal = Number(bobotMap[userChoice] ?? 0);
 
-                if (pointSoal === maxPointSoal) {
-                    jumlahBenar++;
-                } else if (pointSoal > 0) {
-                    // Jika mendapat poin partial (>0), tetap dihitung sebagai terisi/benar
+                if (pointSoal > 0) {
                     jumlahBenar++;
                 } else {
                     jumlahSalah++;
@@ -373,67 +365,95 @@ function tampilkanLayarSelesai(detail) {
         </tr>
     `).join('');
 
-    const pageCbt = document.getElementById("page-cbt");
-    if (pageCbt) {
-        pageCbt.innerHTML = `
-            <div style="padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 850px; margin: 0 auto; color: #1e293b;">
-                <div style="text-align: center; margin-bottom: 25px;">
-                    <h2 style="color: #2e7d32; margin: 0 0 5px 0; font-size: 24px;">✅ Ujian Selesai!</h2>
-                    <p style="color: #64748b; font-size: 14px; margin: 0;">Hasil Live Report &amp; Auto-Scoring [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
-                </div>
-
-                <!-- CARDS RINGKASAN SKOR -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
-                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Total Skor</span>
-                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skor}</div>
-                    </div>
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
-                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Skor Maksimal</span>
-                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skorMaksimal ?? '-'}</div>
-                    </div>
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
-                        <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Persentase</span>
-                        <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.persentase ?? 0}%</div>
-                    </div>
-                </div>
-
-                <!-- RINGKASAN JUMLAH BENAR / SALAH / KOSONG -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; font-size: 14px; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div>✔️ Benar<br><strong style="color: #16a34a; font-size: 18px;">${detail.benar}</strong></div>
-                    <div>❌ Salah<br><strong style="color: #dc2626; font-size: 18px;">${detail.salah}</strong></div>
-                    <div>⚪ Kosong<br><strong style="color: #d97706; font-size: 18px;">${detail.kosong}</strong></div>
-                </div>
-
-                <!-- TABEL RINCIAN JAWABAN PER SOAL -->
-                <div style="margin-bottom: 25px;">
-                    <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Rincian Jawaban Per Soal</h3>
-                    <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                            <thead>
-                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569;">
-                                    <th style="padding: 12px; font-weight: 600;">No</th>
-                                    <th style="padding: 12px; font-weight: 600;">Tipe</th>
-                                    <th style="padding: 12px; font-weight: 600;">Jawaban Anda</th>
-                                    <th style="padding: 12px; font-weight: 600;">Kunci Jawaban</th>
-                                    <th style="padding: 12px; font-weight: 600;">Skor diperoleh</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableRows}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- TOMBOL NAVIGASI -->
-                <button onclick="bukaHalamanKunciJawaban()" style="width: 100%; background: #2e7d32; color: #ffffff; padding: 14px 20px; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);">
-                    📖 Buka Halaman Pembahasan Jawaban dan Rapor Peserta
-                </button>
+    const htmlContent = `
+        <div style="padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 850px; margin: 0 auto; color: #1e293b;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <h2 style="color: #2e7d32; margin: 0 0 5px 0; font-size: 24px;">✅ Ujian Selesai!</h2>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">Hasil Live Report &amp; Auto-Scoring [Kode: <strong>${App.currentKodeUjian || '-'}</strong>]</p>
             </div>
-        `;
+
+            <!-- CARDS RINGKASAN SKOR -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                    <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Total Skor</span>
+                    <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skor}</div>
+                </div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                    <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Skor Maksimal</span>
+                    <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.skorMaksimal ?? '-'}</div>
+                </div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 15px; text-align: center;">
+                    <span style="font-size: 13px; color: #1d4ed8; font-weight: 600;">Persentase</span>
+                    <div style="font-size: 32px; font-weight: 800; color: #1e40af; margin-top: 5px;">${detail.persentase ?? 0}%</div>
+                </div>
+            </div>
+
+            <!-- RINGKASAN JUMLAH BENAR / SALAH / KOSONG -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; font-size: 14px; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center;">
+                <div>✔️ Benar<br><strong style="color: #16a34a; font-size: 18px;">${detail.benar}</strong></div>
+                <div>❌ Salah<br><strong style="color: #dc2626; font-size: 18px;">${detail.salah}</strong></div>
+                <div>⚪ Kosong<br><strong style="color: #d97706; font-size: 18px;">${detail.kosong}</strong></div>
+            </div>
+
+            <!-- TABEL RINCIAN JAWABAN PER SOAL -->
+            <div style="margin-bottom: 25px;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Rincian Jawaban Per Soal</h3>
+                <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569;">
+                                <th style="padding: 12px; font-weight: 600;">No</th>
+                                <th style="padding: 12px; font-weight: 600;">Tipe</th>
+                                <th style="padding: 12px; font-weight: 600;">Jawaban Anda</th>
+                                <th style="padding: 12px; font-weight: 600;">Kunci Jawaban</th>
+                                <th style="padding: 12px; font-weight: 600;">Skor diperoleh</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TOMBOL NAVIGASI DENGAN FUNCTION HANDLER YANG DI-FIX -->
+            <button onclick="typeof bukaHalamanReviewJawaban === 'function' ? bukaHalamanReviewJawaban() : (typeof bukaHalamanKunciJawaban === 'function' && bukaHalamanKunciJawaban())" style="width: 100%; background: #2e7d32; color: #ffffff; padding: 14px 20px; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);">
+                📖 Buka Halaman Pembahasan Jawaban dan Rapor Peserta
+            </button>
+        </div>
+    `;
+
+    // Prioritaskan Render ke Container #page-scoring (HTML V1.6.6)
+    const pageScoring = document.getElementById("page-scoring");
+    const pageCbt = document.getElementById("page-cbt");
+
+    if (pageScoring) {
+        pageScoring.innerHTML = htmlContent;
+        pageScoring.classList.remove("hidden");
+        pageScoring.style.display = "block";
+        if (pageCbt) {
+            pageCbt.classList.add("hidden");
+            pageCbt.style.display = "none";
+        }
+    } else if (pageCbt) {
+        // Fallback jika elemen #page-scoring belum ditambahkan di HTML
+        pageCbt.innerHTML = htmlContent;
+    }
+
+    // MathJax typesetting re-render (jika tersedia)
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+        window.MathJax.typesetPromise().catch(err => console.warn("MathJax re-render err:", err));
     }
 }
+
+// Global Alias agar kompatibel dengan pemanggilan dari script lain
+window.bukaHalamanKunciJawaban = function() {
+    if (typeof window.bukaHalamanReviewJawaban === "function") {
+        window.bukaHalamanReviewJawaban();
+    } else {
+        console.error("Fungsi bukaHalamanReviewJawaban() tidak ditemukan di answer.js!");
+    }
+};
 
 window.submitJawabanScoring = submitJawabanScoring;
 window.tampilkanLayarSelesai = tampilkanLayarSelesai;
