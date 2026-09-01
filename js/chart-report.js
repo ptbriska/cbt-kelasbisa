@@ -20,9 +20,14 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         new Chart(canvasEl.getContext('2d'), config);
     };
 
-    // 1. Chart Doughnut: Proporsi Jawaban
+    // Deteksi keberadaan plugin ChartDataLabels secara aman
+    const hasDataLabels = typeof ChartDataLabels !== 'undefined';
+    const globalPlugins = hasDataLabels ? [ChartDataLabels] : [];
+
+    // 1. Chart Doughnut: Proporsi Jawaban (Label Angka Jumlah Soal)
     safeInitChart('chartScorePie', {
         type: 'doughnut',
+        plugins: globalPlugins,
         data: {
             labels: ['Benar', 'Salah', 'Kosong'],
             datasets: [{
@@ -42,14 +47,20 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
                         font: { family: 'Inter', size: 12 },
                         padding: 15
                     }
+                },
+                datalabels: {
+                    color: '#ffffff',
+                    font: { family: 'Inter', weight: 'bold', size: 14 },
+                    formatter: (value) => (value > 0 ? value : '')
                 }
             }
         }
     });
 
-    // 2. Chart Line: Analisis Waktu per Soal
+    // 2. Chart Line: Analisis Waktu per Soal (Label Angka Detik)
     safeInitChart('chartTimeLine', {
         type: 'line',
+        plugins: globalPlugins,
         data: {
             labels: itemReviews.map(r => `No ${r.no}`),
             datasets: [{
@@ -67,6 +78,9 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 20 } // Ruang atas agar angka tidak terpotong
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -78,12 +92,19 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
                 }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                datalabels: {
+                    align: 'top',
+                    anchor: 'end',
+                    color: '#4F46E5',
+                    font: { family: 'Inter', weight: 'bold', size: 11 },
+                    formatter: (value) => `${value}s`
+                }
             }
         }
     });
 
-    // 3. Chart Bar: Akurasi Subtest
+    // 3. Chart Bar: Akurasi Subtest (Label Angka Persentase %)
     const subtestLabels = Object.keys(subtestStats);
     const subtestAccuracy = subtestLabels.map(k => {
         const st = subtestStats[k];
@@ -92,6 +113,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
 
     safeInitChart('chartSubtestBar', {
         type: 'bar',
+        plugins: globalPlugins,
         data: {
             labels: subtestLabels,
             datasets: [{
@@ -105,6 +127,9 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { top: 20 } // Ruang atas agar label % tidak terpotong
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -117,7 +142,14 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
                 }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                datalabels: {
+                    align: 'top',
+                    anchor: 'end',
+                    color: '#7C3AED',
+                    font: { family: 'Inter', weight: 'bold', size: 11 },
+                    formatter: (value) => `${value}%`
+                }
             }
         }
     });
