@@ -1,11 +1,13 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.4
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.5
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON (1A-1C, 2A, 3A-3B, 4A, 5A)
-   Fitur V1.6.4: 
-   1. Tombol Ragu-Ragu (Visual Marker)
-   2. Clean Metadata Badges (Tanpa Background Box)
+   Fitur V1.6.5: 
+   1. Tombol Clear Answer (Kosongkan Jawaban) per Soal
+   2. Optimized Font-Size Switcher via Dynamic CSS Variables
    3. Auto-position Tombol Selesai di Atas Grid Soal
-   4. Switcher 3 Ukuran Font (Kecil, Sedang, Besar)
+   4. Clean Metadata Badges (Tanpa Box Panel Background)
+   5. Tombol Ragu-Ragu (Visual Marker State)
+   6. Data Sanitization & Input Normalization (Trim & Safe Array)
    ========================================================== */
 
 window.App = window.App || {};
@@ -79,7 +81,14 @@ function toggleDoubt(displayNo) {
     loadQuestion(App.currentIndex);
 }
 
-// Fitur Custom Ukuran Font (Kecil: 14px, Sedang: 16px, Besar: 19px)
+// Fitur Reset / Kosongkan Jawaban untuk Soal Aktif (V1.6.5)
+function clearAnswer(displayNo) {
+    if (!window.App || !App.userAnswers) return;
+    delete App.userAnswers[displayNo];
+    loadQuestion(App.currentIndex);
+}
+
+// Fitur Custom Ukuran Font via CSS Variables & Root Styling (V1.6.5)
 function setFontSize(size) {
     if (!window.App) return;
     App.fontSize = size || 'medium';
@@ -88,13 +97,18 @@ function setFontSize(size) {
     if (App.fontSize === "small") pxSize = "14px";
     if (App.fontSize === "large") pxSize = "19px";
 
-    const elText = document.getElementById("q-text");
     const optionsBox = document.getElementById("options-box");
+    if (optionsBox) {
+        optionsBox.style.setProperty('--cbt-font-size', pxSize);
+        optionsBox.style.fontSize = pxSize;
+    }
 
-    if (elText) elText.style.fontSize = pxSize;
-    if (optionsBox) optionsBox.style.fontSize = pxSize;
+    const qText = document.getElementById("q-text");
+    if (qText) {
+        qText.style.fontSize = pxSize;
+    }
 
-    // Update active style tombol font
+    // Update active style pada toolbar ukuran font
     document.querySelectorAll(".btn-font-size").forEach(btn => {
         const isCurrent = btn.dataset.size === App.fontSize;
         btn.style.backgroundColor = isCurrent ? "#2563eb" : "#f3f4f6";
@@ -242,7 +256,7 @@ function renderNumberGrid() {
     const grid = document.getElementById("number-grid");
     if (!window.App || !App.questionsData) return;
 
-    // FITUR REVISI 3: Memindahkan / Memastikan Tombol Selesai Berada di Atas Grid Soal
+    // Tombol Selesai Berada di Atas Grid Soal
     const btnSelesai = document.getElementById("btn-selesai");
     if (btnSelesai && grid && grid.parentElement) {
         let topActionBox = document.getElementById("grid-top-actions");
@@ -290,11 +304,8 @@ function loadQuestion(index) {
     if (elNo) elNo.textContent = displayNo;
     if (elText) elText.innerHTML = q.Soal || "";
 
-    // --------------------------------------------------
-    // REVISI 2: BADGE METADATA TANPA BACKGROUND KOTAK PANEL
-    // --------------------------------------------------
+    // BADGE METADATA (CLEAN STYLE)
     if (elLevel) {
-        // inline style diset transparent tanpa border/background container
         let badgeHTML = `<div class="question-badges-wrapper" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: transparent; padding: 0; border: none; box-shadow: none;">`;
         
         const sectionVal = q.Section || q.MataPelajaran || q.Mapel || (App.soalData && App.soalData.mata_pelajaran);
@@ -331,9 +342,7 @@ function loadQuestion(index) {
         badgeHTML += `<span class="badge-tag badge-tipe">📝 Tipe: ${tipeVal}</span>`;
         badgeHTML += `</div>`;
         
-        // --------------------------------------------------
-        // REVISI 4: ADD KONTROL 3 UKURAN FONT DI BAWAH METADATA
-        // --------------------------------------------------
+        // KONTROL UKURAN FONT DI BAWAH METADATA
         badgeHTML += `
             <div class="font-size-toolbar" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; margin-bottom: 12px; padding: 4px 8px; border-radius: 6px; background: #f9fafb; border: 1px solid #e5e7eb;">
                 <span style="font-size: 12px; font-weight: 600; color: #4b5563; margin-right: 4px;">Ukuran Teks:</span>
@@ -470,16 +479,24 @@ function loadQuestion(index) {
         optionsBox.innerHTML = tableHTML;
     }
 
-    // RENDER TOMBOL RAGU-RAGU
+    // BOTTOM TOOLBAR: RAGU-RAGU & CLEAR ANSWER (V1.6.5)
     const isDoubt = !!(App.doubtState && App.doubtState[displayNo]);
+    const hasAnswer = isQuestionAnswered(displayNo);
+
     const doubtContainer = document.createElement("div");
     doubtContainer.className = "doubt-container";
-    doubtContainer.style.cssText = "margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;";
+    doubtContainer.style.cssText = "margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ccc; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;";
+    
     doubtContainer.innerHTML = `
         <label class="btn-doubt-label" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight: 600; color: #d97706;">
             <input type="checkbox" id="chk-doubt-${displayNo}" ${isDoubt ? 'checked' : ''} onchange="toggleDoubt(${displayNo})" style="width: 18px; height: 18px; cursor: pointer;">
             🟨 Tandai Ragu-Ragu
         </label>
+        ${hasAnswer ? `
+            <button type="button" onclick="clearAnswer(${displayNo})" style="background: transparent; color: #ef4444; border: 1px solid #fca5a5; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                🗑️ Kosongkan Jawaban
+            </button>
+        ` : ''}
     `;
     optionsBox.appendChild(doubtContainer);
 
