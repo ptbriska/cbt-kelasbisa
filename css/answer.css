@@ -1,241 +1,430 @@
 /* ==========================================================
-   CBT KIBI V1.6 - Answer & Teaser Preview Styling (FIXED & ADAPTED)
+   CBT KIBI V1.6.5 - Answer & Teaser Preview Styling (FULLY SYNCED)
+   Integrasi UI V1.5 + Logika Teaser & Paywall V1.6
    ========================================================== */
 
-/* Container Utama */
+/* ----------------------------------------------------------
+   1. Container Utama & Watermark
+   ---------------------------------------------------------- */
 .preview-container {
+    position: relative;
     max-width: 900px;
     margin: 20px auto;
-    padding: 25px;
+    padding: 24px;
     background: #ffffff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    color: #333333;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
+    color: #334155;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
 }
 
-/* Header & Kop Surat */
+/* Watermark Latar Belakang */
+.watermark-bg {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 75px;
+    font-weight: 900;
+    color: rgba(0, 0, 0, 0.035);
+    pointer-events: none;
+    z-index: 0;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.preview-content-wrapper {
+    position: relative;
+    z-index: 1;
+}
+
+/* ----------------------------------------------------------
+   2. Header & Kop Surat
+   ---------------------------------------------------------- */
 .kop-surat {
     display: flex;
     align-items: center;
-    border-bottom: 3px double #2c3e50;
-    padding-bottom: 15px;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 16px;
     margin-bottom: 20px;
+    gap: 16px;
 }
 
 .kop-logo {
-    width: 70px;
-    height: 70px;
+    max-height: 60px;
+    width: auto;
     object-fit: contain;
-    margin-right: 20px;
+}
+
+.kop-info {
+    flex: 1;
 }
 
 .kop-info h2 {
-    margin: 0;
-    font-size: 20px;
-    color: #2c3e50;
-    text-transform: uppercase;
+    margin: 0 0 4px 0;
+    font-size: 22px;
+    color: #1e293b;
+    font-weight: 700;
 }
 
 .kop-info h4 {
-    margin: 4px 0;
+    margin: 0 0 4px 0;
     font-size: 15px;
-    color: #0d6efd;
+    color: #475569;
+    font-weight: 600;
 }
 
 .kop-info p {
     margin: 0;
-    font-size: 12px;
-    color: #666666;
+    font-size: 13px;
+    color: #64748b;
 }
 
-/* Action Bar (Print & Status) */
+/* ----------------------------------------------------------
+   3. Kartu Identitas Peserta (Student Summary Card)
+   ---------------------------------------------------------- */
+.student-summary-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    color: #334155;
+}
+
+.student-summary-card div strong {
+    color: #1e293b;
+}
+
+/* ----------------------------------------------------------
+   4. Action Bar & Filter Pembahasan
+   ---------------------------------------------------------- */
 .preview-action-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f8f9fa;
-    padding: 12px 18px;
+    background: #f1f5f9;
+    padding: 12px 16px;
     border-radius: 8px;
-    margin-bottom: 25px;
-    border: 1px solid #e9ecef;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
 }
 
 .badge-preview {
-    background: #e3f2fd;
-    color: #0d6efd;
-    padding: 6px 12px;
-    border-radius: 20px;
     font-weight: 600;
-    font-size: 13px;
+    color: #334155;
+    font-size: 13.5px;
 }
 
 .btn-print-preview {
-    background: #198754;
+    padding: 8px 16px;
+    background: #475569;
     color: #ffffff;
     border: none;
-    padding: 8px 16px;
     border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
     cursor: pointer;
-    display: flex;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background 0.2s;
+    transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .btn-print-preview:hover {
-    background: #157347;
+    background: #334155;
 }
 
-/* Card Soal Pembahasan */
+.btn-print-preview:active {
+    transform: scale(0.98);
+}
+
+/* ----------------------------------------------------------
+   5. Card & Meta Soal Pembahasan
+   ---------------------------------------------------------- */
 .card-preview-soal {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 18px;
-    margin-bottom: 20px;
     background: #ffffff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.badge-meta-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
 }
 
 .badge-meta {
-    display: inline-block;
-    background: #f1f3f5;
-    color: #495057;
-    font-size: 12px;
+    background: #e2e8f0;
+    color: #334155;
     padding: 3px 8px;
     border-radius: 4px;
-    margin-right: 6px;
-    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .soal-text {
     font-size: 15px;
+    color: #0f172a;
     line-height: 1.6;
     margin-bottom: 12px;
-    font-weight: 500;
 }
 
-.box-jawaban {
-    background: #f8f9fa;
-    border-left: 4px solid #0d6efd;
-    padding: 10px 14px;
+.soal-text img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    margin-top: 8px;
+}
+
+/* ----------------------------------------------------------
+   6. Styling Detail Opsi Jawaban (Tipe 1A, 2A, 5A & Tabel 4A)
+   ---------------------------------------------------------- */
+.review-options-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.review-option-item {
+    padding: 9px 12px;
+    border-radius: 6px;
     font-size: 13.5px;
-    border-radius: 0 6px 6px 0;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    line-height: 1.4;
+}
+
+/* Modifier Status Opsi */
+.review-option-item.opt-correct {
+    background: #dcfce7;
+    border: 1.5px solid #16a34a;
+    font-weight: 600;
+    color: #14532d;
+}
+
+.review-option-item.opt-wrong {
+    background: #fee2e2;
+    border: 1.5px solid #dc2626;
+    font-weight: 600;
+    color: #7f1d1d;
+}
+
+.review-option-item.opt-selected {
+    background: #eff6ff;
+    border: 1.5px solid #2563eb;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+/* Tabel Checklist Matriks (Tipe 4A) */
+.table-4a-wrapper {
+    overflow-x: auto;
+    margin-top: 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+.table-4a {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.table-4a th {
+    background: #f1f5f9;
+    color: #334155;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    font-weight: 600;
+}
+
+.table-4a td {
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+}
+
+.table-4a tr.row-correct {
+    background: #f0fdf4;
+}
+
+.table-4a tr.row-wrong {
+    background: #fef2f2;
+}
+
+/* ----------------------------------------------------------
+   7. Box Jawaban Peserta & Pembahasan Text
+   ---------------------------------------------------------- */
+.box-jawaban {
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-top: 12px;
     margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    color: #334155;
 }
 
 .box-pembahasan-text {
-    background: #e8f5e9;
-    border: 1px solid #c8e6c9;
-    padding: 12px 15px;
-    border-radius: 6px;
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 12px 14px;
+    border-radius: 0 6px 6px 0;
     font-size: 14px;
-    color: #1b5e20;
+    color: #1e3a8a;
     line-height: 1.5;
 }
 
-/* Banner Paywall / Token Input */
+.box-pembahasan-text strong {
+    color: #1d4ed8;
+}
+
+/* ----------------------------------------------------------
+   8. Paywall Banner & Token Input
+   ---------------------------------------------------------- */
 .paywall-banner {
-    background: linear-gradient(135deg, #f0f7ff 0%, #e6f0fa 100%);
-    border: 2px dashed #0d6efd;
-    border-radius: 12px;
-    padding: 30px 20px;
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    padding: 24px 20px;
+    border-radius: 10px;
     text-align: center;
-    margin-top: 30px;
+    margin-top: 25px;
 }
 
 .paywall-banner h3 {
-    margin: 0 0 10px 0;
-    color: #0d6efd;
-    font-size: 20px;
+    margin: 0 0 8px 0;
+    color: #854d0e;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .paywall-banner p {
-    color: #495057;
+    margin: 0 0 16px 0;
+    color: #a16207;
     font-size: 14px;
-    max-width: 600px;
-    margin: 0 auto 20px auto;
+    line-height: 1.5;
 }
 
 .form-token-group {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    max-width: 400px;
-    margin: 0 auto 15px auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
 }
 
 .input-token {
-    flex: 1;
-    padding: 10px 15px;
-    border: 2px solid #ced4da;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
-    font-size: 15px;
-    text-align: center;
+    font-size: 14px;
+    width: 200px;
     text-transform: uppercase;
-    font-weight: bold;
+    text-align: center;
+    font-weight: 700;
     letter-spacing: 1px;
+    outline: none;
+    transition: border-color 0.2s;
 }
 
 .input-token:focus {
-    border-color: #0d6efd;
-    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .btn-unlock {
-    background: #0d6efd;
+    padding: 10px 20px;
+    background: #2563eb;
     color: #ffffff;
     border: none;
-    padding: 10px 20px;
     border-radius: 6px;
-    font-weight: bold;
+    font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s ease;
 }
 
 .btn-unlock:hover {
-    background: #0b5ed7;
+    background: #1d4ed8;
 }
 
 .link-wa-admin {
-    display: inline-block;
-    color: #198754;
+    color: #16a34a;
     font-weight: 600;
-    font-size: 13.5px;
     text-decoration: none;
-    margin-top: 8px;
+    font-size: 14px;
+    display: inline-block;
+    transition: color 0.2s;
 }
 
 .link-wa-admin:hover {
+    color: #15803d;
     text-decoration: underline;
 }
 
-/* ADAPTASI: Respon Layar Kecil (Mobile Responsive) */
-@media (max-width: 600px) {
+/* ----------------------------------------------------------
+   9. Respon Layar Kecil (Mobile Responsive)
+   ---------------------------------------------------------- */
+@media (max-width: 640px) {
+    .preview-container {
+        padding: 16px;
+        margin: 10px auto;
+        border-radius: 8px;
+    }
+
     .kop-surat {
         flex-direction: column;
         text-align: center;
     }
+
     .kop-logo {
-        margin-right: 0;
-        margin-bottom: 10px;
+        margin-bottom: 6px;
     }
+
+    .student-summary-card {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
     .preview-action-bar {
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         text-align: center;
     }
+
     .form-token-group {
         flex-direction: column;
+        width: 100%;
+    }
+
+    .input-token {
+        width: 100%;
+    }
+
+    .btn-unlock {
+        width: 100%;
     }
 }
 
-/* ADAPTASI: Pengaturan Media Print Khusus Aplikasi CBT */
+/* ----------------------------------------------------------
+   10. Pengaturan Cetak (Media Print)
+   ---------------------------------------------------------- */
 @media print {
-    /* Sembunyikan elemen sistem CBT bawaan saat mencetak */
     header, footer, nav, .navbar, .cbt-header, .sidebar, #page-cbt,
     .preview-action-bar, .paywall-banner, .btn-print-preview {
         display: none !important;
@@ -245,6 +434,7 @@
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
+        color: #000000 !important;
     }
 
     .preview-container {
@@ -258,6 +448,12 @@
 
     .card-preview-soal {
         page-break-inside: avoid;
-        border: 1px solid #ccc !important;
+        border: 1px solid #94a3b8 !important;
+        box-shadow: none !important;
+        margin-bottom: 12px !important;
+    }
+
+    .watermark-bg {
+        color: rgba(0, 0, 0, 0.05) !important;
     }
 }
