@@ -7,7 +7,7 @@
   
   <link rel="icon" type="image/png" href="asset/Favicon.png">
   
-  <!-- File CSS Modular (report.css dipindah ke pembahasan.html) -->
+  <!-- File CSS Modular -->
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/cbt.css">
@@ -37,7 +37,7 @@
   <!-- ========================================== -->
   <!-- OVERLAY LOADING SAAT SUBMIT JAWABAN        -->
   <!-- ========================================== -->
-  <div id="loading-overlay" class="hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+  <div id="loading-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.92); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
     <div style="font-size: 42px; color: #007bff; margin-bottom: 15px;">
       <i class="fas fa-spinner fa-spin"></i>
     </div>
@@ -124,7 +124,6 @@
     </div>
   </div>
 
-
   <!-- ========================================== -->
   <!-- PAGE 2: INFORMASI KEGIATAN & TATA TERTIB   -->
   <!-- ========================================== -->
@@ -201,7 +200,6 @@
     </div>
   </div>
 
-
   <!-- ========================================== -->
   <!-- PAGE 3: ARENA SOAL CBT                     -->
   <!-- ========================================== -->
@@ -264,12 +262,19 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- PAGE 4: PREVIEW JAWABAN & TOKEN PEMBAHASAN -->
+  <!-- PAGE 4: HALAMAN HASIL / SCORING (BARU)    -->
   <!-- ========================================== -->
-  <div id="pembahasan-container" class="hidden" style="display: none;"></div>
+  <div id="page-scoring" class="card hidden">
+    <!-- Konten scoring akan di-render secara dinamis oleh JS scoring.js -->
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PAGE 5: PREVIEW JAWABAN & TOKEN PEMBAHASAN -->
+  <!-- ========================================== -->
+  <div id="pembahasan-container" class="hidden"></div>
 
   <!-- MODAL DIALOG KONFIRMASI SUBMIT -->
-  <div id="modal-konfirmasi" class="hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center;">
+  <div id="modal-konfirmasi" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center;">
     <div style="max-width: 480px; width: 90%; background: #fff; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: auto;">
       <h3 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">Konfirmasi Selesai Ujian</h3>
       <p id="teks-ringkasan-konfirmasi" style="color: #475569; font-size: 0.95rem; margin: 15px 0; line-height: 1.5;"></p>
@@ -292,7 +297,6 @@
   <script src="js/security.js" defer></script>
   <script src="js/exam.js" defer></script>
   <script src="js/answer.js" defer></script>
-  <!-- report.js dipindahkan ke pembahasan.html -->
   <script src="js/main.js" defer></script>
 
 </body>
