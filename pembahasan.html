@@ -23,6 +23,9 @@
     <!-- FontAwesome Icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Library Chart.js CDN (Wajib untuk Visualisasi Grafik) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Konfigurasi MathJax v3 (Format Persamaan Matematika) -->
     <script>
         window.MathJax = {
@@ -47,9 +50,9 @@
             
             <!-- State Loading Modern (Sinkron dengan report.css) -->
             <div class="card-box report-loading-state" style="text-align: center; padding: 48px 20px;">
-                <i class="fas fa-circle-notch fa-spin fa-3x" style="color: var(--primary);"></i>
-                <h3 style="margin-top: 20px; margin-bottom: 8px; font-weight: 700; color: var(--text-dark);">Memuat Laporan Ujian</h3>
-                <p style="color: var(--muted); margin: 0;">Mohon tunggu sebentar, sistem sedang menyiapkan analisis dan pembahasan hasil ujian Anda...</p>
+                <i class="fas fa-circle-notch fa-spin fa-3x" style="color: var(--primary, #4F46E5);"></i>
+                <h3 style="margin-top: 20px; margin-bottom: 8px; font-weight: 700; color: var(--text-dark, #1E293B);">Memuat Laporan Ujian</h3>
+                <p style="color: var(--muted, #64748B); margin: 0;">Mohon tunggu sebentar, sistem sedang menyiapkan analisis dan pembahasan hasil ujian Anda...</p>
             </div>
 
         </div>
@@ -66,7 +69,8 @@
         </div>
     </noscript>
 
-    <!-- Script Logika Report -->
+    <!-- Script Modul Grafik & Logika Report -->
+    <script src="js/chart-report.js" defer></script>
     <script src="js/report.js" defer></script>
 </body>
 </html>
