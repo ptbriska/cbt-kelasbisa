@@ -1,13 +1,14 @@
 /* ==========================================================
-   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.6
+   js/exam.js - Core Engine Ujian CBT Multi-Type V1.6.7
    Sesuai Dokumen Pedoman Tipe Soal & Format JSON (1A-1C, 2A, 3A-3B, 4A, 5A)
-   Fitur V1.6.6: 
+   Fitur & Perbaikan V1.6.7: 
    1. Tombol Clear Answer (Kosongkan Jawaban) per Soal
    2. Optimized Font-Size Switcher via Dynamic CSS Variables
    3. Auto-position Tombol Selesai di Atas Grid Soal
    4. Explicit Metadata Labels (SECTION, SUBTEST, LEVEL KESULTAN SOAL, TIPE SOAL)
    5. Tombol Ragu-Ragu (Visual Marker State)
    6. Data Sanitization & Input Normalization (Trim & Safe Array)
+   7. Real-time Timelog Sync per Detik (Solusi Log Waktu 00:00 di report.js)
    ========================================================== */
 
 window.App = window.App || {};
@@ -15,6 +16,19 @@ window.App = window.App || {};
 // ==========================================================
 // 1. UTILS & NAVIGATION HELPERS
 // ==========================================================
+
+function formatSecondsToHMS(totalSeconds) {
+    const sec = Math.max(0, parseInt(totalSeconds, 10) || 0);
+    const hours = Math.floor(sec / 3600);
+    const minutes = Math.floor((sec % 3600) / 60);
+    const seconds = sec % 60;
+
+    const hStr = String(hours).padStart(2, '0');
+    const mStr = String(minutes).padStart(2, '0');
+    const sStr = String(seconds).padStart(2, '0');
+
+    return `${hStr}:${mStr}:${sStr}`;
+}
 
 function toggleMulaiButton() {
     const chk = document.getElementById("check-setuju") || document.getElementById("agree-checkbox");
@@ -81,14 +95,14 @@ function toggleDoubt(displayNo) {
     loadQuestion(App.currentIndex);
 }
 
-// Fitur Reset / Kosongkan Jawaban untuk Soal Aktif (V1.6.5)
+// Fitur Reset / Kosongkan Jawaban untuk Soal Aktif
 function clearAnswer(displayNo) {
     if (!window.App || !App.userAnswers) return;
     delete App.userAnswers[displayNo];
     loadQuestion(App.currentIndex);
 }
 
-// Fitur Custom Ukuran Font via CSS Variables & Root Styling (V1.6.5)
+// Fitur Custom Ukuran Font via CSS Variables & Root Styling
 function setFontSize(size) {
     if (!window.App) return;
     App.fontSize = size || 'medium';
@@ -146,7 +160,15 @@ function mulaiUjianPenuh() {
     App.warningCount = 0;
     App.warningLogs = [];
     App.cheatingSnapshots = []; 
-    App.startTime = new Date().toISOString();
+
+    // INIT REALTIME TIMELOG STATE
+    App.startTimestamp = Date.now();
+    App.startTime = new Date(App.startTimestamp).toISOString();
+    App.elapsedSeconds = 0;
+    App.durasiDetik = 0;
+    App.waktuPengerjaanFormatted = "00:00:00";
+    App.timeLog = "00:00:00";
+    App.questionTimeLogs = App.questionTimeLogs || {};
 
     try {
         localStorage.removeItem("cbt_warning_count");
@@ -208,8 +230,8 @@ function initCBT() {
 }
 
 function startTimer(durationInSeconds) {
-    let timer = parseInt(durationInSeconds, 10);
-    if (isNaN(timer) || timer <= 0) timer = 600;
+    let totalSecondsAllowed = parseInt(durationInSeconds, 10);
+    if (isNaN(totalSecondsAllowed) || totalSecondsAllowed <= 0) totalSecondsAllowed = 600;
 
     const timerDisplay = document.getElementById("timer-display") || document.getElementById("timer");
 
@@ -217,10 +239,35 @@ function startTimer(durationInSeconds) {
         clearInterval(App.timerInterval);
     }
 
+    if (!App.startTimestamp) {
+        App.startTimestamp = Date.now();
+    }
+
     const intervalFunc = () => {
-        const hours = Math.floor(timer / 3600);
-        const minutes = Math.floor((timer % 3600) / 60);
-        const seconds = timer % 60;
+        // Hitung selisih detik secara presisi menggunakan timestamp sistem
+        const now = Date.now();
+        const elapsed = Math.floor((now - App.startTimestamp) / 1000);
+        const remaining = totalSecondsAllowed - elapsed;
+
+        // Sync data Timelog real-time untuk report.js
+        App.elapsedSeconds = elapsed;
+        App.durasiDetik = elapsed;
+        App.waktuTerpakai = elapsed;
+        App.waktuPengerjaanFormatted = formatSecondsToHMS(elapsed);
+        App.timeLog = App.waktuPengerjaanFormatted;
+
+        // Track akumulasi durasi per nomor soal secara real-time
+        if (App.isExamStarted && !App.isExamSubmitted) {
+            const currentNo = App.currentIndex + 1;
+            App.questionTimeLogs = App.questionTimeLogs || {};
+            App.questionTimeLogs[currentNo] = (App.questionTimeLogs[currentNo] || 0) + 1;
+        }
+
+        // Tampilan mundur di UI Ujian
+        const displaySec = Math.max(0, remaining);
+        const hours = Math.floor(displaySec / 3600);
+        const minutes = Math.floor((displaySec % 3600) / 60);
+        const seconds = displaySec % 60;
 
         const hStr = String(hours).padStart(2, '0');
         const mStr = String(minutes).padStart(2, '0');
@@ -228,7 +275,7 @@ function startTimer(durationInSeconds) {
 
         if (timerDisplay) {
             timerDisplay.textContent = `${hStr}:${mStr}:${sStr}`;
-            if (timer <= 300) {
+            if (displaySec <= 300) {
                 timerDisplay.style.color = "#dc3545";
                 timerDisplay.style.fontWeight = "bold";
             } else {
@@ -237,8 +284,10 @@ function startTimer(durationInSeconds) {
             }
         }
 
-        if (--timer < 0) {
+        // Waktu habis
+        if (remaining <= 0) {
             if (App.timerInterval) clearInterval(App.timerInterval);
+            App.endTime = new Date().toISOString();
             alert("⏰ Waktu pengerjaan Ujian telah habis! Jawaban Anda akan dikirim secara otomatis.");
             submitJawaban(true, true);
         }
@@ -306,14 +355,12 @@ function loadQuestion(index) {
 
     // BADGE METADATA (DENGAN LABEL TEKS EKSPLISIT)
     if (elLevel) {
-        // Hapus paksa background/border kuning bawaan elemen container #q-level
         elLevel.style.setProperty("background", "transparent", "important");
         elLevel.style.setProperty("background-color", "transparent", "important");
         elLevel.style.setProperty("border", "none", "important");
         elLevel.style.setProperty("box-shadow", "none", "important");
         elLevel.style.setProperty("padding", "0", "important");
 
-        // Ambil data metadata dari JSON (Kompatibel berbagai variasi properti)
         const sectionVal = q.Section || q.section || q.MataPelajaran || q.mapel || (App.soalData && (App.soalData.nama_kegiatan || App.soalData.mata_pelajaran));
         const subtestVal = q.Subtest || q.subtest || q.Materi || q.materi || q.Topik || q.topik;
         const levelVal   = q.Level   || q.level   || q.Kesulitan || q.kesulitan;
@@ -321,17 +368,14 @@ function loadQuestion(index) {
 
         let badgeHTML = `<div class="question-badges-wrapper" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: transparent; padding: 0; border: none;">`;
         
-        // 1. Badge Section / Mapel
         if (sectionVal && String(sectionVal).trim() !== "" && String(sectionVal) !== "-") {
             badgeHTML += `<span class="badge-tag badge-section">📘 SECTION : ${String(sectionVal).trim().toUpperCase()}</span>`;
         }
 
-        // 2. Badge Subtest / Materi
         if (subtestVal && String(subtestVal).trim() !== "" && String(subtestVal) !== "-") {
             badgeHTML += `<span class="badge-tag badge-subtest">📌 SUBTEST : ${String(subtestVal).trim().toUpperCase()}</span>`;
         }
 
-        // 3. Badge Level (Format: 🔥 LEVEL KESULTAN SOAL : <VAL>)
         if (levelVal && String(levelVal).trim() !== "" && String(levelVal) !== "-") {
             let lvlUpper = String(levelVal).trim().toUpperCase();
             let lvlClass = "medium";
@@ -347,12 +391,9 @@ function loadQuestion(index) {
             badgeHTML += `<span class="badge-tag badge-level ${lvlClass}">🔥 LEVEL KESULTAN SOAL : ${lvlUpper}</span>`;
         }
 
-        // 4. Badge Tipe Soal (Format: 📝 TIPE SOAL : <VAL>)
         badgeHTML += `<span class="badge-tag badge-tipe">📝 TIPE SOAL : ${String(tipeVal).trim().toUpperCase()}</span>`;
-        
         badgeHTML += `</div>`;
         
-        // KONTROL UKURAN FONT DI BAWAH METADATA
         badgeHTML += `
             <div class="font-size-toolbar" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; margin-bottom: 12px; padding: 4px 8px; border-radius: 6px; background: #f9fafb; border: 1px solid #e5e7eb;">
                 <span style="font-size: 12px; font-weight: 600; color: #4b5563; margin-right: 4px;">UKURAN TEKS:</span>
@@ -489,7 +530,7 @@ function loadQuestion(index) {
         optionsBox.innerHTML = tableHTML;
     }
 
-    // BOTTOM TOOLBAR: RAGU-RAGU & CLEAR ANSWER (V1.6.5)
+    // BOTTOM TOOLBAR: RAGU-RAGU & CLEAR ANSWER
     const isDoubt = !!(App.doubtState && App.doubtState[displayNo]);
     const hasAnswer = isQuestionAnswered(displayNo);
 
@@ -510,7 +551,6 @@ function loadQuestion(index) {
     `;
     optionsBox.appendChild(doubtContainer);
 
-    // TERAPKAN FONT SIZE SESUAI PILIHAN USER
     setFontSize(App.fontSize || 'medium');
 
     if (window.MathJax && window.MathJax.typesetPromise) {
@@ -664,6 +704,17 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
     App.isSubmitting = true;
     App.isExamSubmitted = true; 
 
+    // FINALISASI DAN SYNC TOTAL WAKTU PENGERJAAN KE VAR APP
+    App.endTime = new Date().toISOString();
+    if (App.startTimestamp) {
+        const finalElapsed = Math.floor((Date.now() - App.startTimestamp) / 1000);
+        App.elapsedSeconds = finalElapsed;
+        App.durasiDetik = finalElapsed;
+        App.waktuTerpakai = finalElapsed;
+        App.waktuPengerjaanFormatted = formatSecondsToHMS(finalElapsed);
+        App.timeLog = App.waktuPengerjaanFormatted;
+    }
+
     if (typeof window.simpanLockSubmitted === "function") {
         window.simpanLockSubmitted(); 
     }
@@ -695,7 +746,7 @@ async function submitJawaban(isAuto = false, isConfirmed = false) {
         }
         if (btnSelesai) {
             btnSelesai.disabled = false;
-            btnSelesai.textContent = "🏁 SELESAI";
+            btnSelesai.textContent = "🏁 SELESAI & KIRIM JAWABAN";
         }
         App.isSubmitting = false;
         App.isExamSubmitted = false;
