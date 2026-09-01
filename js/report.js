@@ -316,11 +316,21 @@ function renderFullStudentReport() {
                 🖨️ Cetak / Print PDF
             </button>
         </div>
+
+        <!-- Garis Pembatas Kop Surat -->
+            <hr style="border: 0; border-top: 2px solid #cbd5e1; margin: 16px 0 14px 0;">
+
+            <!-- Judul Utama Laporan Ujian -->
+            <div class="report-main-title">
+                <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #4f46e5; letter-spacing: 0.5px; text-transform: uppercase;">
+                    ${dataJSON.judul_laporan || 'LAPORAN HASIL TES CBT/CAT & PEMBAHASAN'}
+                </h1>
+            </div>
         </div>
 
         <!-- FITUR: TABEL IDENTITAS PESERTA -->
         <div class="card-box participant-info-card">
-            <h3 class="card-subtitle">📌 Identitas Peserta Ujian</h3>
+            <h3 class="card-subtitle">📌 Identitas Peserta Tes</h3>
             <div class="identity-grid">
                 <div class="id-item"><span>Nama Peserta:</span> <strong>${studentProfile.nama}</strong></div>
                 <div class="id-item"><span>Kode Ujian:</span> <strong>${dataJSON.kode_ujian || '-'}</strong></div>
@@ -362,7 +372,7 @@ function renderFullStudentReport() {
 
         <!-- FITUR: VISUALISASI GRAFIK CHART.JS -->
         <div class="card-box charts-main-wrapper">
-            <h3 class="section-title">📊 Visualisasi Analisis Performa</h3>
+            <h3 class="section-title">📊 Visualisasi Analisis Performa Peserta</h3>
             <div class="charts-grid-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 15px;">
                 <div class="chart-card" style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
                     <h4 style="text-align: center; margin-bottom: 10px; font-size: 14px;">Proporsi Jawaban</h4>
