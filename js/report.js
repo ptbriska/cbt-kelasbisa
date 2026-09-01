@@ -1,6 +1,6 @@
 /* ==========================================================
    CBT KIBI V2.0 PREMIUM - Static Student Report & Review
-   Update Version: 1.6.7 / 2.0 Complete Engine
+   Update: Complete Engine + Tipe 4 & 5 Table + Chart Fix
    ========================================================== */
 
 // Helper Pemformat Kunci Jawaban
@@ -34,43 +34,45 @@ function formatTimeDuration(seconds) {
 function renderOptionsByQuestionType(rev) {
     const tipePrefix = String(rev.Tipe || '1').charAt(0);
 
-    // TIPE 3 (Isian / Short Answer): HILANGKAN opsi A-E sepenuhnya
-    if (tipePrefix === '3') {
-        return '';
-    }
+    // TIPE 3 (Isian Singkat)
+    if (tipePrefix === '3') return '';
 
-    // TIPE 4 (Pernyataan Benar/Salah)
+    // TIPE 4 (Pernyataan Benar/Salah) -> DIBUAT DALAM TABEL
     if (tipePrefix === '4') {
-        const statements = rev.Pernyataan || rev.Statements || [];
-        const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci : [];
-        const userArr = Array.isArray(rev.ans) ? rev.ans : [];
+        let statements = rev.Pernyataan || rev.Statements || [];
+        if (statements.length === 0) {
+            ['A','B','C','D','E'].forEach(opt => {
+                if (rev[opt]) statements.push(rev[opt]);
+            });
+        }
+        
+        const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci : String(rev.Kunci).split(',').map(s=>s.trim());
+        const userArr = Array.isArray(rev.ans) ? rev.ans : String(rev.ans || '').split(',').map(s=>s.trim());
 
         if (statements.length === 0) return '';
 
         return `
-        <div class="tf-review-container">
-            <table class="premium-table mini-table">
-                <thead>
+        <div class="table-responsive" style="margin-top:15px;">
+            <table class="premium-table mini-table" style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f8fafc; text-align: left;">
                     <tr>
-                        <th style="width:50px;">No</th>
-                        <th>Pernyataan</th>
-                        <th style="width:120px;">Jawaban Anda</th>
-                        <th style="width:120px;">Kunci</th>
-                        <th style="width:90px;">Status</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0; width:50px;">No</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0;">Pernyataan</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0; width:120px; color:#ef4444;">Jawaban Anda</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0; width:120px; color:#10b981;">Kunci</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${statements.map((st, sIdx) => {
                         const uVal = userArr[sIdx] || 'Kosong';
                         const kVal = keyArr[sIdx] || '-';
-                        const isRowCorrect = String(uVal).toUpperCase() === String(kVal).toUpperCase();
+                        const isMatch = String(uVal).toUpperCase() === String(kVal).toUpperCase();
                         return `
                         <tr>
-                            <td>${sIdx + 1}</td>
-                            <td>${st}</td>
-                            <td><strong>${uVal}</strong></td>
-                            <td><strong>${kVal}</strong></td>
-                            <td><span class="badge ${isRowCorrect ? 'bg-success' : 'bg-danger'}">${isRowCorrect ? '✓ Benar' : '✗ Salah'}</span></td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0;">${sIdx + 1}</td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0;">${st}</td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0; color: ${isMatch ? '#10b981' : '#ef4444'}; font-weight:bold;">${uVal}</td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0; color: #10b981; font-weight:bold;">${kVal}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
@@ -78,64 +80,64 @@ function renderOptionsByQuestionType(rev) {
         </div>`;
     }
 
-    // TIPE 5 (Skala / TKP / Bobot Nilai)
+    // TIPE 5 (Skala / TKP / Bobot Nilai) -> DIBUAT DALAM TABEL
     if (tipePrefix === '5') {
         const keyObj = (typeof rev.Kunci === "object" && rev.Kunci !== null) ? rev.Kunci : {};
         return `
-        <div class="options-review-list">
-            ${['A', 'B', 'C', 'D', 'E'].map(opt => {
-                if (!rev[opt]) return '';
-                const weight = keyObj[opt] !== undefined ? keyObj[opt] : 0;
-                const isSelected = String(rev.ans) === opt;
-                return `
-                <div class="opt-item ${isSelected ? 'opt-selected-tkp' : ''}">
-                    <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
-                    <span class="opt-weight-badge">Bobot: ${weight} Poin</span>
-                </div>`;
-            }).join('')}
+        <div class="table-responsive" style="margin-top:15px;">
+            <table class="premium-table mini-table" style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f8fafc; text-align: left;">
+                    <tr>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0; width:60px;">Opsi</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0;">Pernyataan / Pilihan</th>
+                        <th style="padding: 10px; border: 1px solid #e2e8f0; width:100px;">Bobot Poin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${['A', 'B', 'C', 'D', 'E'].map(opt => {
+                        if (!rev[opt]) return '';
+                        const weight = keyObj[opt] !== undefined ? keyObj[opt] : 0;
+                        const isSelected = String(rev.ans) === opt;
+                        const bgStyle = isSelected ? 'background-color: #fef08a;' : ''; 
+                        return `
+                        <tr style="${bgStyle}">
+                            <td style="padding: 10px; border: 1px solid #e2e8f0;"><strong>${opt}</strong></td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0;">${rev[opt]}</td>
+                            <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight:bold;">${weight} Poin</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
         </div>`;
     }
 
-    // TIPE 2 (Multiple Choice / Pilihan Ganda Kompleks)
-    if (tipePrefix === '2') {
-        const userArr = Array.isArray(rev.ans) ? rev.ans.map(String) : [String(rev.ans)];
-        const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci.map(String) : [String(rev.Kunci)];
-        return `
-        <div class="options-review-list">
-            ${['A', 'B', 'C', 'D', 'E'].map(opt => {
-                if (!rev[opt]) return '';
-                const isKey = keyArr.includes(opt);
-                const isUser = userArr.includes(opt);
-                let optClass = '';
-                if (isKey && isUser) optClass = 'opt-key opt-user-correct';
-                else if (isKey) optClass = 'opt-key';
-                else if (isUser) optClass = 'opt-user-wrong';
-
-                return `
-                <div class="opt-item ${optClass}">
-                    <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
-                    ${isKey ? '<span class="badge-key">KUNCI</span>' : ''}
-                </div>`;
-            }).join('')}
-        </div>`;
-    }
-
-    // TIPE 1 (Single Choice / Pilihan Ganda Biasa)
+    // TIPE 1 & 2 (Pilihan Ganda Standar & Kompleks)
+    const userArr = Array.isArray(rev.ans) ? rev.ans.map(String) : [String(rev.ans)];
+    const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci.map(String) : [String(rev.Kunci)];
     return `
-    <div class="options-review-list">
+    <div class="options-review-list" style="margin-top:15px;">
         ${['A', 'B', 'C', 'D', 'E'].map(opt => {
             if (!rev[opt]) return '';
-            const isKey = String(rev.Kunci) === opt;
-            const isUser = String(rev.ans) === opt;
-            let optClass = '';
-            if (isKey && isUser) optClass = 'opt-key opt-user-correct';
-            else if (isKey) optClass = 'opt-key';
-            else if (isUser) optClass = 'opt-user-wrong';
+            const isKey = keyArr.includes(opt);
+            const isUser = userArr.includes(opt);
+            let optStyle = "padding: 8px; border: 1px solid #e2e8f0; border-radius: 5px; margin-bottom: 5px;";
+            let badge = "";
+
+            if (isKey && isUser) {
+                optStyle = "padding: 8px; border: 1px solid #10b981; background: #d1fae5; border-radius: 5px; margin-bottom: 5px;";
+                badge = `<span style="float:right; background:#10b981; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px;">✓ Benar</span>`;
+            } else if (isKey) {
+                optStyle = "padding: 8px; border: 1px solid #10b981; border-radius: 5px; margin-bottom: 5px;";
+                badge = `<span style="float:right; background:#10b981; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px;">KUNCI</span>`;
+            } else if (isUser) {
+                optStyle = "padding: 8px; border: 1px solid #ef4444; background: #fee2e2; border-radius: 5px; margin-bottom: 5px;";
+                badge = `<span style="float:right; background:#ef4444; color:#fff; padding:2px 8px; border-radius:12px; font-size:12px;">Pilihan Anda</span>`;
+            }
 
             return `
-            <div class="opt-item ${optClass}">
-                <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
-                ${isKey ? '<span class="badge-key">KUNCI</span>' : ''}
+            <div style="${optStyle}">
+                <strong>${opt}.</strong> ${rev[opt]}
+                ${badge}
             </div>`;
         }).join('')}
     </div>`;
@@ -511,8 +513,34 @@ function renderFullStudentReport() {
                     const teksSoal = rev.Soal || rev.Pertanyaan || "Teks soal tidak tersedia.";
                     const teksPembahasan = rev.Pembahasan || "Penjelasan belum tersedia untuk nomor ini.";
                     
-                    // Render opsi dinamis berdasarkan tipe soal
+                    // Render opsi dinamis
                     const optionsHTML = renderOptionsByQuestionType(rev);
+
+                    // LOGIKA KOTAK WARNA JAWABAN (HIJAU / MERAH)
+                    let answerCompareHTML = '';
+                    const isPerfectMatch = String(rev.ans).trim().toUpperCase() === String(rev.Kunci).trim().toUpperCase();
+                    
+                    if (rev.status === 'BENAR' || isPerfectMatch) {
+                        answerCompareHTML = `
+                            <div style="background: #d1fae5; border: 1px solid #10b981; padding: 12px; margin-top: 20px; border-radius: 6px;">
+                                <div style="color: #065f46; font-weight: bold; font-size: 15px; margin-bottom: 5px;">✅ Jawaban mu dan Kunci Valid</div>
+                                <div style="color: #065f46;">Jawaban Anda: <strong>${ansText}</strong></div>
+                            </div>
+                        `;
+                    } else {
+                        answerCompareHTML = `
+                            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                                <div style="flex: 1; background: #fee2e2; border: 1px solid #ef4444; padding: 12px; border-radius: 6px;">
+                                    <div style="color: #991b1b; font-weight: bold; font-size: 14px; margin-bottom: 5px;">❌ Jawaban Anda</div>
+                                    <div style="color: #991b1b; font-size: 16px;"><strong>${ansText}</strong></div>
+                                </div>
+                                <div style="flex: 1; background: #d1fae5; border: 1px solid #10b981; padding: 12px; border-radius: 6px;">
+                                    <div style="color: #065f46; font-weight: bold; font-size: 14px; margin-bottom: 5px;">✅ Kunci Jawaban</div>
+                                    <div style="color: #065f46; font-size: 16px;"><strong>${keyText}</strong></div>
+                                </div>
+                            </div>
+                        `;
+                    }
 
                     return `
                     <div class="review-card-item">
@@ -533,19 +561,10 @@ function renderFullStudentReport() {
                             ${optionsHTML}
                         </div>
 
-                        <div class="answer-compare">
-                            <div class="ans-box user-ans ${rev.status === 'BENAR' ? 'correct-border' : 'wrong-border'}">
-                                <small>Jawaban Peserta:</small>
-                                <strong>${ansText}</strong>
-                            </div>
-                            <div class="ans-box key-ans">
-                                <small>Kunci Jawaban:</small>
-                                <strong>${keyText}</strong>
-                            </div>
-                        </div>
+                        ${answerCompareHTML}
 
-                        <div class="pembahasan-detail-box">
-                            <h4>💡 Penjelasan / Pembahasan:</h4>
+                        <div class="pembahasan-detail-box" style="margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                            <h4 style="margin:0 0 10px 0; color:#3b82f6;">💡 Penjelasan / Pembahasan:</h4>
                             <div class="pembahasan-text">${teksPembahasan}</div>
                         </div>
                     </div>`;
@@ -564,85 +583,76 @@ function renderFullStudentReport() {
 
     container.innerHTML = html;
 
-    // Trigger MathJax untuk LaTeX
+    // Trigger MathJax untuk LaTeX jika ada
     if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
         window.MathJax.typesetPromise();
     }
 
-    // Inisialisasi Grafik Chart.js
-    renderReportCharts(totalBenar, totalSalah, totalKosong, itemReviews, subtestStats);
+    // Eksekusi Grafik dengan Delay agar DOM siap
+    setTimeout(() => {
+        renderReportCharts(totalBenar, totalSalah, totalKosong, itemReviews, subtestStats);
+    }, 500);
 }
 
 // HELPER: Inisialisasi Chart.js Visual
 function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
-    if (typeof Chart === 'undefined') return;
-
-    // 1. Pie Chart - Proporsi Jawaban
-    const pieCtx = document.getElementById('chartScorePie');
-    if (pieCtx) {
-        new Chart(pieCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Benar', 'Salah', 'Kosong'],
-                datasets: [{
-                    data: [benar, salah, kosong],
-                    backgroundColor: ['#10B981', '#EF4444', '#9CA3AF']
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-    }
-
-    // 2. Line Chart - Time Analysis
-    const lineCtx = document.getElementById('chartTimeLine');
-    if (lineCtx) {
-        new Chart(lineCtx, {
-            type: 'line',
-            data: {
-                labels: itemReviews.map(r => `No ${r.no}`),
-                datasets: [{
-                    label: 'Durasi (Detik)',
-                    data: itemReviews.map(r => r.durasiSec),
-                    borderColor: '#3B82F6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js tidak terdeteksi! Diagram tidak dapat ditampilkan.");
+        ['chartScorePie', 'chartTimeLine', 'chartSubtestBar'].forEach(id => {
+            const canvasEl = document.getElementById(id);
+            if(canvasEl) {
+                canvasEl.outerHTML = `<div style="text-align:center; padding: 40px 20px; background:#fff3cd; color:#856404; border-radius:8px;">
+                    <strong>Peringatan:</strong> Library Chart.js belum dimuat. Pastikan terhubung internet atau script sudah ditambahkan.
+                </div>`;
             }
         });
+        return;
     }
 
-    // 3. Bar Chart - Subtest Strength
-    const barCtx = document.getElementById('chartSubtestBar');
-    if (barCtx) {
-        const labels = Object.keys(subtestStats);
-        const accuracyData = labels.map(k => {
-            const st = subtestStats[k];
-            return st.total > 0 ? ((st.benar / st.total) * 100).toFixed(1) : 0;
-        });
+    const initChart = (canvasId, config) => {
+        const ctx = document.getElementById(canvasId);
+        if (ctx) {
+            let chartStatus = Chart.getChart(canvasId); 
+            if (chartStatus != undefined) chartStatus.destroy();
+            new Chart(ctx, config);
+        }
+    };
 
-        new Chart(barCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Akurasi Subtest (%)',
-                    data: accuracyData,
-                    backgroundColor: '#8B5CF6'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { min: 0, max: 100 } }
-            }
-        });
-    }
+    // 1. Pie Chart
+    initChart('chartScorePie', {
+        type: 'doughnut',
+        data: {
+            labels: ['Benar', 'Salah', 'Kosong'],
+            datasets: [{ data: [benar, salah, kosong], backgroundColor: ['#10B981', '#EF4444', '#9CA3AF'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // 2. Line Chart
+    initChart('chartTimeLine', {
+        type: 'line',
+        data: {
+            labels: itemReviews.map(r => `No ${r.no}`),
+            datasets: [{
+                label: 'Durasi (Detik)',
+                data: itemReviews.map(r => r.durasiSec),
+                borderColor: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    });
+
+    // 3. Bar Chart
+    const labels = Object.keys(subtestStats);
+    const accuracyData = labels.map(k => (subtestStats[k].total > 0 ? (subtestStats[k].benar / subtestStats[k].total) * 100 : 0));
+    initChart('chartSubtestBar', {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{ label: 'Akurasi (%)', data: accuracyData, backgroundColor: '#8B5CF6' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+    });
 }
 
 document.addEventListener("DOMContentLoaded", renderFullStudentReport);
