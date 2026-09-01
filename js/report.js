@@ -1,5 +1,6 @@
 /* ==========================================================
    CBT KIBI V2.0 PREMIUM - Static Student Report & Review
+   Update Version: 1.6.7 / 2.0 Complete Engine
    ========================================================== */
 
 // Helper Pemformat Kunci Jawaban
@@ -27,6 +28,117 @@ function formatTimeDuration(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// HELPER DINAMIS: Render Opsi Pembahasan Berdasarkan Tipe Soal
+function renderOptionsByQuestionType(rev) {
+    const tipePrefix = String(rev.Tipe || '1').charAt(0);
+
+    // TIPE 3 (Isian / Short Answer): HILANGKAN opsi A-E sepenuhnya
+    if (tipePrefix === '3') {
+        return '';
+    }
+
+    // TIPE 4 (Pernyataan Benar/Salah)
+    if (tipePrefix === '4') {
+        const statements = rev.Pernyataan || rev.Statements || [];
+        const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci : [];
+        const userArr = Array.isArray(rev.ans) ? rev.ans : [];
+
+        if (statements.length === 0) return '';
+
+        return `
+        <div class="tf-review-container">
+            <table class="premium-table mini-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">No</th>
+                        <th>Pernyataan</th>
+                        <th style="width:120px;">Jawaban Anda</th>
+                        <th style="width:120px;">Kunci</th>
+                        <th style="width:90px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${statements.map((st, sIdx) => {
+                        const uVal = userArr[sIdx] || 'Kosong';
+                        const kVal = keyArr[sIdx] || '-';
+                        const isRowCorrect = String(uVal).toUpperCase() === String(kVal).toUpperCase();
+                        return `
+                        <tr>
+                            <td>${sIdx + 1}</td>
+                            <td>${st}</td>
+                            <td><strong>${uVal}</strong></td>
+                            <td><strong>${kVal}</strong></td>
+                            <td><span class="badge ${isRowCorrect ? 'bg-success' : 'bg-danger'}">${isRowCorrect ? '✓ Benar' : '✗ Salah'}</span></td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    }
+
+    // TIPE 5 (Skala / TKP / Bobot Nilai)
+    if (tipePrefix === '5') {
+        const keyObj = (typeof rev.Kunci === "object" && rev.Kunci !== null) ? rev.Kunci : {};
+        return `
+        <div class="options-review-list">
+            ${['A', 'B', 'C', 'D', 'E'].map(opt => {
+                if (!rev[opt]) return '';
+                const weight = keyObj[opt] !== undefined ? keyObj[opt] : 0;
+                const isSelected = String(rev.ans) === opt;
+                return `
+                <div class="opt-item ${isSelected ? 'opt-selected-tkp' : ''}">
+                    <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
+                    <span class="opt-weight-badge">Bobot: ${weight} Poin</span>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
+    // TIPE 2 (Multiple Choice / Pilihan Ganda Kompleks)
+    if (tipePrefix === '2') {
+        const userArr = Array.isArray(rev.ans) ? rev.ans.map(String) : [String(rev.ans)];
+        const keyArr = Array.isArray(rev.Kunci) ? rev.Kunci.map(String) : [String(rev.Kunci)];
+        return `
+        <div class="options-review-list">
+            ${['A', 'B', 'C', 'D', 'E'].map(opt => {
+                if (!rev[opt]) return '';
+                const isKey = keyArr.includes(opt);
+                const isUser = userArr.includes(opt);
+                let optClass = '';
+                if (isKey && isUser) optClass = 'opt-key opt-user-correct';
+                else if (isKey) optClass = 'opt-key';
+                else if (isUser) optClass = 'opt-user-wrong';
+
+                return `
+                <div class="opt-item ${optClass}">
+                    <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
+                    ${isKey ? '<span class="badge-key">KUNCI</span>' : ''}
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
+    // TIPE 1 (Single Choice / Pilihan Ganda Biasa)
+    return `
+    <div class="options-review-list">
+        ${['A', 'B', 'C', 'D', 'E'].map(opt => {
+            if (!rev[opt]) return '';
+            const isKey = String(rev.Kunci) === opt;
+            const isUser = String(rev.ans) === opt;
+            let optClass = '';
+            if (isKey && isUser) optClass = 'opt-key opt-user-correct';
+            else if (isKey) optClass = 'opt-key';
+            else if (isUser) optClass = 'opt-user-wrong';
+
+            return `
+            <div class="opt-item ${optClass}">
+                <span class="opt-text"><strong>${opt}.</strong> ${rev[opt]}</span>
+                ${isKey ? '<span class="badge-key">KUNCI</span>' : ''}
+            </div>`;
+        }).join('')}
+    </div>`;
 }
 
 // FUNGSI UTAMA: Render Laporan Hasil Ujian Lengkap
@@ -184,7 +296,7 @@ function renderFullStudentReport() {
     const accuracyPct = questions.length > 0 ? ((totalBenar / questions.length) * 100).toFixed(1) : 0;
     const avgTimeSec = questions.length > 0 ? Math.round(totalTimeSpent / questions.length) : 0;
 
-    // 3. BUILD HTML STRUCTURE (FITUR 1-7 REPORT)
+    // 3. BUILD HTML STRUCTURE
     let html = `
     <div class="premium-report-wrapper">
         
@@ -195,11 +307,10 @@ function renderFullStudentReport() {
                     ${dataJSON.logo ? `<img src="${dataJSON.logo}" class="brand-logo" alt="Logo Lembaga">` : ''}
                     <div>
                         <h1 class="cbt-title">${dataJSON.nama_sistem_cbt || 'CBT SYSTEM'}</h1>
-                        <h2 class="lembaga-title">${dataJSON.lembaga || 'SMAN 12 BANUA'}</h2>
+                        <h2 class="lembaga-title">${dataJSON.lembaga || 'LAPORAN HASIL TES PESERTA'}</h2>
                         <p class="alamat-text">${dataJSON.alamat_lembaga || '-'}</p>
                     </div>
                 </div>
-                <!-- FITUR: TOMBOL PRINT PDF -->
                 <button onclick="window.print()" class="btn-print">
                     🖨️ Cetak / Print PDF
                 </button>
@@ -219,7 +330,7 @@ function renderFullStudentReport() {
             </div>
         </div>
 
-        <!-- FITUR 1, 2, 3: DASHBOARD SCORE ANALYSIS, ACCURACY & AVG TIME -->
+        <!-- FITUR: DASHBOARD SCORE ANALYSIS -->
         <div class="dashboard-grid">
             <div class="score-card primary">
                 <p class="card-label">TOTAL SKOR PEROLEHAN</p>
@@ -248,9 +359,31 @@ function renderFullStudentReport() {
             </div>
         </div>
 
-        <!-- FITUR 4: SUBTEST STRENGTH ANALYSIS -->
+        <!-- FITUR: VISUALISASI GRAFIK CHART.JS -->
+        <div class="card-box charts-main-wrapper">
+            <h3 class="section-title">📊 Visualisasi Analisis Performa</h3>
+            <div class="charts-grid-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 15px;">
+                <div class="chart-card" style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h4 style="text-align: center; margin-bottom: 10px; font-size: 14px;">Proporsi Jawaban</h4>
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="chartScorePie"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card" style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h4 style="text-align: center; margin-bottom: 10px; font-size: 14px;">Analisis Waktu Pengerjaan Per Soal (Detik)</h4>
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="chartTimeLine"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FITUR: SUBTEST STRENGTH ANALYSIS -->
         <div class="card-box analytics-container">
             <h3 class="section-title">📊 Subtest Strength Analysis</h3>
+            <div style="height: 200px; margin-bottom: 20px;">
+                <canvas id="chartSubtestBar"></canvas>
+            </div>
             <div class="table-responsive">
                 <table class="premium-table">
                     <thead>
@@ -279,15 +412,14 @@ function renderFullStudentReport() {
                                     </div>
                                     <small>${pct}%</small>
                                 </td>
-                            </tr>
-                            `;
+                            </tr>`;
                         }).join('')}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- FITUR 5: SECTION STRENGTH ANALYSIS -->
+        <!-- FITUR: SECTION STRENGTH ANALYSIS -->
         <div class="card-box analytics-container">
             <h3 class="section-title">📌 Section Strength Analysis</h3>
             <div class="table-responsive">
@@ -318,15 +450,50 @@ function renderFullStudentReport() {
                                     </div>
                                     <small>${pct}%</small>
                                 </td>
-                            </tr>
-                            `;
+                            </tr>`;
                         }).join('')}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- FITUR 6 & 7: QUESTION REVIEW + TIMELOG + PEMBAHASAN -->
+        <!-- FITUR: LOG REVIEW TABEL COMPACT -->
+        <div class="card-box log-review-container">
+            <h3 class="section-title">📋 Log Rekap Pengerjaan Soal</h3>
+            <div class="table-responsive">
+                <table class="premium-table compact-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tipe</th>
+                            <th>Level</th>
+                            <th>Subtest</th>
+                            <th>Section</th>
+                            <th>Jawaban Anda</th>
+                            <th>Kunci Jawaban</th>
+                            <th>Skor</th>
+                            <th>Durasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemReviews.map(r => `
+                        <tr>
+                            <td><strong>${r.no}</strong></td>
+                            <td><span class="badge bg-light">${r.Tipe}</span></td>
+                            <td>${r.Level}</td>
+                            <td>${r.Subtest}</td>
+                            <td>${r.Section}</td>
+                            <td>${formatUserAnswerReport(r.ans)}</td>
+                            <td>${formatKunciReport(r.Kunci)}</td>
+                            <td><strong>+${r.skorDiperoleh}</strong></td>
+                            <td>${formatTimeDuration(r.durasiSec)}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FITUR: QUESTION REVIEW & PEMBAHASAN -->
         <div class="review-container card-box">
             <div class="review-header">
                 <h3 class="section-title">📝 Question Review & Pembahasan Lengkap</h3>
@@ -343,18 +510,9 @@ function renderFullStudentReport() {
                     const keyText = formatKunciReport(rev.Kunci);
                     const teksSoal = rev.Soal || rev.Pertanyaan || "Teks soal tidak tersedia.";
                     const teksPembahasan = rev.Pembahasan || "Penjelasan belum tersedia untuk nomor ini.";
-
-                    // Opsi Pilihan (Jika Tipe Single / Multiple Choice)
-                    let optionsHTML = "";
-                    if (rev.A || rev.B || rev.C || rev.D || rev.E) {
-                        optionsHTML = `
-                        <div class="options-review-list">
-                            ${['A', 'B', 'C', 'D', 'E'].map(opt => {
-                                if (!rev[opt]) return '';
-                                return `<div class="opt-item ${String(rev.Kunci) === opt ? 'opt-key' : ''}">${opt}. ${rev[opt]}</div>`;
-                            }).join('')}
-                        </div>`;
-                    }
+                    
+                    // Render opsi dinamis berdasarkan tipe soal
+                    const optionsHTML = renderOptionsByQuestionType(rev);
 
                     return `
                     <div class="review-card-item">
@@ -390,27 +548,100 @@ function renderFullStudentReport() {
                             <h4>💡 Penjelasan / Pembahasan:</h4>
                             <div class="pembahasan-text">${teksPembahasan}</div>
                         </div>
-                    </div>
-                    `;
+                    </div>`;
                 }).join('')}
             </div>
         </div>
 
-        <!-- FITUR: KALIMAT MOTIVASI (DI PALING AKHIR) -->
+        <!-- FITUR: KALIMAT MOTIVASI -->
         ${dataJSON.kalimat_motivasi ? `
         <div class="motivation-banner">
             <div class="quote-icon">❝</div>
             <p class="motivation-text">${dataJSON.kalimat_motivasi}</p>
         </div>` : ''}
 
-    </div>
-    `;
+    </div>`;
 
     container.innerHTML = html;
 
-    // Trigger MathJax jika ada notasi LaTeX
+    // Trigger MathJax untuk LaTeX
     if (window.MathJax && typeof window.MathJax.typesetPromise === "function") {
         window.MathJax.typesetPromise();
+    }
+
+    // Inisialisasi Grafik Chart.js
+    renderReportCharts(totalBenar, totalSalah, totalKosong, itemReviews, subtestStats);
+}
+
+// HELPER: Inisialisasi Chart.js Visual
+function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
+    if (typeof Chart === 'undefined') return;
+
+    // 1. Pie Chart - Proporsi Jawaban
+    const pieCtx = document.getElementById('chartScorePie');
+    if (pieCtx) {
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Benar', 'Salah', 'Kosong'],
+                datasets: [{
+                    data: [benar, salah, kosong],
+                    backgroundColor: ['#10B981', '#EF4444', '#9CA3AF']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // 2. Line Chart - Time Analysis
+    const lineCtx = document.getElementById('chartTimeLine');
+    if (lineCtx) {
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: itemReviews.map(r => `No ${r.no}`),
+                datasets: [{
+                    label: 'Durasi (Detik)',
+                    data: itemReviews.map(r => r.durasiSec),
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 3. Bar Chart - Subtest Strength
+    const barCtx = document.getElementById('chartSubtestBar');
+    if (barCtx) {
+        const labels = Object.keys(subtestStats);
+        const accuracyData = labels.map(k => {
+            const st = subtestStats[k];
+            return st.total > 0 ? ((st.benar / st.total) * 100).toFixed(1) : 0;
+        });
+
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Akurasi Subtest (%)',
+                    data: accuracyData,
+                    backgroundColor: '#8B5CF6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { min: 0, max: 100 } }
+            }
+        });
     }
 }
 
