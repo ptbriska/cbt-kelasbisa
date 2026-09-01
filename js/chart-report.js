@@ -8,6 +8,11 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         return;
     }
 
+    // Registrasi plugin DataLabels secara global ke Chart.js
+    if (typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
+
     // Helper untuk menghancurkan instance chart lama sebelum inisialisasi baru
     const safeInitChart = (canvasId, config) => {
         const canvasEl = document.getElementById(canvasId);
@@ -20,7 +25,6 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
         new Chart(canvasEl.getContext('2d'), config);
     };
 
-    // Deteksi keberadaan plugin ChartDataLabels secara aman
     const hasDataLabels = typeof ChartDataLabels !== 'undefined';
     const globalPlugins = hasDataLabels ? [ChartDataLabels] : [];
 
@@ -49,6 +53,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
                     }
                 },
                 datalabels: {
+                    display: true,
                     color: '#ffffff',
                     font: { family: 'Inter', weight: 'bold', size: 14 },
                     formatter: (value) => (value > 0 ? value : '')
@@ -79,7 +84,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: { top: 20 } // Ruang atas agar angka tidak terpotong
+                padding: { top: 25, right: 10 }
             },
             scales: {
                 y: {
@@ -94,6 +99,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
             plugins: {
                 legend: { display: false },
                 datalabels: {
+                    display: true,
                     align: 'top',
                     anchor: 'end',
                     color: '#4F46E5',
@@ -128,7 +134,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: { top: 20 } // Ruang atas agar label % tidak terpotong
+                padding: { top: 25 }
             },
             scales: {
                 y: {
@@ -144,6 +150,7 @@ function renderReportCharts(benar, salah, kosong, itemReviews, subtestStats) {
             plugins: {
                 legend: { display: false },
                 datalabels: {
+                    display: true,
                     align: 'top',
                     anchor: 'end',
                     color: '#7C3AED',
