@@ -1,5 +1,5 @@
 // ==========================================================
-// main.js - Entry Point & Window Bridge Handler (v1.6.0)
+// main.js - Entry Point & Window Bridge Handler (v1.6.0 - FIXED LOCK RULES)
 // ==========================================================
 
 // 1. Inisialisasi Objek Global State App Safe-Guard
@@ -56,10 +56,22 @@ window.initWebcamProctoring = function() {
 
 /**
  * Mengunci LocalStorage setelah submit
+ * Rules:
+ * - LATIHAN: Bebas dikerjakan berkali-kali (TIDAK dikunci)
+ * - SIMULASI / UJIAN / TRYOUT: Hanya 1 kali pengerjaan (Dikunci)
  */
 window.simpanLockSubmitted = function() {
-    const mode = (window.App.modeUjian || "").toUpperCase();
-    if (window.App && (mode === "SIMULASI" || mode === "LATIHAN") && window.App.currentKodeUjian) {
+    if (!window.App) return;
+
+    const mode = String(window.App.modeUjian || "").toUpperCase();
+
+    // Mode LATIHAN bebas dikerjakan berkali-kali, batalkan penguncian!
+    if (mode === "LATIHAN") {
+        return;
+    }
+
+    // Hanya kunci jika mode adalah SIMULASI, UJIAN, TRYOUT, atau UTAMA
+    if ((mode === "SIMULASI" || mode === "UJIAN" || mode === "TRYOUT" || mode === "UTAMA") && window.App.currentKodeUjian) {
         const dataPeserta = window.App.verifiedPesertaData || window.App.userIdentitas || {};
         const namaUser = dataPeserta["Nama Lengkap"] || dataPeserta.nama || "USER";
         const lockKey = `SUBMITTED_${window.App.currentKodeUjian}_${namaUser}`;
@@ -77,6 +89,13 @@ window.konfirmasiSubmit = function() {
     if (window.App && window.App.timerInterval) {
         clearInterval(window.App.timerInterval);
         window.App.timerInterval = null;
+    }
+
+    // Simpan status penguncian sesuai rule (Latihan di-bypass, Simulasi dikunci)
+    if (typeof simpanLockSubmitted === "function") {
+        simpanLockSubmitted();
+    } else if (typeof window.simpanLockSubmitted === "function") {
+        window.simpanLockSubmitted();
     }
 
     // Prioritaskan eksekusi langsung Engine Scoring tanpa perantara
