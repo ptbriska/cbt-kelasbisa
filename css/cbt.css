@@ -1,6 +1,6 @@
 /* ==========================================================================
-   cbt.css - Stylesheet Ujian CBT Multi-Type V1.6.5
-   Update: Dynamic CSS Variables Font, Soft Pastel Badges, & Matrix Responsive
+   cbt.css - Stylesheet Ujian CBT Multi-Type V1.6.6
+   Update: Dynamic CSS Variables Font, Clean Soft Badges, & Grid Auto Actions
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -44,7 +44,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   2. ARENA SOAL CBT (Page 3 Layout)
+   2. ARENA SOAL CBT (Page Layout)
    -------------------------------------------------------------------------- */
 .cbt-layout {
   display: flex;
@@ -157,7 +157,7 @@ body {
   align-items: center;
   border-bottom: 1px dashed #cbd5e1;
   padding-bottom: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .q-title {
@@ -181,13 +181,23 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   3. BADGE PARAMETRIK SOAL DINAMIS (v1.6.5 - Clean & Soft Pastel)
+   3. OVERRIDE CONTAINER & BADGE METADATA DINAMIS (V1.6.6)
    -------------------------------------------------------------------------- */
+/* Strip total background/border bawaan elemen #q-level */
+#q-level {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-bottom: 12px;
+}
+
 .question-badges-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
   align-items: center;
   background: transparent !important;
   padding: 0 !important;
@@ -196,14 +206,15 @@ body {
 }
 
 .badge-tag {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
-  line-height: 1.3;
+  line-height: 1.2;
   letter-spacing: 0.3px;
+  text-transform: uppercase;
   transition: all 0.2s ease;
 }
 
@@ -223,9 +234,9 @@ body {
 
 /* 3. Level Kesulitan Soal */
 .badge-level {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background-color: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fde047;
 }
 
 .badge-level.easy,
@@ -264,11 +275,11 @@ body {
   align-items: center;
   gap: 6px;
   margin-top: 4px;
-  margin-bottom: 16px;
-  padding: 4px 10px;
+  margin-bottom: 14px;
+  padding: 4px 8px;
   border-radius: 6px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
 .btn-font-size {
@@ -276,8 +287,9 @@ body {
   color: #374151;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  padding: 2px 10px;
+  padding: 2px 8px;
   cursor: pointer;
+  font-size: 12px;
   transition: all 0.15s ease-in-out;
 }
 
@@ -301,15 +313,16 @@ body {
 .img-box img,
 .img-soal {
   max-width: 100%;
-  max-height: 300px;
+  max-height: 320px;
   border-radius: 10px;
   margin-bottom: 20px;
   border: 1px solid #e2e8f0;
   display: block;
+  object-fit: contain;
 }
 
 .q-text {
-  font-size: var(--cbt-font-size, 1.05rem);
+  font-size: var(--cbt-font-size, 1rem);
   line-height: 1.6;
   color: var(--text-dark);
   margin-bottom: 25px;
@@ -489,7 +502,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   8. FITUR RAGU-RAGU & KOSONGKAN JAWABAN (v1.6.5)
+   8. FITUR RAGU-RAGU & KOSONGKAN JAWABAN (V1.6.6)
    -------------------------------------------------------------------------- */
 .doubt-container {
   margin-top: 15px;
@@ -530,7 +543,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   9. SIDEBAR NAVIGASI GRID SOAL (Kanan)
+   9. SIDEBAR NAVIGASI GRID SOAL & TOMBOL SELESAI (Kanan)
    -------------------------------------------------------------------------- */
 .sidebar-nav {
   width: 240px;
@@ -678,7 +691,7 @@ body {
   
   .sidebar-nav {
     width: 100%;
-    max-height: 200px;
+    max-height: 220px;
     border-left: none;
     border-top: var(--border-light);
     padding: 15px;
