@@ -674,3 +674,14 @@ body {
         print-color-adjust: exact;
     }
 }
+/* Pengaturan Cetak Kop Surat */
+@media print {
+    .btn-print {
+        display: none !important;
+    }
+    .report-header-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px 0 !important;
+    }
+}
