@@ -150,7 +150,7 @@ function initHalamanPembahasanPreview() {
     container.innerHTML = html;
 }
 
-// 5. Fungsi Eksekusi Verifikasi Token
+// 5. Fungsi Eksekusi Verifikasi Token (Diperbarui untuk localStorage & New Window)
 function verifikasiTokenPreview() {
     const inputEl = document.getElementById("input-token-preview");
     if (!inputEl) return;
@@ -166,18 +166,27 @@ function verifikasiTokenPreview() {
     if (typedToken === targetToken) {
         alert("🎉 Token Valid! Membuka Full Student Report...");
         
-        // Simpan status unlock ke state global
+        // Simpan status unlock ke state global App
         App.isPembahasanUnlocked = true;
 
-        // Eksekusi pemanggilan Full Student Report yang ada di report.js
-        if (typeof renderFullStudentReport === "function") {
-            renderFullStudentReport();
-        } else if (typeof window.renderFullStudentReport === "function") {
-            window.renderFullStudentReport();
-        } else {
-            console.error("Modul report.js belum dimuat!");
-            alert("Sistem siap, namun file report.js belum dimuat.");
+        // Persiapkan data lengkap untuk disimpan ke localStorage
+        const reportDataPayload = {
+            soalData: App.soalData || {},
+            userAnswers: App.userAnswers || {},
+            questionTimeLogs: App.questionTimeLogs || App.timeLogs || {},
+            userName: App.userName || "Peserta Ujian"
+        };
+
+        // Simpan data ke localStorage agar dibaca oleh pembahasan.html
+        try {
+            localStorage.setItem("cbt_report_data", JSON.stringify(reportDataPayload));
+        } catch (err) {
+            console.error("Gagal menyimpan data ke localStorage:", err);
         }
+
+        // Buka pembahasan.html pada tab/window baru
+        window.open("pembahasan.html", "_blank");
+
     } else {
         alert("❌ Token Salah! Silakan periksa kembali token yang Anda masukkan atau hubungi admin.");
         inputEl.focus();
