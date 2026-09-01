@@ -518,19 +518,21 @@ function renderFullStudentReport() {
                     // LOGIKA KOTAK WARNA JAWABAN (HIJAU / MERAH)
                     let answerCompareHTML = '';
                     const isPerfectMatch = String(rev.ans).trim().toUpperCase() === String(rev.Kunci).trim().toUpperCase();
-                    
-                    if (rev.status === 'BENAR' || isPerfectMatch) {
+                    const isTipe5 = String(rev.Tipe || '').startsWith('5');
+                    const isAnswered = rev.ans !== undefined && rev.ans !== null && rev.ans !== "" && rev.ans !== "-";
+
+                    if (rev.status === 'BENAR' || isPerfectMatch || (isTipe5 && isAnswered)) {
                         answerCompareHTML = `
                             <div style="background: #d1fae5; border: 1px solid #10b981; padding: 12px; margin-top: 20px; border-radius: 6px;">
-                                <div style="color: #065f46; font-weight: bold; font-size: 15px; margin-bottom: 5px;">✅ Jawaban mu dan Kunci Valid</div>
-                                <div style="color: #065f46;">Jawaban Anda: <strong>${ansText}</strong></div>
+                                <div style="color: #065f46; font-weight: bold; font-size: 15px; margin-bottom: 5px;">✅ Jawabanmu dan Kunci Valid, Selamat</div>
+                                <div style="color: #065f46;">Jawaban Anda: <strong>${ansText}</strong> ${isTipe5 ? `(Memperoleh ${rev.skorDiperoleh} Poin)` : ''}</div>
                             </div>
                         `;
                     } else {
                         answerCompareHTML = `
                             <div style="display: flex; gap: 15px; margin-top: 20px;">
                                 <div style="flex: 1; background: #fee2e2; border: 1px solid #ef4444; padding: 12px; border-radius: 6px;">
-                                    <div style="color: #991b1b; font-weight: bold; font-size: 14px; margin-bottom: 5px;">❌ Jawaban Anda</div>
+                                    <div style="color: #991b1b; font-weight: bold; font-size: 14px; margin-bottom: 5px;">❌ Jawabanmu</div>
                                     <div style="color: #991b1b; font-size: 16px;"><strong>${ansText}</strong></div>
                                 </div>
                                 <div style="flex: 1; background: #d1fae5; border: 1px solid #10b981; padding: 12px; border-radius: 6px;">
